@@ -1,0 +1,89 @@
+import yabase/base16
+import yabase/core/encoding.{InvalidCharacter, InvalidLength}
+
+// --- Fixed vectors ---
+
+pub fn encode_empty_test() {
+  assert base16.encode(<<>>) == ""
+}
+
+pub fn encode_hello_test() {
+  assert base16.encode(<<"Hello":utf8>>) == "48656c6c6f"
+}
+
+pub fn encode_single_byte_test() {
+  assert base16.encode(<<255>>) == "ff"
+}
+
+pub fn encode_zero_byte_test() {
+  assert base16.encode(<<0>>) == "00"
+}
+
+pub fn encode_binary_test() {
+  assert base16.encode(<<0xde, 0xad, 0xbe, 0xef>>) == "deadbeef"
+}
+
+pub fn encode_leading_zeros_test() {
+  assert base16.encode(<<0, 0, 1>>) == "000001"
+}
+
+pub fn encode_all_zeros_test() {
+  assert base16.encode(<<0, 0, 0, 0>>) == "00000000"
+}
+
+pub fn encode_high_bit_bytes_test() {
+  assert base16.encode(<<0xff, 0x80, 0x7f>>) == "ff807f"
+}
+
+// --- Decode fixed vectors ---
+
+pub fn decode_empty_test() {
+  assert base16.decode("") == Ok(<<>>)
+}
+
+pub fn decode_hello_test() {
+  assert base16.decode("48656c6c6f") == Ok(<<"Hello":utf8>>)
+}
+
+pub fn decode_uppercase_test() {
+  assert base16.decode("48656C6C6F") == Ok(<<"Hello":utf8>>)
+}
+
+// --- Decode error cases ---
+
+pub fn decode_invalid_length_test() {
+  assert base16.decode("abc") == Error(InvalidLength(3))
+}
+
+pub fn decode_invalid_char_test() {
+  assert base16.decode("zz") == Error(InvalidCharacter("z", 0))
+}
+
+pub fn decode_invalid_char_position_test() {
+  assert base16.decode("0g") == Error(InvalidCharacter("g", 1))
+}
+
+// --- Roundtrip ---
+
+pub fn roundtrip_test() {
+  let data = <<"Hello, World!":utf8>>
+  assert base16.decode(base16.encode(data)) == Ok(data)
+}
+
+pub fn roundtrip_empty_test() {
+  assert base16.decode(base16.encode(<<>>)) == Ok(<<>>)
+}
+
+pub fn roundtrip_single_zero_test() {
+  assert base16.decode(base16.encode(<<0>>)) == Ok(<<0>>)
+}
+
+pub fn roundtrip_leading_zeros_test() {
+  let data = <<0, 0, 0, 42>>
+  assert base16.decode(base16.encode(data)) == Ok(data)
+}
+
+pub fn roundtrip_high_bits_test() {
+  let data = <<0xff, 0xfe, 0xfd, 0x80, 0x00>>
+  assert base16.decode(base16.encode(data)) == Ok(data)
+}

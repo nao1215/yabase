@@ -1,0 +1,173 @@
+/// RFC 1924 Base85 encoding.
+/// Uses a specific 85-character alphabet designed for IPv6 addresses.
+/// Encodes 16 bytes (128 bits) into 20 characters.
+/// Can also encode arbitrary data in 4-byte groups like Z85.
+import gleam/bit_array
+import gleam/string
+import yabase/core/encoding.{
+  type CodecError, InvalidCharacter, InvalidLength, Overflow,
+}
+
+const alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+-;<=>?@^_`{|}~"
+
+/// Maximum value for a decoded 5-character group: 2^32 - 1
+const max_u32 = 4_294_967_295
+
+/// Encode a BitArray to RFC 1924 Base85.
+/// Input length must be a multiple of 4 bytes.
+pub fn encode(data: BitArray) -> Result(String, CodecError) {
+  let len = bit_array.byte_size(data)
+  case len % 4 {
+    0 -> Ok(encode_groups(data, ""))
+    _ -> Error(InvalidLength(len))
+  }
+}
+
+fn encode_groups(data: BitArray, acc: String) -> String {
+  case data {
+    <<a:8, b:8, c:8, d:8, rest:bits>> -> {
+      let n = a * 16_777_216 + b * 65_536 + c * 256 + d
+      let encoded = encode_u32(n, 5, [])
+      encode_groups(rest, acc <> list_to_string(encoded))
+    }
+    _ -> acc
+  }
+}
+
+fn encode_u32(n: Int, count: Int, acc: List(String)) -> List(String) {
+  case count {
+    0 -> acc
+    _ -> {
+      let char = string_char_at(alphabet, n % 85)
+      encode_u32(n / 85, count - 1, [char, ..acc])
+    }
+  }
+}
+
+fn list_to_string(chars: List(String)) -> String {
+  case chars {
+    [] -> ""
+    [c, ..rest] -> c <> list_to_string(rest)
+  }
+}
+
+/// Decode an RFC 1924 Base85 string to a BitArray.
+/// Input length must be a multiple of 5 characters.
+pub fn decode(input: String) -> Result(BitArray, CodecError) {
+  let len = string.length(input)
+  case len % 5 {
+    0 -> decode_groups(input, <<>>, 0)
+    _ -> Error(InvalidLength(len))
+  }
+}
+
+fn decode_groups(
+  input: String,
+  acc: BitArray,
+  pos: Int,
+) -> Result(BitArray, CodecError) {
+  case take_5(input) {
+    Error(Nil) -> Ok(acc)
+    Ok(#(chars, rest)) ->
+      case decode_5_chars(chars, pos) {
+        Error(e) -> Error(e)
+        Ok(n) -> {
+          let bytes = u32_to_bytes(n)
+          decode_groups(
+            rest,
+            bit_array.append(acc, list_to_bit_array(bytes, <<>>)),
+            pos + 5,
+          )
+        }
+      }
+  }
+}
+
+fn take_5(input: String) -> Result(#(List(String), String), Nil) {
+  take_n(input, 5, [])
+}
+
+fn take_n(
+  input: String,
+  n: Int,
+  acc: List(String),
+) -> Result(#(List(String), String), Nil) {
+  case n {
+    0 -> Ok(#(reverse_strings(acc), input))
+    _ ->
+      case string.pop_grapheme(input) {
+        Error(Nil) ->
+          case acc {
+            [] -> Error(Nil)
+            _ -> Error(Nil)
+          }
+        Ok(#(c, rest)) -> take_n(rest, n - 1, [c, ..acc])
+      }
+  }
+}
+
+fn reverse_strings(l: List(String)) -> List(String) {
+  reverse_strings_acc(l, [])
+}
+
+fn reverse_strings_acc(l: List(String), acc: List(String)) -> List(String) {
+  case l {
+    [] -> acc
+    [h, ..t] -> reverse_strings_acc(t, [h, ..acc])
+  }
+}
+
+fn decode_5_chars(chars: List(String), pos: Int) -> Result(Int, CodecError) {
+  case decode_5_acc(chars, 0, pos) {
+    Ok(n) if n > max_u32 -> Error(Overflow)
+    other -> other
+  }
+}
+
+fn decode_5_acc(
+  chars: List(String),
+  acc: Int,
+  pos: Int,
+) -> Result(Int, CodecError) {
+  case chars {
+    [] -> Ok(acc)
+    [c, ..rest] ->
+      case char_value(c) {
+        Error(_) -> Error(InvalidCharacter(c, pos))
+        Ok(v) -> decode_5_acc(rest, acc * 85 + v, pos + 1)
+      }
+  }
+}
+
+fn u32_to_bytes(n: Int) -> List(Int) {
+  [n / 16_777_216 % 256, n / 65_536 % 256, n / 256 % 256, n % 256]
+}
+
+fn char_value(c: String) -> Result(Int, Nil) {
+  find_index(alphabet, c, 0)
+}
+
+fn find_index(haystack: String, needle: String, idx: Int) -> Result(Int, Nil) {
+  case string.pop_grapheme(haystack) {
+    Error(Nil) -> Error(Nil)
+    Ok(#(ch, rest)) ->
+      case ch == needle {
+        True -> Ok(idx)
+        False -> find_index(rest, needle, idx + 1)
+      }
+  }
+}
+
+fn string_char_at(s: String, index: Int) -> String {
+  case string.drop_start(s, index) |> string.pop_grapheme {
+    Ok(#(c, _)) -> c
+    Error(_) -> ""
+  }
+}
+
+fn list_to_bit_array(bytes: List(Int), acc: BitArray) -> BitArray {
+  case bytes {
+    [] -> acc
+    [b, ..rest] -> list_to_bit_array(rest, bit_array.append(acc, <<b:int>>))
+  }
+}

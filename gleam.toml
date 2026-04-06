@@ -1,0 +1,17 @@
+name = "yabase"
+version = "0.1.0"
+target = "erlang"
+description = "Yet Another Base - A unified, type-safe interface for multiple binary-to-text encodings"
+licences = ["MIT"]
+repository = { type = "github", user = "nao1215", repo = "yabase" }
+
+internal_modules = [
+  "yabase/internal",
+  "yabase/internal/*",
+]
+
+[dependencies]
+gleam_stdlib = ">= 0.44.0 and < 2.0.0"
+
+[dev_dependencies]
+gleeunit = ">= 1.0.0 and < 2.0.0"
