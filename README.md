@@ -3,7 +3,7 @@
 [![CI](https://github.com/nao1215/yabase/actions/workflows/ci.yml/badge.svg)](https://github.com/nao1215/yabase/actions/workflows/ci.yml)
 [![Hex.pm](https://img.shields.io/hexpm/v/yabase)](https://hex.pm/packages/yabase)
 
-![dataprep_logo](https://raw.githubusercontent.com/nao1215/dataprep/main/doc/img/yabase_logo_small.png)
+![yabase_logo](https://raw.githubusercontent.com/nao1215/yabase/main/doc/img/yabase_logo_small.png)
 
 Yet Another Base -- a unified, type-safe interface for multiple binary-to-text encodings in Gleam.
 
