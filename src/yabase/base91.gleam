@@ -6,6 +6,7 @@
 /// Uses Erlang bitwise operations via BitArray patterns to match
 /// the C reference implementation's unsigned integer semantics.
 import gleam/bit_array
+import gleam/list
 import gleam/string
 import yabase/core/encoding.{type CodecError, InvalidCharacter}
 
@@ -14,7 +15,7 @@ const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789
 /// Encode a BitArray to Base91.
 pub fn encode(data: BitArray) -> String {
   encode_loop(data, 0, 0, [])
-  |> list_reverse
+  |> list.reverse
   |> string.join("")
 }
 
@@ -86,13 +87,13 @@ fn decode_loop(
     [] -> {
       let final_acc = case val != -1 {
         True -> {
+          // Flush one final byte from remaining bits (matches C reference)
           let combined = bor(queue, bsl(val, nbits))
-          let combined_nbits = nbits + 7
-          extract_bytes_from_queue(combined, combined_nbits, acc)
+          [band(combined, 255), ..acc]
         }
         False -> acc
       }
-      Ok(list_to_bit_array(list_reverse(final_acc), <<>>))
+      Ok(list_to_bit_array(list.reverse(final_acc), <<>>))
     }
     [c, ..rest] ->
       case char_index(c) {
@@ -172,17 +173,6 @@ fn find_in_graphemes(
         True -> Ok(idx)
         False -> find_in_graphemes(rest, needle, idx + 1)
       }
-  }
-}
-
-fn list_reverse(l: List(a)) -> List(a) {
-  list_reverse_acc(l, [])
-}
-
-fn list_reverse_acc(l: List(a), acc: List(a)) -> List(a) {
-  case l {
-    [] -> acc
-    [h, ..t] -> list_reverse_acc(t, [h, ..acc])
   }
 }
 

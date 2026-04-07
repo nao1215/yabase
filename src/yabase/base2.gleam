@@ -1,12 +1,13 @@
 /// Base2 encoding (binary string representation).
 /// Each byte is represented as 8 characters of "0" and "1".
+import gleam/list
 import gleam/string
 import yabase/core/encoding.{type CodecError, InvalidCharacter, InvalidLength}
 
 /// Encode a BitArray to a binary string (e.g. <<0x41>> -> "01000001").
 pub fn encode(data: BitArray) -> String {
   encode_bytes(data, [])
-  |> list_reverse
+  |> list.reverse
   |> string.join("")
 }
 
@@ -14,7 +15,12 @@ fn encode_bytes(data: BitArray, acc: List(String)) -> List(String) {
   case data {
     <<byte:8, rest:bits>> ->
       encode_bytes(rest, [encode_byte(byte, 7, ""), ..acc])
-    _ -> acc
+    <<>> -> acc
+    _ ->
+      // Non-byte-aligned tail: should not happen with normal BitArray input.
+      // Encode remaining bits would require padding semantics not defined
+      // for Base2, so we treat this as unreachable.
+      acc
   }
 }
 
@@ -85,16 +91,5 @@ fn decode_byte(
             _ -> Error(InvalidCharacter(c, pos))
           }
       }
-  }
-}
-
-fn list_reverse(l: List(a)) -> List(a) {
-  list_reverse_acc(l, [])
-}
-
-fn list_reverse_acc(l: List(a), acc: List(a)) -> List(a) {
-  case l {
-    [] -> acc
-    [h, ..t] -> list_reverse_acc(t, [h, ..acc])
   }
 }

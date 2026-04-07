@@ -128,6 +128,10 @@ pub fn decode_invalid_char_lowercase_l_test() {
   assert base58check.decode("l") == Error(InvalidCharacter("l", 0))
 }
 
+pub fn decode_invalid_char_middle_test() {
+  assert base58check.decode("111O1111") == Error(InvalidCharacter("O", 3))
+}
+
 // === Cross-reference: bitcoinjs/bs58check fixtures ===
 // Source: https://github.com/bitcoinjs/bs58check
 

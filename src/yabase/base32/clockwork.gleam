@@ -3,6 +3,7 @@
 /// Alphabet: 0123456789ABCDEFGHJKMNPQRSTVWXYZ
 /// Decoding: o/O->0, i/I/l/L->1
 import gleam/bit_array
+import gleam/list
 import gleam/string
 import yabase/core/encoding.{type CodecError, InvalidCharacter, InvalidLength}
 
@@ -11,7 +12,7 @@ const alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
 /// Encode a BitArray to Clockwork Base32 (no padding).
 pub fn encode(data: BitArray) -> String {
   encode_bits(data, [])
-  |> list_reverse
+  |> list.reverse
   |> string.join("")
 }
 
@@ -105,16 +106,5 @@ fn string_char_at(s: String, index: Int) -> String {
   case string.drop_start(s, index) |> string.pop_grapheme {
     Ok(#(c, _)) -> c
     Error(_) -> ""
-  }
-}
-
-fn list_reverse(l: List(a)) -> List(a) {
-  list_reverse_acc(l, [])
-}
-
-fn list_reverse_acc(l: List(a), acc: List(a)) -> List(a) {
-  case l {
-    [] -> acc
-    [h, ..t] -> list_reverse_acc(t, [h, ..acc])
   }
 }

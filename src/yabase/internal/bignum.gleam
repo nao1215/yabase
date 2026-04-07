@@ -34,10 +34,20 @@ pub fn count_leading_zeros(data: BitArray, count: Int) -> Int {
   }
 }
 
-/// Count leading occurrences of a specific character in a string.
-pub fn count_leading_char(input: String, char: String, count: Int) -> Int {
+/// Count leading zero-valued characters in a string.
+/// Uses the provided char_value function to check if a character maps to 0,
+/// so zero aliases (e.g. Crockford O->0) are correctly counted.
+pub fn count_leading_zeros_str(
+  input: String,
+  char_value: fn(String) -> Result(Int, Nil),
+  count: Int,
+) -> Int {
   case string.pop_grapheme(input) {
-    Ok(#(c, rest)) if c == char -> count_leading_char(rest, char, count + 1)
+    Ok(#(c, rest)) ->
+      case char_value(c) {
+        Ok(0) -> count_leading_zeros_str(rest, char_value, count + 1)
+        _ -> count
+      }
     _ -> count
   }
 }
@@ -51,13 +61,18 @@ pub fn list_to_bit_array(bytes: List(Int), acc: BitArray) -> BitArray {
 }
 
 /// Encode a big integer in the given radix using the given alphabet string.
-pub fn encode_int(num: Int, radix: Int, alphabet: String, acc: String) -> String {
+pub fn encode_int(
+  num: Int,
+  radix: Int,
+  alphabet: String,
+  acc: List(String),
+) -> List(String) {
   case num {
     0 -> acc
     _ -> {
       let remainder = num % radix
       let char = string_char_at(alphabet, remainder)
-      encode_int(num / radix, radix, alphabet, char <> acc)
+      encode_int(num / radix, radix, alphabet, [char, ..acc])
     }
   }
 }
@@ -93,7 +108,8 @@ pub fn encode(data: BitArray, radix: Int, alphabet: String) -> String {
       case num {
         0 -> string.repeat(zero_char, lz)
         _ ->
-          string.repeat(zero_char, lz) <> encode_int(num, radix, alphabet, "")
+          string.repeat(zero_char, lz)
+          <> string.join(encode_int(num, radix, alphabet, []), "")
       }
     }
   }
@@ -104,13 +120,13 @@ pub fn encode(data: BitArray, radix: Int, alphabet: String) -> String {
 pub fn decode(
   input: String,
   radix: Int,
-  zero_char: String,
+  _zero_char: String,
   char_value: fn(String) -> Result(Int, Nil),
 ) -> Result(BitArray, CodecError) {
   case input {
     "" -> Ok(<<>>)
     _ -> {
-      let leading_zeros = count_leading_char(input, zero_char, 0)
+      let leading_zeros = count_leading_zeros_str(input, char_value, 0)
       case string_to_int(input, radix, char_value, 0, 0) {
         Error(e) -> Error(e)
         Ok(num) -> {
@@ -121,6 +137,22 @@ pub fn decode(
         }
       }
     }
+  }
+}
+
+/// Look up a character's index in an alphabet string.
+pub fn find_index(
+  haystack: String,
+  needle: String,
+  idx: Int,
+) -> Result(Int, Nil) {
+  case string.pop_grapheme(haystack) {
+    Error(Nil) -> Error(Nil)
+    Ok(#(c, rest)) ->
+      case c == needle {
+        True -> Ok(idx)
+        False -> find_index(rest, needle, idx + 1)
+      }
   }
 }
 

@@ -107,7 +107,7 @@ fn encode_variant(
               let all_values = list_append(data_values, checksum)
               let encoded_data =
                 values_to_chars(all_values, [])
-                |> list_reverse
+                |> list.reverse
                 |> string.join("")
               let result = lower_hrp <> "1" <> encoded_data
               // BIP 173: total length must not exceed 90
@@ -212,7 +212,7 @@ fn chars_to_values(
   pos: Int,
 ) -> Result(List(Int), CodecError) {
   case string.pop_grapheme(input) {
-    Error(Nil) -> Ok(list_reverse(acc))
+    Error(Nil) -> Ok(list.reverse(acc))
     Ok(#(c, rest)) ->
       case char_to_value(c) {
         Error(_) -> Error(InvalidCharacter(c, pos))
@@ -300,11 +300,11 @@ fn bytes_to_5bit_groups(data: BitArray) -> List(Int) {
 fn convert_bits(data: BitArray, acc: List(Int)) -> List(Int) {
   case data {
     <<group:5, rest:bits>> -> convert_bits(rest, [group, ..acc])
-    <<remaining:4>> -> list_reverse([remaining * 2, ..acc])
-    <<remaining:3>> -> list_reverse([remaining * 4, ..acc])
-    <<remaining:2>> -> list_reverse([remaining * 8, ..acc])
-    <<remaining:1>> -> list_reverse([remaining * 16, ..acc])
-    _ -> list_reverse(acc)
+    <<remaining:4>> -> list.reverse([remaining * 2, ..acc])
+    <<remaining:3>> -> list.reverse([remaining * 4, ..acc])
+    <<remaining:2>> -> list.reverse([remaining * 8, ..acc])
+    <<remaining:1>> -> list.reverse([remaining * 16, ..acc])
+    _ -> list.reverse(acc)
   }
 }
 
@@ -367,7 +367,7 @@ fn groups_to_bit_array(groups: List(Int), acc: BitArray) -> BitArray {
 fn extract_bytes(bits: BitArray, acc: List(Int)) -> List(Int) {
   case bits {
     <<byte:8, rest:bits>> -> extract_bytes(rest, [byte, ..acc])
-    _ -> list_reverse(acc)
+    _ -> list.reverse(acc)
   }
 }
 
@@ -423,17 +423,6 @@ fn list_to_bit_array(bytes: List(Int), acc: BitArray) -> BitArray {
   case bytes {
     [] -> acc
     [b, ..rest] -> list_to_bit_array(rest, bit_array.append(acc, <<b:int>>))
-  }
-}
-
-fn list_reverse(l: List(a)) -> List(a) {
-  list_reverse_acc(l, [])
-}
-
-fn list_reverse_acc(l: List(a), acc: List(a)) -> List(a) {
-  case l {
-    [] -> acc
-    [h, ..t] -> list_reverse_acc(t, [h, ..acc])
   }
 }
 
