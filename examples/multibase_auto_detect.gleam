@@ -13,9 +13,9 @@ pub fn main() {
   let data = <<"Hello, multibase!":utf8>>
 
   // Encode the same data with different encodings
-  let assert Ok(hex) = yabase.encode_with_prefix(Base16, data)
-  let assert Ok(b58) = yabase.encode_with_prefix(Base58(Bitcoin), data)
-  let assert Ok(b64) = yabase.encode_with_prefix(Base64(Standard), data)
+  let assert Ok(hex) = yabase.encode_multibase(Base16, data)
+  let assert Ok(b58) = yabase.encode_multibase(Base58(Bitcoin), data)
+  let assert Ok(b64) = yabase.encode_multibase(Base64(Standard), data)
 
   io.println("Base16:  " <> hex)
   io.println("Base58:  " <> b58)
@@ -25,7 +25,7 @@ pub fn main() {
   [hex, b58, b64]
   |> list_each(fn(encoded) {
     let assert Ok(Decoded(encoding: enc, data: decoded)) =
-      yabase.decode(encoded)
+      yabase.decode_multibase(encoded)
     let assert Ok(text) = bit_array.to_string(decoded)
     io.println("Detected " <> string.inspect(enc) <> " -> " <> text)
   })
