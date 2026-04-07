@@ -30,13 +30,12 @@ pub fn decode(input: String) -> Result(BitArray, CodecError) {
 }
 
 fn find_char_pos(input: String, target: String, pos: Int) -> Int {
-  case string.pop_grapheme(input) {
-    Error(Nil) -> pos
-    Ok(#(c, rest)) ->
-      case c == target {
-        True -> pos
-        False -> find_char_pos(rest, target, pos + 1)
-      }
+  // Caller guarantees string.contains(input, target) is true,
+  // so Error(Nil) is unreachable.
+  let assert Ok(#(c, rest)) = string.pop_grapheme(input)
+  case c == target {
+    True -> pos
+    False -> find_char_pos(rest, target, pos + 1)
   }
 }
 

@@ -1,5 +1,6 @@
 /// Standard Base64 encoding per RFC 4648.
 import gleam/bit_array
+import gleam/list
 import gleam/string
 import yabase/core/encoding.{type CodecError, InvalidCharacter, InvalidLength}
 
@@ -10,7 +11,7 @@ const pad = "="
 /// Encode a BitArray to standard Base64 with padding.
 pub fn encode(data: BitArray) -> String {
   encode_chunks(data, [])
-  |> list_reverse
+  |> list.reverse
   |> string.join("")
 }
 
@@ -26,17 +27,6 @@ fn encode_chunks(data: BitArray, acc: List(String)) -> List(String) {
     ]
     <<a:6, b:2>> -> [char_at(a) <> char_at(b * 16) <> pad <> pad, ..acc]
     _ -> acc
-  }
-}
-
-fn list_reverse(l: List(a)) -> List(a) {
-  list_reverse_acc(l, [])
-}
-
-fn list_reverse_acc(l: List(a), acc: List(a)) -> List(a) {
-  case l {
-    [] -> acc
-    [h, ..t] -> list_reverse_acc(t, [h, ..acc])
   }
 }
 

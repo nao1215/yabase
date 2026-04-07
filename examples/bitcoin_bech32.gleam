@@ -1,15 +1,16 @@
-/// Bech32/Bech32m encoding for Bitcoin addresses (BIP 173 / BIP 350).
+/// Bech32/Bech32m encoding demo (BIP 173 / BIP 350).
 ///
 /// yabase's bech32 module is a byte-payload convenience API: it takes
 /// raw bytes, converts to 5-bit groups internally, and appends the
-/// checksum. SegWit address semantics (witness version, program length)
-/// are left to the caller.
+/// checksum. This example encodes an arbitrary byte payload with HRP "bc"
+/// and does NOT construct a valid Bitcoin SegWit address (no witness
+/// version/program semantics are applied).
 import gleam/io
 import yabase/bech32
 import yabase/core/encoding.{Bech32 as Bech32V, Bech32m as Bech32mV}
 
 pub fn main() {
-  // Bech32 encode with HRP "bc" (Bitcoin mainnet)
+  // Bech32 encode with HRP "bc" (arbitrary payload, not a SegWit address)
   let data = <<0, 14, 20, 15, 7, 28, 0, 15, 7, 4>>
   let assert Ok(encoded) = bech32.encode(Bech32V, "bc", data)
   io.println("Bech32:  " <> encoded)

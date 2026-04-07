@@ -1,13 +1,14 @@
 /// Base16 (hexadecimal) encoding and decoding.
 import gleam/bit_array
 import gleam/int
+import gleam/list
 import gleam/string
 import yabase/core/encoding.{type CodecError, InvalidCharacter, InvalidLength}
 
 /// Encode a BitArray to a lowercase hexadecimal string.
 pub fn encode(data: BitArray) -> String {
   encode_bytes(data, [])
-  |> list_reverse
+  |> list.reverse
   |> string.join("")
 }
 
@@ -74,16 +75,5 @@ fn hex_char_to_int(c: String) -> Result(Int, Nil) {
     "e" -> Ok(14)
     "f" -> Ok(15)
     _ -> Error(Nil)
-  }
-}
-
-fn list_reverse(l: List(a)) -> List(a) {
-  list_reverse_acc(l, [])
-}
-
-fn list_reverse_acc(l: List(a), acc: List(a)) -> List(a) {
-  case l {
-    [] -> acc
-    [h, ..t] -> list_reverse_acc(t, [h, ..acc])
   }
 }

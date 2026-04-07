@@ -2,6 +2,7 @@
 /// Alphabet: 0-9, a-z, A-Z, ., -, :, +, =, ^, !, /, *, ?, &, <, >, (, ), [, ], {, }, @, %, $, #
 /// Input length for encode MUST be a multiple of 4.
 import gleam/bit_array
+import gleam/list
 import gleam/string
 import yabase/core/encoding.{
   type CodecError, InvalidCharacter, InvalidLength, Overflow,
@@ -17,7 +18,7 @@ pub fn encode(data: BitArray) -> Result(String, CodecError) {
     0 ->
       Ok(
         encode_groups(data, [])
-        |> reverse_strings
+        |> list.reverse
         |> string.join(""),
       )
     _ -> Error(InvalidLength(len))
@@ -46,10 +47,7 @@ fn encode_u32(n: Int, count: Int, acc: List(String)) -> List(String) {
 }
 
 fn list_to_string(chars: List(String)) -> String {
-  case chars {
-    [] -> ""
-    [c, ..rest] -> c <> list_to_string(rest)
-  }
+  string.join(chars, "")
 }
 
 /// Decode a Z85 string to a BitArray.
@@ -94,7 +92,7 @@ fn take_n(
   acc: List(String),
 ) -> Result(#(List(String), String), Nil) {
   case n {
-    0 -> Ok(#(reverse_strings(acc), input))
+    0 -> Ok(#(list.reverse(acc), input))
     _ ->
       case string.pop_grapheme(input) {
         Error(Nil) ->
@@ -104,17 +102,6 @@ fn take_n(
           }
         Ok(#(c, rest)) -> take_n(rest, n - 1, [c, ..acc])
       }
-  }
-}
-
-fn reverse_strings(l: List(String)) -> List(String) {
-  reverse_strings_acc(l, [])
-}
-
-fn reverse_strings_acc(l: List(String), acc: List(String)) -> List(String) {
-  case l {
-    [] -> acc
-    [h, ..t] -> reverse_strings_acc(t, [h, ..acc])
   }
 }
 

@@ -18,7 +18,7 @@ const dq_pad = "・"
 /// Encode a BitArray to Base64 DQ (hiragana).
 pub fn encode(data: BitArray) -> String {
   encode_chunks(data, [])
-  |> list_reverse
+  |> list.reverse
   |> string.join("")
 }
 
@@ -142,16 +142,5 @@ fn find_index(
         True -> Ok(idx)
         False -> find_index(rest, needle, idx + 1)
       }
-  }
-}
-
-fn list_reverse(l: List(a)) -> List(a) {
-  list_reverse_acc(l, [])
-}
-
-fn list_reverse_acc(l: List(a), acc: List(a)) -> List(a) {
-  case l {
-    [] -> acc
-    [h, ..t] -> list_reverse_acc(t, [h, ..acc])
   }
 }

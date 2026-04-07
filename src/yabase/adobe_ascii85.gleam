@@ -17,7 +17,7 @@ pub fn encode(data: BitArray) -> String {
   prefix
   <> {
     encode_groups(data, [])
-    |> list_reverse_str
+    |> list.reverse
     |> string.join("")
   }
   <> suffix
@@ -171,10 +171,10 @@ fn collect_group(
   pos: Int,
 ) -> Result(#(List(Int), Int, String), CodecError) {
   case count >= 5 {
-    True -> Ok(#(list_reverse(acc), count, input))
+    True -> Ok(#(list.reverse(acc), count, input))
     False ->
       case string.pop_grapheme(input) {
-        Error(Nil) -> Ok(#(list_reverse(acc), count, ""))
+        Error(Nil) -> Ok(#(list.reverse(acc), count, ""))
         // Skip whitespace inside groups
         Ok(#(" ", rest)) -> collect_group(rest, acc, count, pos + 1)
         Ok(#("\t", rest)) -> collect_group(rest, acc, count, pos + 1)
@@ -187,28 +187,6 @@ fn collect_group(
             Ok(v) -> collect_group(rest, [v, ..acc], count + 1, pos + 1)
           }
       }
-  }
-}
-
-fn list_reverse(l: List(Int)) -> List(Int) {
-  list_reverse_acc(l, [])
-}
-
-fn list_reverse_acc(l: List(Int), acc: List(Int)) -> List(Int) {
-  case l {
-    [] -> acc
-    [h, ..t] -> list_reverse_acc(t, [h, ..acc])
-  }
-}
-
-fn list_reverse_str(l: List(String)) -> List(String) {
-  list_reverse_str_acc(l, [])
-}
-
-fn list_reverse_str_acc(l: List(String), acc: List(String)) -> List(String) {
-  case l {
-    [] -> acc
-    [h, ..t] -> list_reverse_str_acc(t, [h, ..acc])
   }
 }
 

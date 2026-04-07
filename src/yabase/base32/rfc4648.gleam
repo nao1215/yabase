@@ -1,5 +1,6 @@
 /// Base32 encoding per RFC 4648.
 import gleam/bit_array
+import gleam/list
 import gleam/string
 import yabase/core/encoding.{type CodecError, InvalidCharacter, InvalidLength}
 
@@ -10,7 +11,7 @@ const pad = "="
 /// Encode a BitArray to a Base32 string with padding.
 pub fn encode(data: BitArray) -> String {
   encode_bits(data, [])
-  |> list_reverse
+  |> list.reverse
   |> string.join("")
   |> add_padding
 }
@@ -161,16 +162,5 @@ fn string_char_at(s: String, index: Int) -> String {
   case string.drop_start(s, index) |> string.pop_grapheme {
     Ok(#(c, _)) -> c
     Error(_) -> ""
-  }
-}
-
-fn list_reverse(l: List(a)) -> List(a) {
-  list_reverse_acc(l, [])
-}
-
-fn list_reverse_acc(l: List(a), acc: List(a)) -> List(a) {
-  case l {
-    [] -> acc
-    [h, ..t] -> list_reverse_acc(t, [h, ..acc])
   }
 }

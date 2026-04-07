@@ -12,7 +12,7 @@ import yabase/core/encoding.{
 /// Encode a BitArray to Ascii85.
 pub fn encode(data: BitArray) -> String {
   encode_groups(data, [])
-  |> list_reverse_str
+  |> list.reverse
   |> string.join("")
 }
 
@@ -37,17 +37,6 @@ fn encode_groups(data: BitArray, acc: List(String)) -> List(String) {
         _ -> acc
       }
     }
-  }
-}
-
-fn list_reverse_str(l: List(String)) -> List(String) {
-  list_reverse_str_acc(l, [])
-}
-
-fn list_reverse_str_acc(l: List(String), acc: List(String)) -> List(String) {
-  case l {
-    [] -> acc
-    [h, ..t] -> list_reverse_str_acc(t, [h, ..acc])
   }
 }
 
@@ -158,27 +147,16 @@ fn collect_group(
   pos: Int,
 ) -> Result(#(List(Int), Int, String), CodecError) {
   case count >= 5 {
-    True -> Ok(#(list_reverse_int(acc), count, input))
+    True -> Ok(#(list.reverse(acc), count, input))
     False ->
       case string.pop_grapheme(input) {
-        Error(Nil) -> Ok(#(list_reverse_int(acc), count, ""))
+        Error(Nil) -> Ok(#(list.reverse(acc), count, ""))
         Ok(#(c, rest)) ->
           case char_to_ascii85_value(c) {
             Error(_) -> Error(InvalidCharacter(c, pos))
             Ok(v) -> collect_group(rest, [v, ..acc], count + 1, pos + 1)
           }
       }
-  }
-}
-
-fn list_reverse_int(l: List(Int)) -> List(Int) {
-  list_reverse_int_acc(l, [])
-}
-
-fn list_reverse_int_acc(l: List(Int), acc: List(Int)) -> List(Int) {
-  case l {
-    [] -> acc
-    [h, ..t] -> list_reverse_int_acc(t, [h, ..acc])
   }
 }
 

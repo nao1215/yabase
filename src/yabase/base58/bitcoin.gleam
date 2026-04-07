@@ -1,6 +1,5 @@
 /// Base58 encoding (Bitcoin alphabet).
 /// Alphabet: 123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz
-import gleam/string
 import yabase/core/encoding.{type CodecError}
 import yabase/internal/bignum
 
@@ -17,16 +16,5 @@ pub fn decode(input: String) -> Result(BitArray, CodecError) {
 }
 
 fn char_value(c: String) -> Result(Int, Nil) {
-  find_index(alphabet, c, 0)
-}
-
-fn find_index(haystack: String, needle: String, idx: Int) -> Result(Int, Nil) {
-  case string.pop_grapheme(haystack) {
-    Error(Nil) -> Error(Nil)
-    Ok(#(c, rest)) ->
-      case c == needle {
-        True -> Ok(idx)
-        False -> find_index(rest, needle, idx + 1)
-      }
-  }
+  bignum.find_index(alphabet, c, 0)
 }

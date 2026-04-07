@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.2.1] - 2026-04-07
+
+### Changed
+
+- Replace all custom `list_reverse` implementations with `list.reverse` from stdlib (14 modules)
+- `bignum.encode_int` now uses list accumulator instead of O(n^2) string concatenation
+- `bignum.count_leading_char` renamed to `count_leading_zeros_str` and uses `char_value` for zero alias handling (e.g. Crockford O->0)
+- Shared `find_index` extracted into `bignum` module; Base58 Bitcoin/Flickr deduplicated
+- `z85.list_to_string` uses `string.join` instead of recursive concatenation
+- `crockford.string_char_at` and `nopadding.find_char_pos` use `let assert` for unreachable branches
+- `verify-readme.sh` uses `trap` cleanup and indentation-safe grep patterns
+- Example comments clarified to note they do not produce real Bitcoin addresses
+
+### Fixed
+
+- Base91 EOF decode now flushes one final byte (matching C reference implementation)
+- `urlsafe_nopadding.decode` now reports the earliest invalid character, not just `=`
+- Crockford case-insensitive test was a tautology (compared same input to itself)
+- README `8-to-5 bit` compound modifier hyphenation corrected to `8-to-5-bit`
+
+### Added
+
+- `base58check` middle-position `InvalidCharacter` test
+
 ## [0.2.0] - 2026-04-07
 
 ### Added

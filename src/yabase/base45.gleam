@@ -1,6 +1,7 @@
 /// Base45 encoding per RFC 9285.
 /// Alphabet: 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:
 import gleam/bit_array
+import gleam/list
 import gleam/string
 import yabase/core/encoding.{
   type CodecError, InvalidCharacter, InvalidLength, Overflow,
@@ -11,7 +12,7 @@ const alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:"
 /// Encode a BitArray to Base45.
 pub fn encode(data: BitArray) -> String {
   encode_pairs(data, [])
-  |> list_reverse
+  |> list.reverse
   |> string.join("")
 }
 
@@ -101,27 +102,16 @@ fn take_chars_acc(
   acc: List(String),
 ) -> #(Result(List(String), Nil), String) {
   case n {
-    0 -> #(Ok(list_reverse(acc)), input)
+    0 -> #(Ok(list.reverse(acc)), input)
     _ ->
       case string.pop_grapheme(input) {
         Error(Nil) ->
           case acc {
             [] -> #(Error(Nil), "")
-            _ -> #(Ok(list_reverse(acc)), "")
+            _ -> #(Ok(list.reverse(acc)), "")
           }
         Ok(#(c, rest)) -> take_chars_acc(rest, n - 1, [c, ..acc])
       }
-  }
-}
-
-fn list_reverse(l: List(a)) -> List(a) {
-  list_reverse_acc(l, [])
-}
-
-fn list_reverse_acc(l: List(a), acc: List(a)) -> List(a) {
-  case l {
-    [] -> acc
-    [h, ..t] -> list_reverse_acc(t, [h, ..acc])
   }
 }
 

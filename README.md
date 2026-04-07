@@ -168,7 +168,7 @@ yabase supports the following [multibase](https://github.com/multiformats/multib
 
 ### Bech32 / Bech32m (BIP 173, BIP 350)
 
-Byte-payload convenience API. Takes raw bytes, handles 8-to-5 bit conversion internally, and produces the checksummed Bech32 string. Does not validate SegWit address semantics (witness version, program length):
+Byte-payload convenience API. Takes raw bytes, handles 8-to-5-bit conversion internally, and produces the checksummed Bech32 string. Does not validate SegWit address semantics (witness version, program length):
 
 ```gleam
 import yabase/bech32

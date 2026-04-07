@@ -274,7 +274,7 @@ pub fn crockford_decode_i_l_as_one_test() {
 }
 
 pub fn crockford_decode_case_insensitive_test() {
-  assert crockford.decode("21") == crockford.decode("21")
+  assert crockford.decode("2a") == crockford.decode("2A")
   assert crockford.decode("zz") == crockford.decode("ZZ")
 }
 
