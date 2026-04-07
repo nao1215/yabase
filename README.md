@@ -214,6 +214,18 @@ The `CodecError` type provides specific error information:
 | `InvalidChecksum` | `base58check.decode`, `bech32.decode` | Checksum verification failed |
 | `InvalidHrp(reason)` | `bech32.encode`, `bech32.decode` | Invalid human-readable part in Bech32 |
 
+## Examples
+
+The [`examples/`](examples/) directory contains runnable use-case examples:
+
+| File | Use case |
+|------|----------|
+| `jwt_urlsafe_base64.gleam` | JWT header/payload encoding (URL-safe Base64 without padding) |
+| `qr_base45.gleam` | QR-code-friendly encoding (RFC 9285) |
+| `bitcoin_base58check.gleam` | Bitcoin address encoding with version byte and checksum |
+| `bitcoin_bech32.gleam` | Bech32/Bech32m address framing (BIP 173 / BIP 350) |
+| `multibase_auto_detect.gleam` | Prefix-based encoding auto-detection for content-addressed systems |
+
 ## Development
 
 This project uses [mise](https://mise.jdx.dev/) to manage Gleam and Erlang versions, and [just](https://just.systems/) as a task runner.

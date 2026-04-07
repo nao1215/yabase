@@ -1,0 +1,22 @@
+/// Bech32/Bech32m encoding for Bitcoin addresses (BIP 173 / BIP 350).
+///
+/// This example demonstrates raw Bech32 framing. yabase provides the
+/// encoding layer only; SegWit address semantics (witness version,
+/// program length) are left to the caller.
+import gleam/io
+import yabase/bech32
+
+pub fn main() {
+  // Bech32 encode with HRP "bc" (Bitcoin mainnet)
+  let data = <<0, 14, 20, 15, 7, 28, 0, 15, 7, 4>>
+  let assert Ok(encoded) = bech32.encode("bc", data)
+  io.println("Bech32:  " <> encoded)
+
+  // Bech32m encode (BIP 350 improved checksum)
+  let assert Ok(encoded_m) = bech32.encode_m("bc", data)
+  io.println("Bech32m: " <> encoded_m)
+
+  // Decode auto-detects variant
+  let assert Ok(decoded) = bech32.decode(encoded)
+  io.println("HRP: " <> decoded.hrp)
+}
