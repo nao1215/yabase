@@ -71,8 +71,7 @@ fn decode_byte(
   count: Int,
 ) -> Result(BitArray, CodecError) {
   case count >= 8 {
-    True ->
-      decode_chars(input, <<acc:bits, byte:8>>, pos)
+    True -> decode_chars(input, <<acc:bits, byte:8>>, pos)
     False ->
       case string.pop_grapheme(input) {
         Error(Nil) -> Ok(<<acc:bits, byte:8>>)

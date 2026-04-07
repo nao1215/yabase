@@ -46,12 +46,7 @@ pub fn list_to_bit_array(bytes: List(Int), acc: BitArray) -> BitArray {
 }
 
 /// Encode a big integer in the given radix using the given alphabet string.
-pub fn encode_int(
-  num: Int,
-  radix: Int,
-  alphabet: String,
-  acc: String,
-) -> String {
+pub fn encode_int(num: Int, radix: Int, alphabet: String, acc: String) -> String {
   case num {
     0 -> acc
     _ -> {
@@ -92,7 +87,8 @@ pub fn encode(data: BitArray, radix: Int, alphabet: String) -> String {
       let num = bytes_to_int(data, 0)
       case num {
         0 -> string.repeat(zero_char, lz)
-        _ -> string.repeat(zero_char, lz) <> encode_int(num, radix, alphabet, "")
+        _ ->
+          string.repeat(zero_char, lz) <> encode_int(num, radix, alphabet, "")
       }
     }
   }

@@ -1,9 +1,8 @@
 import yabase/core/encoding.{
   AdobeAscii85, Ascii85, Base10, Base16, Base2, Base32, Base36, Base45, Base58,
   Base62, Base64, Base8, Base91, Bitcoin, Clockwork, Crockford, Decoded, Flickr,
-  Hex, NoPadding, RFC4648,
-  Rfc1924Base85, Standard, UnsupportedMultibaseEncoding, UnsupportedPrefix,
-  UrlSafe, UrlSafeNoPadding, Z85, ZBase32,
+  Hex, NoPadding, RFC4648, Rfc1924Base85, Standard, UnsupportedMultibaseEncoding,
+  UnsupportedPrefix, UrlSafe, UrlSafeNoPadding, Z85, ZBase32,
 }
 import yabase/core/multibase
 

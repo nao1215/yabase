@@ -13,13 +13,12 @@ import yabase/core/encoding.{
   type CodecError, type Decoded, type Encoding,
   AdobeAscii85 as AdobeAscii85Encoding, Ascii85 as Ascii85Encoding,
   Base10 as Base10Encoding, Base16 as Base16Encoding, Base2 as Base2Encoding,
-  Base32 as Base32Encoding, Base36 as Base36Encoding, Base8 as Base8Encoding,
-  Base45 as Base45Encoding, Base58 as Base58Encoding, Base62 as Base62Encoding,
-  Bitcoin, Flickr,
-  Base64 as Base64Encoding, Base91 as Base91Encoding, Clockwork, Crockford, DQ,
-  Decoded, Hex, NoPadding, RFC4648, Rfc1924Base85 as Rfc1924Encoding, Standard,
-  UnsupportedMultibaseEncoding, UnsupportedPrefix, UrlSafe, UrlSafeNoPadding,
-  Z85 as Z85Encoding, ZBase32,
+  Base32 as Base32Encoding, Base36 as Base36Encoding, Base45 as Base45Encoding,
+  Base58 as Base58Encoding, Base62 as Base62Encoding, Base64 as Base64Encoding,
+  Base8 as Base8Encoding, Base91 as Base91Encoding, Bitcoin, Clockwork,
+  Crockford, DQ, Decoded, Flickr, Hex, NoPadding, RFC4648,
+  Rfc1924Base85 as Rfc1924Encoding, Standard, UnsupportedMultibaseEncoding,
+  UnsupportedPrefix, UrlSafe, UrlSafeNoPadding, Z85 as Z85Encoding, ZBase32,
 }
 
 /// Encode data with a multibase prefix.

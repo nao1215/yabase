@@ -2,9 +2,8 @@ import yabase/core/dispatcher
 import yabase/core/encoding.{
   AdobeAscii85, Ascii85, Base10, Base16, Base2, Base32, Base36, Base45, Base58,
   Base62, Base64, Base8, Base91, Bitcoin, Clockwork, Crockford, DQ, Flickr, Hex,
-  InvalidLength,
-  NoPadding, RFC4648, Rfc1924Base85, Standard, UrlSafe, UrlSafeNoPadding, Z85,
-  ZBase32,
+  InvalidLength, NoPadding, RFC4648, Rfc1924Base85, Standard, UrlSafe,
+  UrlSafeNoPadding, Z85, ZBase32,
 }
 
 // Verify that each encoding roundtrips through the dispatcher.

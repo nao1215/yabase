@@ -4,7 +4,6 @@ import yabase/ascii85
 import yabase/base10
 import yabase/base16
 import yabase/base2
-import yabase/base8
 import yabase/base32/clockwork
 import yabase/base32/crockford
 import yabase/base32/hex as base32_hex
@@ -20,16 +19,15 @@ import yabase/base64/nopadding as base64_nopadding
 import yabase/base64/standard as base64_standard
 import yabase/base64/urlsafe as base64_urlsafe
 import yabase/base64/urlsafe_nopadding as base64_urlsafe_nopadding
+import yabase/base8
 import yabase/base91
 import yabase/core/encoding.{
   type CodecError, type Encoding, AdobeAscii85 as AdobeAscii85Encoding,
-  Ascii85 as Ascii85Encoding, Base10 as Base10Encoding,
-  Base16 as Base16Encoding, Base2 as Base2Encoding, Base32 as Base32Encoding,
-  Base8 as Base8Encoding,
-  Base36 as Base36Encoding, Base45 as Base45Encoding, Base58 as Base58Encoding,
-  Base62 as Base62Encoding, Base64 as Base64Encoding, Base91 as Base91Encoding,
-  Bitcoin, Flickr,
-  Clockwork, Crockford, DQ, Hex, NoPadding, RFC4648,
+  Ascii85 as Ascii85Encoding, Base10 as Base10Encoding, Base16 as Base16Encoding,
+  Base2 as Base2Encoding, Base32 as Base32Encoding, Base36 as Base36Encoding,
+  Base45 as Base45Encoding, Base58 as Base58Encoding, Base62 as Base62Encoding,
+  Base64 as Base64Encoding, Base8 as Base8Encoding, Base91 as Base91Encoding,
+  Bitcoin, Clockwork, Crockford, DQ, Flickr, Hex, NoPadding, RFC4648,
   Rfc1924Base85 as Rfc1924Encoding, Standard, UrlSafe, UrlSafeNoPadding,
   Z85 as Z85Encoding, ZBase32,
 }
