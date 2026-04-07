@@ -11,6 +11,16 @@ pub fn base2_roundtrip_test() {
   assert facade.decode_base2(facade.encode_base2(data)) == Ok(data)
 }
 
+pub fn base8_roundtrip_test() {
+  let data = <<"Hello":utf8>>
+  assert facade.decode_base8(facade.encode_base8(data)) == Ok(data)
+}
+
+pub fn base10_roundtrip_test() {
+  let data = <<"Hello":utf8>>
+  assert facade.decode_base10(facade.encode_base10(data)) == Ok(data)
+}
+
 pub fn base16_roundtrip_test() {
   let data = <<"Hello":utf8>>
   assert facade.decode_base16(facade.encode_base16(data)) == Ok(data)

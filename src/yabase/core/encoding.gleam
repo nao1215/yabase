@@ -38,6 +38,8 @@ pub type Base58Variant {
 /// Represents a supported encoding scheme.
 pub type Encoding {
   Base2
+  Base8
+  Base10
   Base16
   Base32(Base32Variant)
   Base36

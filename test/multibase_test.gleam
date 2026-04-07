@@ -1,7 +1,7 @@
 import yabase/core/encoding.{
-  AdobeAscii85, Ascii85, Base16, Base2, Base32, Base36, Base45, Base58, Base62,
-  Base64, Base91, Bitcoin, Clockwork, Crockford, Decoded, Flickr, Hex, NoPadding,
-  RFC4648,
+  AdobeAscii85, Ascii85, Base10, Base16, Base2, Base32, Base36, Base45, Base58,
+  Base62, Base64, Base8, Base91, Bitcoin, Clockwork, Crockford, Decoded, Flickr,
+  Hex, NoPadding, RFC4648,
   Rfc1924Base85, Standard, UnsupportedMultibaseEncoding, UnsupportedPrefix,
   UrlSafe, UrlSafeNoPadding, Z85, ZBase32,
 }
@@ -17,6 +17,32 @@ pub fn registry_0_base2_test() {
   let assert Ok(encoded) = multibase.encode_with_prefix(Base2, data)
   assert encoded == "00100100001101001"
   let assert Ok(Decoded(encoding: Base2, data: decoded)) =
+    multibase.decode(encoded)
+  assert decoded == data
+}
+
+// 7 = base8
+pub fn registry_7_base8_test() {
+  let data = <<"Hi":utf8>>
+  let assert Ok(encoded) = multibase.encode_with_prefix(Base8, data)
+  assert case encoded {
+    "7" <> _ -> True
+    _ -> False
+  }
+  let assert Ok(Decoded(encoding: Base8, data: decoded)) =
+    multibase.decode(encoded)
+  assert decoded == data
+}
+
+// 9 = base10
+pub fn registry_9_base10_test() {
+  let data = <<"Hi":utf8>>
+  let assert Ok(encoded) = multibase.encode_with_prefix(Base10, data)
+  assert case encoded {
+    "9" <> _ -> True
+    _ -> False
+  }
+  let assert Ok(Decoded(encoding: Base10, data: decoded)) =
     multibase.decode(encoded)
   assert decoded == data
 }

@@ -12,8 +12,8 @@ import yabase/core/dispatcher
 import yabase/core/encoding.{
   type CodecError, type Decoded, type Encoding,
   AdobeAscii85 as AdobeAscii85Encoding, Ascii85 as Ascii85Encoding,
-  Base16 as Base16Encoding, Base2 as Base2Encoding,
-  Base32 as Base32Encoding, Base36 as Base36Encoding,
+  Base10 as Base10Encoding, Base16 as Base16Encoding, Base2 as Base2Encoding,
+  Base32 as Base32Encoding, Base36 as Base36Encoding, Base8 as Base8Encoding,
   Base45 as Base45Encoding, Base58 as Base58Encoding, Base62 as Base62Encoding,
   Bitcoin, Flickr,
   Base64 as Base64Encoding, Base91 as Base91Encoding, Clockwork, Crockford, DQ,
@@ -70,6 +70,10 @@ fn encoding_to_prefix(enc: Encoding) -> Result(String, Nil) {
   case enc {
     // 0 = base2
     Base2Encoding -> Ok("0")
+    // 7 = base8
+    Base8Encoding -> Ok("7")
+    // 9 = base10
+    Base10Encoding -> Ok("9")
     // f = base16 (lowercase)
     Base16Encoding -> Ok("f")
     // c = base32 padded (lowercase, RFC 4648)
@@ -114,6 +118,10 @@ fn prefix_to_encoding(prefix: String) -> Result(Encoding, Nil) {
   case prefix {
     // base2
     "0" -> Ok(Base2Encoding)
+    // base8
+    "7" -> Ok(Base8Encoding)
+    // base10
+    "9" -> Ok(Base10Encoding)
     // base16
     "f" | "F" -> Ok(Base16Encoding)
     // base32 padded (RFC 4648)
@@ -150,6 +158,8 @@ fn prefix_to_encoding(prefix: String) -> Result(Encoding, Nil) {
 fn encoding_name(enc: Encoding) -> String {
   case enc {
     Base2Encoding -> "base2"
+    Base8Encoding -> "base8"
+    Base10Encoding -> "base10"
     Base16Encoding -> "base16"
     Base32Encoding(RFC4648) -> "base32pad"
     Base32Encoding(Hex) -> "base32hexpad"

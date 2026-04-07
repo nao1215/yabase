@@ -6,8 +6,10 @@
 /// because they require input length to be a multiple of 4 bytes.
 import yabase/adobe_ascii85
 import yabase/ascii85
+import yabase/base10
 import yabase/base16
 import yabase/base2
+import yabase/base8
 import yabase/base32/clockwork
 import yabase/base32/crockford
 import yabase/base32/hex as base32_hex
@@ -38,6 +40,30 @@ pub fn encode_base2(data: BitArray) -> String {
 /// Decode a binary string to a BitArray. Length must be a multiple of 8.
 pub fn decode_base2(input: String) -> Result(BitArray, CodecError) {
   base2.decode(input)
+}
+
+// --- Base8 ---
+
+/// Encode a BitArray to an octal string.
+pub fn encode_base8(data: BitArray) -> String {
+  base8.encode(data)
+}
+
+/// Decode an octal string to a BitArray.
+pub fn decode_base8(input: String) -> Result(BitArray, CodecError) {
+  base8.decode(input)
+}
+
+// --- Base10 ---
+
+/// Encode a BitArray to a decimal string.
+pub fn encode_base10(data: BitArray) -> String {
+  base10.encode(data)
+}
+
+/// Decode a decimal string to a BitArray.
+pub fn decode_base10(input: String) -> Result(BitArray, CodecError) {
+  base10.decode(input)
 }
 
 // --- Base16 ---
