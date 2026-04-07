@@ -109,11 +109,12 @@ fn decode_groups(
 ) -> Result(BitArray, CodecError) {
   case string.pop_grapheme(input) {
     Error(Nil) -> Ok(acc)
-    // Skip whitespace (space, tab, newline, carriage return)
+    // Skip whitespace (space, tab, newline, carriage return, form feed)
     Ok(#(" ", rest)) -> decode_groups(rest, acc, pos + 1)
     Ok(#("\t", rest)) -> decode_groups(rest, acc, pos + 1)
     Ok(#("\n", rest)) -> decode_groups(rest, acc, pos + 1)
     Ok(#("\r", rest)) -> decode_groups(rest, acc, pos + 1)
+    Ok(#("\u{000C}", rest)) -> decode_groups(rest, acc, pos + 1)
     Ok(#("z", rest)) ->
       decode_groups(rest, bit_array.append(acc, <<0:32>>), pos + 1)
     Ok(#(c1, r1)) ->
@@ -179,6 +180,7 @@ fn collect_group(
         Ok(#("\t", rest)) -> collect_group(rest, acc, count, pos + 1)
         Ok(#("\n", rest)) -> collect_group(rest, acc, count, pos + 1)
         Ok(#("\r", rest)) -> collect_group(rest, acc, count, pos + 1)
+        Ok(#("\u{000C}", rest)) -> collect_group(rest, acc, count, pos + 1)
         Ok(#(c, rest)) ->
           case char_to_value(c) {
             Error(_) -> Error(InvalidCharacter(c, pos))

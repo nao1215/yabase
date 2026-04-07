@@ -36,6 +36,15 @@ pub fn decode_with_tabs_test() {
   assert adobe_ascii85.decode("<~9j\tqo^~>") == Ok(<<"Man ":utf8>>)
 }
 
+pub fn decode_with_form_feed_test() {
+  assert adobe_ascii85.decode("<~9j\u{000C}qo^~>") == Ok(<<"Man ":utf8>>)
+}
+
+pub fn decode_with_form_feed_between_groups_test() {
+  assert adobe_ascii85.decode("<~z\u{000C}z~>")
+    == Ok(<<0, 0, 0, 0, 0, 0, 0, 0>>)
+}
+
 // --- Missing delimiters ---
 
 pub fn decode_missing_prefix_test() {
