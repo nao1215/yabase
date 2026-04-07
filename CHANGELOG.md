@@ -5,19 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.2.0] - 2026-04-07
 
 ### Added
 
 - Base2 (binary string), Base8 (octal), Base10 (decimal) encodings
 - Base58 Flickr variant with multibase `Z` prefix
-- Crockford Base32 check symbol support (`encode_check` / `decode_check`)
+- Crockford Base32 check symbol support via `CrockfordCheck` variant and `encode_check` / `decode_check`
 - Multibase prefixes `0` (base2), `7` (base8), `9` (base10), `Z` (base58flickr)
+- Ascii85 btoa `y` abbreviation for 4 consecutive spaces (0x20202020)
+- Adobe Ascii85 form-feed whitespace handling (PostScript compliance)
+- NoPadding Base64 decoders now reject `=` with `InvalidCharacter`
 - Shared `internal/bignum` module for radix-based encodings
 - NIST test vectors for SHA-256 (448-bit, 896-bit, padding boundary cases)
+- Base91 fixed vectors, error cases, and 48/64-byte roundtrip tests
+- CI: README code snippet compilation check, examples compile check, OTP 26/27/28 matrix
 - Multibase coverage matrix in README
 - Examples for JWT, QR, Bitcoin, and multibase use cases
-- CI test matrix: OTP 26, 27, 28
+- Leading-zero preservation documented for big-integer encodings
 
 ### Changed
 
@@ -29,11 +34,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **BREAKING**: `CrockfordCheck` added to `Base32Variant` for unified API access
 - Crockford Base32 now uses number encoding per spec (was byte-stream chunking)
 - Bech32 module documentation clarified as byte-payload convenience API
+- `yabase/core/dispatcher` marked as internal module
+- All encoder functions refactored from O(n^2) string concat to O(n) list accumulator
 
 ### Fixed
 
 - SHA-256 now uses full 64-bit length in padding (was 32-bit)
 - Crockford Base32 encoding now matches the published specification
+- Base91 data corruption on inputs longer than ~30 bytes (bigint bit-buffer overflow)
+- Adobe Ascii85 now accepts form-feed as whitespace per PostScript spec
 
 ## [0.1.0] - 2026-04-06
 
