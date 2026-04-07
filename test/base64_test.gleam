@@ -72,14 +72,16 @@ pub fn standard_decode_invalid_char_test() {
 pub fn standard_decode_rejects_lf_test() {
   // "\n" is not in the Base64 alphabet
   assert case standard.decode("Zm9v\n") {
-    Error(_) -> True
+    Error(InvalidCharacter("\n", _)) -> True
+    Error(InvalidLength(_)) -> True
     _ -> False
   }
 }
 
 pub fn standard_decode_rejects_crlf_in_middle_test() {
   assert case standard.decode("Zg==\r\n") {
-    Error(_) -> True
+    Error(InvalidCharacter(_, _)) -> True
+    Error(InvalidLength(_)) -> True
     _ -> False
   }
 }
@@ -150,7 +152,8 @@ pub fn urlsafe_decode_truncated_test() {
 
 pub fn urlsafe_decode_rejects_lf_test() {
   assert case urlsafe.decode("Zm9v\n") {
-    Error(_) -> True
+    Error(InvalidCharacter("\n", _)) -> True
+    Error(InvalidLength(_)) -> True
     _ -> False
   }
 }

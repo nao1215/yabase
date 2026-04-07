@@ -74,7 +74,8 @@ pub fn rfc4648_decode_mid_pad_test() {
 pub fn rfc4648_decode_excess_pad_test() {
   // More padding than 8 chars -> must fail
   assert case rfc4648.decode("MY=======") {
-    Error(_) -> True
+    Error(InvalidLength(_)) -> True
+    Error(InvalidCharacter(_, _)) -> True
     _ -> False
   }
 }

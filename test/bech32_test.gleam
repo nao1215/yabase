@@ -65,7 +65,7 @@ pub fn decode_invalid_checksum_test() {
   let corrupted = encoded <> "q"
   assert case bech32.decode(corrupted) {
     Error(InvalidChecksum) -> True
-    Error(_) -> True
+    Error(InvalidLength(_)) -> True
     _ -> False
   }
 }
