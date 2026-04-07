@@ -27,6 +27,14 @@ pub fn base32_crockford_roundtrip_test() {
     == Ok(data)
 }
 
+pub fn base32_crockford_check_roundtrip_test() {
+  let data = <<"Hello":utf8>>
+  assert facade.decode_base32_crockford_check(
+      facade.encode_base32_crockford_check(data),
+    )
+    == Ok(data)
+}
+
 pub fn base32_clockwork_roundtrip_test() {
   let data = <<"Hello":utf8>>
   assert facade.decode_base32_clockwork(facade.encode_base32_clockwork(data))

@@ -3,7 +3,7 @@ import yabase/base32/clockwork
 import yabase/base32/crockford
 import yabase/base32/hex as base32_hex
 import yabase/base32/rfc4648
-import yabase/core/encoding.{InvalidCharacter, InvalidLength}
+import yabase/core/encoding.{InvalidCharacter, InvalidChecksum, InvalidLength}
 
 // ===== RFC4648 =====
 
@@ -227,6 +227,63 @@ pub fn crockford_decode_i_l_as_one_test() {
   let encoded = crockford.encode(data)
   let with_i = string.replace(encoded, "1", "I")
   assert crockford.decode(with_i) == Ok(data)
+}
+
+// ===== Crockford check symbol =====
+
+pub fn crockford_check_roundtrip_test() {
+  let data = <<"Hello":utf8>>
+  assert crockford.decode_check(crockford.encode_check(data)) == Ok(data)
+}
+
+pub fn crockford_check_roundtrip_empty_test() {
+  assert crockford.decode_check(crockford.encode_check(<<>>)) == Ok(<<>>)
+}
+
+pub fn crockford_check_roundtrip_single_byte_test() {
+  assert crockford.decode_check(crockford.encode_check(<<42>>)) == Ok(<<42>>)
+}
+
+pub fn crockford_check_symbol_is_appended_test() {
+  // encode_check should produce encode output + 1 check character
+  let data = <<"test":utf8>>
+  let without = crockford.encode(data)
+  let with = crockford.encode_check(data)
+  assert string.length(with) == string.length(without) + 1
+}
+
+pub fn crockford_check_wrong_symbol_test() {
+  let encoded = crockford.encode_check(<<"test":utf8>>)
+  // Corrupt the check symbol (last char)
+  let len = string.length(encoded)
+  let body = string.slice(encoded, 0, len - 1)
+  let corrupted = body <> "*"
+  // If the original check was not *, this should fail
+  case string.slice(encoded, len - 1, 1) == "*" {
+    True -> {
+      // Original check was *, pick a different corruption
+      assert crockford.decode_check(body <> "~") == Error(InvalidChecksum)
+    }
+    False -> {
+      assert crockford.decode_check(corrupted) == Error(InvalidChecksum)
+    }
+  }
+}
+
+pub fn crockford_check_extended_symbols_test() {
+  // Values 32-36 map to *~$=U; test that these round-trip
+  // Find data whose mod 37 hits each extended symbol
+  // 32 = *, 33 = ~, 34 = $, 35 = =, 36 = U
+  assert crockford.decode_check(crockford.encode_check(<<32>>)) == Ok(<<32>>)
+  assert crockford.decode_check(crockford.encode_check(<<33>>)) == Ok(<<33>>)
+  assert crockford.decode_check(crockford.encode_check(<<34>>)) == Ok(<<34>>)
+  assert crockford.decode_check(crockford.encode_check(<<35>>)) == Ok(<<35>>)
+  assert crockford.decode_check(crockford.encode_check(<<36>>)) == Ok(<<36>>)
+}
+
+pub fn crockford_check_empty_input_decode_test() {
+  // Decoding a single character = just a check symbol, body is empty
+  assert crockford.decode_check("0") == Ok(<<>>)
 }
 
 // ===== Clockwork =====

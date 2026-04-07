@@ -4,7 +4,9 @@
 /// No padding.
 import gleam/bit_array
 import gleam/string
-import yabase/core/encoding.{type CodecError, InvalidCharacter, InvalidLength}
+import yabase/core/encoding.{
+  type CodecError, InvalidCharacter, InvalidChecksum, InvalidLength,
+}
 
 const alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
 
@@ -98,6 +100,51 @@ fn char_to_value(c: String) -> Result(Int, Nil) {
     "Y" -> Ok(30)
     "Z" -> Ok(31)
     _ -> Error(Nil)
+  }
+}
+
+/// Encode a BitArray to Crockford Base32 with a check symbol appended.
+/// The check symbol is computed as the numeric value of the data mod 37,
+/// mapped to the 37-character check alphabet (0-9A-Z plus *~$=U).
+pub fn encode_check(data: BitArray) -> String {
+  let encoded = encode(data)
+  let num = bytes_to_int(data, 0)
+  let check_index = num % 37
+  encoded <> string_char_at(check_alphabet, check_index)
+}
+
+/// Decode a Crockford Base32 string with check symbol verification.
+/// The last character is the check symbol; the rest is the encoded data.
+/// Returns Error(InvalidChecksum) if the check symbol does not match.
+pub fn decode_check(input: String) -> Result(BitArray, CodecError) {
+  let len = string.length(input)
+  case len < 1 {
+    True -> Error(InvalidLength(0))
+    False -> {
+      let body = string.slice(input, 0, len - 1)
+      let check_char = string.uppercase(string.slice(input, len - 1, 1))
+      case decode(body) {
+        Error(e) -> Error(e)
+        Ok(data) -> {
+          let num = bytes_to_int(data, 0)
+          let expected_index = num % 37
+          let expected_char = string_char_at(check_alphabet, expected_index)
+          case check_char == expected_char {
+            True -> Ok(data)
+            False -> Error(InvalidChecksum)
+          }
+        }
+      }
+    }
+  }
+}
+
+const check_alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ*~$=U"
+
+fn bytes_to_int(data: BitArray, acc: Int) -> Int {
+  case data {
+    <<byte:8, rest:bits>> -> bytes_to_int(rest, acc * 256 + byte)
+    _ -> acc
   }
 }
 

@@ -71,6 +71,18 @@ pub fn decode_base32_crockford(input: String) -> Result(BitArray, CodecError) {
   crockford.decode(input)
 }
 
+/// Encode a BitArray to Crockford's Base32 with a check symbol appended.
+pub fn encode_base32_crockford_check(data: BitArray) -> String {
+  crockford.encode_check(data)
+}
+
+/// Decode a Crockford's Base32 string with check symbol verification.
+pub fn decode_base32_crockford_check(
+  input: String,
+) -> Result(BitArray, CodecError) {
+  crockford.decode_check(input)
+}
+
 /// Encode a BitArray to Clockwork Base32. No padding, no confusable characters.
 pub fn encode_base32_clockwork(data: BitArray) -> String {
   clockwork.encode(data)
