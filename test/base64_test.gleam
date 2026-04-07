@@ -2,6 +2,7 @@ import yabase/base64/dq
 import yabase/base64/nopadding
 import yabase/base64/standard
 import yabase/base64/urlsafe
+import yabase/base64/urlsafe_nopadding
 import yabase/core/encoding.{InvalidCharacter, InvalidLength}
 
 // ===== Standard =====
@@ -190,6 +191,21 @@ pub fn nopadding_roundtrip_empty_test() {
 pub fn nopadding_decode_invalid_length_mod4_eq_1_test() {
   // Length 5 -> 5 % 4 == 1 -> invalid
   assert nopadding.decode("AAAAA") == Error(InvalidLength(5))
+}
+
+pub fn nopadding_decode_rejects_padding_test() {
+  // "Zg==" is valid padded Base64 for "f", but nopadding must reject it
+  assert nopadding.decode("Zg==") == Error(InvalidCharacter("=", 2))
+}
+
+pub fn nopadding_decode_rejects_single_pad_test() {
+  assert nopadding.decode("Zm8=") == Error(InvalidCharacter("=", 3))
+}
+
+// ===== URL-safe no padding =====
+
+pub fn urlsafe_nopadding_decode_rejects_padding_test() {
+  assert urlsafe_nopadding.decode("Zg==") == Error(InvalidCharacter("=", 2))
 }
 
 // ===== DQ =====

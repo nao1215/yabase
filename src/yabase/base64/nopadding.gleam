@@ -2,7 +2,7 @@
 /// Same as standard Base64 but padding characters are stripped.
 import gleam/string
 import yabase/base64/standard
-import yabase/core/encoding.{type CodecError, InvalidLength}
+import yabase/core/encoding.{type CodecError, InvalidCharacter, InvalidLength}
 
 /// Encode a BitArray to Base64 without padding.
 pub fn encode(data: BitArray) -> String {
@@ -12,14 +12,31 @@ pub fn encode(data: BitArray) -> String {
 
 /// Decode a Base64 string (without padding) to a BitArray.
 /// Length % 4 must be 0, 2, or 3 (never 1).
+/// Padding characters (=) are rejected.
 pub fn decode(input: String) -> Result(BitArray, CodecError) {
-  let len = string.length(input)
-  case len % 4 {
-    1 -> Error(InvalidLength(len))
-    _ -> {
-      let padded = add_padding(input)
-      standard.decode(padded)
+  case string.contains(input, "=") {
+    True -> Error(InvalidCharacter("=", find_char_pos(input, "=", 0)))
+    False -> {
+      let len = string.length(input)
+      case len % 4 {
+        1 -> Error(InvalidLength(len))
+        _ -> {
+          let padded = add_padding(input)
+          standard.decode(padded)
+        }
+      }
     }
+  }
+}
+
+fn find_char_pos(input: String, target: String, pos: Int) -> Int {
+  case string.pop_grapheme(input) {
+    Error(Nil) -> pos
+    Ok(#(c, rest)) ->
+      case c == target {
+        True -> pos
+        False -> find_char_pos(rest, target, pos + 1)
+      }
   }
 }
 
