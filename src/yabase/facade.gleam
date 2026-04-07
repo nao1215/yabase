@@ -266,9 +266,9 @@ pub fn decode_base91(input: String) -> Result(BitArray, CodecError) {
   base91.decode(input)
 }
 
-// --- Ascii85 ---
+// --- Base85 ---
 
-/// Encode a BitArray to Ascii85 (btoa style). All-zero 4-byte groups encode as 'z'.
+/// Encode a BitArray to Ascii85 (btoa style).
 pub fn encode_ascii85(data: BitArray) -> String {
   ascii85.encode(data)
 }
@@ -277,21 +277,6 @@ pub fn encode_ascii85(data: BitArray) -> String {
 pub fn decode_ascii85(input: String) -> Result(BitArray, CodecError) {
   ascii85.decode(input)
 }
-
-// --- Z85 ---
-
-/// Encode a BitArray to Z85 (ZeroMQ variant of Ascii85).
-/// Returns `Error(InvalidLength)` if input length is not a multiple of 4 bytes.
-pub fn encode_z85(data: BitArray) -> Result(String, CodecError) {
-  z85.encode(data)
-}
-
-/// Decode a Z85 string to a BitArray. Input length must be a multiple of 5.
-pub fn decode_z85(input: String) -> Result(BitArray, CodecError) {
-  z85.decode(input)
-}
-
-// --- Adobe Ascii85 ---
 
 /// Encode a BitArray to Adobe Ascii85 with <~ ~> delimiters.
 pub fn encode_adobe_ascii85(data: BitArray) -> String {
@@ -303,7 +288,16 @@ pub fn decode_adobe_ascii85(input: String) -> Result(BitArray, CodecError) {
   adobe_ascii85.decode(input)
 }
 
-// --- RFC 1924 Base85 ---
+/// Encode a BitArray to Z85 (ZeroMQ variant of Base85).
+/// Returns `Error(InvalidLength)` if input length is not a multiple of 4 bytes.
+pub fn encode_z85(data: BitArray) -> Result(String, CodecError) {
+  z85.encode(data)
+}
+
+/// Decode a Z85 string to a BitArray. Input length must be a multiple of 5.
+pub fn decode_z85(input: String) -> Result(BitArray, CodecError) {
+  z85.decode(input)
+}
 
 /// Encode a BitArray to RFC 1924 Base85.
 /// Returns `Error(InvalidLength)` if input length is not a multiple of 4 bytes.

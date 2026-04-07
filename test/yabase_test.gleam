@@ -1,9 +1,9 @@
 import gleeunit
 import yabase
 import yabase/core/encoding.{
-  Ascii85, Base16, Base32, Base45, Base58, Base64, Bitcoin, DQ, Decoded, Flickr,
-  NoPadding, RFC4648, Standard, UnsupportedMultibaseEncoding, UnsupportedPrefix,
-  UrlSafeNoPadding,
+  Base16, Base32, Base45, Base58, Base64, Base85, Bitcoin, Btoa, DQ, Decoded,
+  Flickr, NoPadding, RFC4648, Standard, UnsupportedMultibaseEncoding,
+  UnsupportedPrefix, UrlSafeNoPadding,
 }
 
 pub fn main() -> Nil {
@@ -88,13 +88,13 @@ pub fn encode_with_prefix_dq_unsupported_test() {
 }
 
 pub fn encode_with_prefix_ascii85_unsupported_test() {
-  assert case yabase.encode_with_prefix(Ascii85, <<"test":utf8>>) {
+  assert case yabase.encode_with_prefix(Base85(Btoa), <<"test":utf8>>) {
     Error(UnsupportedMultibaseEncoding(_)) -> True
     _ -> False
   }
 }
 
-// --- New variant coverage ---
+// --- Variant coverage ---
 
 pub fn encode_decode_as_urlsafe_nopadding_test() {
   let data = <<"Hello":utf8>>
@@ -106,7 +106,6 @@ pub fn encode_with_prefix_urlsafe_nopadding_test() {
   let data = <<"Hello":utf8>>
   let assert Ok(prefixed) =
     yabase.encode_with_prefix(Base64(UrlSafeNoPadding), data)
-  // u = base64url (no padding) per multibase registry
   assert case prefixed {
     "u" <> _ -> True
     _ -> False
@@ -119,7 +118,6 @@ pub fn encode_with_prefix_urlsafe_nopadding_test() {
 pub fn encode_with_prefix_base45_test() {
   let data = <<"AB":utf8>>
   let assert Ok(prefixed) = yabase.encode_with_prefix(Base45, data)
-  // R = base45 per multibase registry
   assert case prefixed {
     "R" <> _ -> True
     _ -> False

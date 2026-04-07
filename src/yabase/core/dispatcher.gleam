@@ -22,14 +22,13 @@ import yabase/base64/urlsafe_nopadding as base64_urlsafe_nopadding
 import yabase/base8
 import yabase/base91
 import yabase/core/encoding.{
-  type CodecError, type Encoding, AdobeAscii85 as AdobeAscii85Encoding,
-  Ascii85 as Ascii85Encoding, Base10 as Base10Encoding, Base16 as Base16Encoding,
-  Base2 as Base2Encoding, Base32 as Base32Encoding, Base36 as Base36Encoding,
-  Base45 as Base45Encoding, Base58 as Base58Encoding, Base62 as Base62Encoding,
-  Base64 as Base64Encoding, Base8 as Base8Encoding, Base91 as Base91Encoding,
-  Bitcoin, Clockwork, Crockford, DQ, Flickr, Hex, NoPadding, RFC4648,
-  Rfc1924Base85 as Rfc1924Encoding, Standard, UrlSafe, UrlSafeNoPadding,
-  Z85 as Z85Encoding, ZBase32,
+  type CodecError, type Encoding, Adobe, Base10 as Base10Encoding,
+  Base16 as Base16Encoding, Base2 as Base2Encoding, Base32 as Base32Encoding,
+  Base36 as Base36Encoding, Base45 as Base45Encoding, Base58 as Base58Encoding,
+  Base62 as Base62Encoding, Base64 as Base64Encoding, Base8 as Base8Encoding,
+  Base85 as Base85Encoding, Base91 as Base91Encoding, Bitcoin, Btoa, Clockwork,
+  Crockford, DQ, Flickr, Hex, NoPadding, RFC4648, Rfc1924, Standard, UrlSafe,
+  UrlSafeNoPadding, Z85, ZBase32,
 }
 import yabase/rfc1924_base85
 import yabase/z85
@@ -58,11 +57,11 @@ pub fn encode(enc: Encoding, data: BitArray) -> Result(String, CodecError) {
     Base64Encoding(UrlSafeNoPadding) ->
       Ok(base64_urlsafe_nopadding.encode(data))
     Base64Encoding(DQ) -> Ok(base64_dq.encode(data))
+    Base85Encoding(Btoa) -> Ok(ascii85.encode(data))
+    Base85Encoding(Adobe) -> Ok(adobe_ascii85.encode(data))
+    Base85Encoding(Rfc1924) -> rfc1924_base85.encode(data)
+    Base85Encoding(Z85) -> z85.encode(data)
     Base91Encoding -> Ok(base91.encode(data))
-    Ascii85Encoding -> Ok(ascii85.encode(data))
-    AdobeAscii85Encoding -> Ok(adobe_ascii85.encode(data))
-    Rfc1924Encoding -> rfc1924_base85.encode(data)
-    Z85Encoding -> z85.encode(data)
   }
 }
 
@@ -88,10 +87,10 @@ pub fn decode_as(enc: Encoding, value: String) -> Result(BitArray, CodecError) {
     Base64Encoding(NoPadding) -> base64_nopadding.decode(value)
     Base64Encoding(UrlSafeNoPadding) -> base64_urlsafe_nopadding.decode(value)
     Base64Encoding(DQ) -> base64_dq.decode(value)
+    Base85Encoding(Btoa) -> ascii85.decode(value)
+    Base85Encoding(Adobe) -> adobe_ascii85.decode(value)
+    Base85Encoding(Rfc1924) -> rfc1924_base85.decode(value)
+    Base85Encoding(Z85) -> z85.decode(value)
     Base91Encoding -> base91.decode(value)
-    Ascii85Encoding -> ascii85.decode(value)
-    AdobeAscii85Encoding -> adobe_ascii85.decode(value)
-    Rfc1924Encoding -> rfc1924_base85.decode(value)
-    Z85Encoding -> z85.decode(value)
   }
 }

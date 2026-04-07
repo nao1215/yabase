@@ -1,16 +1,13 @@
 import yabase/core/encoding.{
-  AdobeAscii85, Ascii85, Base10, Base16, Base2, Base32, Base36, Base45, Base58,
-  Base62, Base64, Base8, Base91, Bitcoin, Clockwork, Crockford, Decoded, Flickr,
-  Hex, NoPadding, RFC4648, Rfc1924Base85, Standard, UnsupportedMultibaseEncoding,
+  Adobe, Base10, Base16, Base2, Base32, Base36, Base45, Base58, Base62, Base64,
+  Base8, Base85, Base91, Bitcoin, Btoa, Clockwork, Crockford, Decoded, Flickr,
+  Hex, NoPadding, RFC4648, Rfc1924, Standard, UnsupportedMultibaseEncoding,
   UnsupportedPrefix, UrlSafe, UrlSafeNoPadding, Z85, ZBase32,
 }
 import yabase/core/multibase
 
 // ===== Official multibase registry vectors =====
-// Prefix assignments from:
-// https://github.com/multiformats/multibase/blob/master/multibase.csv
 
-// 0 = base2
 pub fn registry_0_base2_test() {
   let data = <<"Hi":utf8>>
   let assert Ok(encoded) = multibase.encode_with_prefix(Base2, data)
@@ -20,7 +17,6 @@ pub fn registry_0_base2_test() {
   assert decoded == data
 }
 
-// 7 = base8
 pub fn registry_7_base8_test() {
   let data = <<"Hi":utf8>>
   let assert Ok(encoded) = multibase.encode_with_prefix(Base8, data)
@@ -33,7 +29,6 @@ pub fn registry_7_base8_test() {
   assert decoded == data
 }
 
-// 9 = base10
 pub fn registry_9_base10_test() {
   let data = <<"Hi":utf8>>
   let assert Ok(encoded) = multibase.encode_with_prefix(Base10, data)
@@ -46,7 +41,6 @@ pub fn registry_9_base10_test() {
   assert decoded == data
 }
 
-// f = base16 (lowercase)
 pub fn registry_f_base16_test() {
   let data = <<"yes mani !":utf8>>
   let assert Ok(encoded) = multibase.encode_with_prefix(Base16, data)
@@ -56,14 +50,12 @@ pub fn registry_f_base16_test() {
   assert decoded == data
 }
 
-// F = BASE16 (uppercase decode)
 pub fn registry_upper_f_base16_decode_test() {
   let assert Ok(Decoded(encoding: Base16, data: decoded)) =
     multibase.decode("F796573206D616E692021")
   assert decoded == <<"yes mani !":utf8>>
 }
 
-// c = base32pad (lowercase, padded)
 pub fn registry_c_base32pad_test() {
   let data = <<"yes mani !":utf8>>
   let assert Ok(encoded) = multibase.encode_with_prefix(Base32(RFC4648), data)
@@ -76,7 +68,6 @@ pub fn registry_c_base32pad_test() {
   assert decoded == data
 }
 
-// t = base32hexpad (lowercase, padded)
 pub fn registry_t_base32hexpad_test() {
   let data = <<"test":utf8>>
   let assert Ok(encoded) = multibase.encode_with_prefix(Base32(Hex), data)
@@ -89,7 +80,6 @@ pub fn registry_t_base32hexpad_test() {
   assert decoded == data
 }
 
-// h = base32z (z-base-32)
 pub fn registry_h_base32z_test() {
   let data = <<"yes mani !":utf8>>
   let assert Ok(encoded) = multibase.encode_with_prefix(Base32(ZBase32), data)
@@ -102,7 +92,6 @@ pub fn registry_h_base32z_test() {
   assert decoded == data
 }
 
-// k = base36 (lowercase)
 pub fn registry_k_base36_test() {
   let data = <<"yes mani !":utf8>>
   let assert Ok(encoded) = multibase.encode_with_prefix(Base36, data)
@@ -115,7 +104,6 @@ pub fn registry_k_base36_test() {
   assert decoded == data
 }
 
-// z = base58btc
 pub fn registry_z_base58btc_test() {
   let data = <<"yes mani !":utf8>>
   let assert Ok(encoded) = multibase.encode_with_prefix(Base58(Bitcoin), data)
@@ -128,7 +116,6 @@ pub fn registry_z_base58btc_test() {
   assert decoded == data
 }
 
-// Z = base58flickr
 pub fn registry_upper_z_base58flickr_test() {
   let data = <<"yes mani !":utf8>>
   let assert Ok(encoded) = multibase.encode_with_prefix(Base58(Flickr), data)
@@ -141,7 +128,6 @@ pub fn registry_upper_z_base58flickr_test() {
   assert decoded == data
 }
 
-// M = base64pad (with padding)
 pub fn registry_upper_m_base64pad_test() {
   let data = <<"yes mani !":utf8>>
   let assert Ok(encoded) = multibase.encode_with_prefix(Base64(Standard), data)
@@ -151,7 +137,6 @@ pub fn registry_upper_m_base64pad_test() {
   assert decoded == data
 }
 
-// m = base64 (no padding)
 pub fn registry_lower_m_base64_test() {
   let data = <<"yes mani !":utf8>>
   let assert Ok(encoded) = multibase.encode_with_prefix(Base64(NoPadding), data)
@@ -161,7 +146,6 @@ pub fn registry_lower_m_base64_test() {
   assert decoded == data
 }
 
-// U = base64urlpad (with padding)
 pub fn registry_upper_u_base64urlpad_test() {
   let data = <<"yes mani !":utf8>>
   let assert Ok(encoded) = multibase.encode_with_prefix(Base64(UrlSafe), data)
@@ -174,7 +158,6 @@ pub fn registry_upper_u_base64urlpad_test() {
   assert decoded == data
 }
 
-// u = base64url (no padding)
 pub fn registry_lower_u_base64url_nopad_test() {
   let data = <<"yes mani !":utf8>>
   let assert Ok(encoded) =
@@ -204,7 +187,6 @@ pub fn clockwork_unsupported_test() {
   }
 }
 
-// R = base45
 pub fn registry_upper_r_base45_test() {
   let data = <<"AB":utf8>>
   let assert Ok(encoded) = multibase.encode_with_prefix(Base45, data)
@@ -217,9 +199,7 @@ pub fn registry_upper_r_base45_test() {
   assert decoded == data
 }
 
-// B = base32upper (no padding) -> same codec as RFC4648
 pub fn registry_upper_b_base32upper_decode_test() {
-  // B prefix followed by base32 encoded "f" without padding
   let assert Ok(Decoded(encoding: Base32(RFC4648), data: decoded)) =
     multibase.decode("BMY")
   assert decoded == <<"f":utf8>>
@@ -239,29 +219,29 @@ pub fn base91_unsupported_test() {
   }
 }
 
-pub fn ascii85_unsupported_test() {
-  assert case multibase.encode_with_prefix(Ascii85, <<"x":utf8>>) {
+pub fn base85_btoa_unsupported_test() {
+  assert case multibase.encode_with_prefix(Base85(Btoa), <<"x":utf8>>) {
     Error(UnsupportedMultibaseEncoding(_)) -> True
     _ -> False
   }
 }
 
-pub fn adobe_ascii85_unsupported_test() {
-  assert case multibase.encode_with_prefix(AdobeAscii85, <<"x":utf8>>) {
+pub fn base85_adobe_unsupported_test() {
+  assert case multibase.encode_with_prefix(Base85(Adobe), <<"x":utf8>>) {
     Error(UnsupportedMultibaseEncoding(_)) -> True
     _ -> False
   }
 }
 
-pub fn rfc1924_unsupported_test() {
-  assert case multibase.encode_with_prefix(Rfc1924Base85, <<1, 2, 3, 4>>) {
+pub fn base85_rfc1924_unsupported_test() {
+  assert case multibase.encode_with_prefix(Base85(Rfc1924), <<1, 2, 3, 4>>) {
     Error(UnsupportedMultibaseEncoding(_)) -> True
     _ -> False
   }
 }
 
-pub fn z85_unsupported_test() {
-  assert case multibase.encode_with_prefix(Z85, <<1, 2, 3, 4>>) {
+pub fn base85_z85_unsupported_test() {
+  assert case multibase.encode_with_prefix(Base85(Z85), <<1, 2, 3, 4>>) {
     Error(UnsupportedMultibaseEncoding(_)) -> True
     _ -> False
   }
