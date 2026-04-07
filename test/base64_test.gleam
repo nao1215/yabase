@@ -70,20 +70,13 @@ pub fn standard_decode_invalid_char_test() {
 // --- CRLF rejection (RFC 4648 section 3.3) ---
 
 pub fn standard_decode_rejects_lf_test() {
-  // "\n" is not in the Base64 alphabet
-  assert case standard.decode("Zm9v\n") {
-    Error(InvalidCharacter("\n", _)) -> True
-    Error(InvalidLength(_)) -> True
-    _ -> False
-  }
+  // "Zm9v\n" is 5 chars -> 5 % 4 != 0 -> InvalidLength
+  assert standard.decode("Zm9v\n") == Error(InvalidLength(5))
 }
 
 pub fn standard_decode_rejects_crlf_in_middle_test() {
-  assert case standard.decode("Zg==\r\n") {
-    Error(InvalidCharacter(_, _)) -> True
-    Error(InvalidLength(_)) -> True
-    _ -> False
-  }
+  // "Zg==\r\n" - \r\n is one grapheme cluster in Unicode -> 5 graphemes
+  assert standard.decode("Zg==\r\n") == Error(InvalidLength(5))
 }
 
 // --- Padding-then-trailing-data regression ---
@@ -151,11 +144,8 @@ pub fn urlsafe_decode_truncated_test() {
 }
 
 pub fn urlsafe_decode_rejects_lf_test() {
-  assert case urlsafe.decode("Zm9v\n") {
-    Error(InvalidCharacter("\n", _)) -> True
-    Error(InvalidLength(_)) -> True
-    _ -> False
-  }
+  // "Zm9v\n" is 5 chars -> 5 % 4 != 0 -> InvalidLength
+  assert urlsafe.decode("Zm9v\n") == Error(InvalidLength(5))
 }
 
 pub fn urlsafe_decode_data_after_double_pad_test() {

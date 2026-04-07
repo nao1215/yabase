@@ -63,11 +63,7 @@ pub fn auto_detect_bech32m_test() {
 pub fn decode_invalid_checksum_test() {
   let assert Ok(encoded) = bech32.encode(Bech32V, "test", <<1, 2, 3>>)
   let corrupted = encoded <> "q"
-  assert case bech32.decode(corrupted) {
-    Error(InvalidChecksum) -> True
-    Error(InvalidLength(_)) -> True
-    _ -> False
-  }
+  assert bech32.decode(corrupted) == Error(InvalidChecksum)
 }
 
 pub fn decode_no_separator_test() {
