@@ -1,6 +1,7 @@
 /// Ascii85 (btoa) encoding.
 /// Encodes 4-byte groups into 5 ASCII characters from '!' (33) to 'u' (117).
 /// Special case: all-zero groups encode as 'z'.
+/// Special case: all-space groups (0x20202020) encode as 'y'.
 import gleam/bit_array
 import gleam/list
 import gleam/string
@@ -16,6 +17,7 @@ pub fn encode(data: BitArray) -> String {
 fn encode_groups(data: BitArray, acc: String) -> String {
   case data {
     <<0:32, rest:bits>> -> encode_groups(rest, acc <> "z")
+    <<0x20, 0x20, 0x20, 0x20, rest:bits>> -> encode_groups(rest, acc <> "y")
     <<a:8, b:8, c:8, d:8, rest:bits>> -> {
       let n = a * 16_777_216 + b * 65_536 + c * 256 + d
       let encoded = encode_u32(n, 5, [])
@@ -86,6 +88,12 @@ fn decode_groups(
     Error(Nil) -> Ok(acc)
     Ok(#("z", rest)) ->
       decode_groups(rest, bit_array.append(acc, <<0:32>>), pos + 1)
+    Ok(#("y", rest)) ->
+      decode_groups(
+        rest,
+        bit_array.append(acc, <<0x20, 0x20, 0x20, 0x20>>),
+        pos + 1,
+      )
     Ok(#(c1, r1)) ->
       case take_ascii85_group(c1, r1, pos) {
         Error(e) -> Error(e)

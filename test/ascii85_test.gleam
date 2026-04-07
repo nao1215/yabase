@@ -21,6 +21,36 @@ pub fn decode_zeros_test() {
   assert ascii85.decode("z") == Ok(<<0, 0, 0, 0>>)
 }
 
+pub fn encode_spaces_y_test() {
+  // btoa abbreviation: 4 spaces -> 'y'
+  assert ascii85.encode(<<0x20, 0x20, 0x20, 0x20>>) == "y"
+}
+
+pub fn encode_eight_spaces_test() {
+  assert ascii85.encode(<<0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20>>)
+    == "yy"
+}
+
+pub fn decode_y_test() {
+  assert ascii85.decode("y") == Ok(<<0x20, 0x20, 0x20, 0x20>>)
+}
+
+pub fn decode_yy_test() {
+  assert ascii85.decode("yy")
+    == Ok(<<0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20>>)
+}
+
+pub fn roundtrip_spaces_test() {
+  let data = <<0x20, 0x20, 0x20, 0x20>>
+  assert ascii85.decode(ascii85.encode(data)) == Ok(data)
+}
+
+pub fn encode_mixed_z_y_test() {
+  // zeros + spaces
+  let data = <<0, 0, 0, 0, 0x20, 0x20, 0x20, 0x20>>
+  assert ascii85.encode(data) == "zy"
+}
+
 pub fn decode_invalid_char_test() {
   // Characters outside '!' (33) to 'u' (117) are invalid (except 'z')
   assert case ascii85.decode("\u{01}") {
