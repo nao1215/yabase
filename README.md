@@ -73,8 +73,8 @@ These encodings carry metadata (version bytes, checksums, HRP) and have their ow
 | Encoding | Module | Description |
 |----------|--------|-------------|
 | Base58Check | `yabase/base58check` | Bitcoin-style: version byte + payload + SHA-256 double-hash checksum |
-| Bech32 | `yabase/bech32` | BIP 173: raw framing (HRP + base32 data + checksum), not SegWit address validation |
-| Bech32m | `yabase/bech32` | BIP 350: improved checksum constant, same framing |
+| Bech32 | `yabase/bech32` | BIP 173: byte-payload encoding (HRP + 8-to-5 conversion + checksum), not SegWit address validation |
+| Bech32m | `yabase/bech32` | BIP 350: improved checksum constant, same byte-payload API |
 
 ## API layers
 
@@ -160,7 +160,7 @@ yabase supports the following [multibase](https://github.com/multiformats/multib
 
 ### Bech32 / Bech32m (BIP 173, BIP 350)
 
-Raw Bech32 framing and checksum. Does not validate SegWit address semantics (witness version, program length):
+Byte-payload convenience API. Takes raw bytes, handles 8-to-5 bit conversion internally, and produces the checksummed Bech32 string. Does not validate SegWit address semantics (witness version, program length):
 
 ```gleam
 import yabase/bech32
@@ -214,7 +214,7 @@ let assert Ok(decoded) = base58check.decode(encoded)
 | `yabase/rfc1924_base85` | RFC 1924 Base85 |
 | `yabase/z85` | Z85 (ZeroMQ) |
 | `yabase/base58check` | Base58Check (version byte + SHA-256 checksum) |
-| `yabase/bech32` | Raw Bech32/Bech32m framing and checksum (not SegWit address validation) |
+| `yabase/bech32` | Bech32/Bech32m byte-payload encoding with checksum (not SegWit address validation) |
 
 ## Error handling
 

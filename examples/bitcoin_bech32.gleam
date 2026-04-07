@@ -1,8 +1,9 @@
 /// Bech32/Bech32m encoding for Bitcoin addresses (BIP 173 / BIP 350).
 ///
-/// This example demonstrates raw Bech32 framing. yabase provides the
-/// encoding layer only; SegWit address semantics (witness version,
-/// program length) are left to the caller.
+/// yabase's bech32 module is a byte-payload convenience API: it takes
+/// raw bytes, converts to 5-bit groups internally, and appends the
+/// checksum. SegWit address semantics (witness version, program length)
+/// are left to the caller.
 import gleam/io
 import yabase/bech32
 

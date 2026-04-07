@@ -1,12 +1,18 @@
-/// Raw Bech32 and Bech32m framing and checksum (BIP 173, BIP 350).
+/// Bech32 and Bech32m byte-payload encoding (BIP 173, BIP 350).
 ///
-/// This module implements the Bech32/Bech32m encoding layer only:
-/// HRP + "1" separator + base32 data + 6-character polynomial checksum.
-/// Alphabet: qpzry9x8gf2tvdw0s3jn54khce6mua7l
+/// This module provides a convenience API that accepts raw bytes,
+/// converts them to 5-bit groups internally (8-to-5 bit conversion),
+/// computes the polynomial checksum, and produces the final
+/// HRP + "1" + data + checksum string. Decoding reverses the process
+/// (5-to-8 bit conversion) and returns bytes.
+///
+/// This is NOT a raw 5-bit framing API. If you need to work with
+/// pre-converted 5-bit values (e.g. for SegWit witness programs
+/// where the witness version is a separate 5-bit value), you will
+/// need to handle the bit conversion yourself before calling this module.
 ///
 /// It does NOT implement SegWit address validation (witness version,
-/// program length constraints). Use this module as a building block
-/// for higher-level address codecs.
+/// program length constraints).
 ///
 /// This is a separate API from the Encoding ADT because it carries
 /// HRP metadata and a checksum.
@@ -25,9 +31,9 @@ const bech32_const = 1
 
 const bech32m_const = 0x2bc830a3
 
-/// Encode data with Bech32 (BIP 173).
+/// Encode byte data with Bech32 (BIP 173).
 /// hrp: human-readable part (e.g. "bc" for Bitcoin mainnet).
-/// data: the raw data bytes to encode.
+/// data: raw bytes (8-to-5 bit conversion is done internally).
 pub fn encode(hrp: String, data: BitArray) -> Result(String, CodecError) {
   encode_variant(Bech32V, hrp, data)
 }
