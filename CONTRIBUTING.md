@@ -76,7 +76,7 @@ When adding a new encoding:
 1. Create the encoding module in `src/yabase/` (or a subdirectory for variants)
 2. Implement `encode` and `decode` functions with the standard signatures
 3. Add the variant to `Encoding` type in `src/yabase/core/encoding.gleam`
-4. Add dispatch entries in `src/yabase/core/dispatcher.gleam`
+4. Add dispatch entries in `src/yabase/core/dispatcher.gleam` (internal module)
 5. Add facade shortcut functions in `src/yabase/facade.gleam`
 6. Add a multibase prefix mapping in `src/yabase/core/multibase.gleam` (if applicable)
 7. Add comprehensive tests in `test/`
