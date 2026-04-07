@@ -75,7 +75,11 @@ These encodings carry metadata (version bytes, checksums, HRP) and have their ow
 
 ## API layers
 
-yabase provides three API layers. Choose the one that fits your use case.
+yabase provides three API layers:
+
+- **Start with `yabase/facade`** -- one function per encoding, no type parameters. Covers most use cases.
+- **Use the unified API (`yabase`)** when you need to select an encoding at runtime (e.g. user config, multibase auto-detection).
+- **Use low-level modules** (`yabase/base64/standard`, etc.) when you need full control over a specific codec.
 
 ### 1. Low-level modules (direct usage)
 
