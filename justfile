@@ -29,6 +29,16 @@ check:
   gleam check
   gleam build --warnings-as-errors
   gleam test
+  @just verify-examples
+
+verify-examples:
+  #!/usr/bin/env bash
+  for f in examples/*.gleam; do
+    mod=$(basename "$f" .gleam)
+    cp "$f" "src/yabase/example_${mod}.gleam"
+  done
+  gleam build
+  rm -f src/yabase/example_*.gleam
 
 ci: deps check
 
