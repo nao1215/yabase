@@ -1,4 +1,5 @@
 /// Base62 encoding (0-9, A-Z, a-z).
+/// Leading 0x00 bytes round-trip as leading "0" characters.
 import gleam/string
 import yabase/core/encoding.{type CodecError}
 import yabase/internal/bignum

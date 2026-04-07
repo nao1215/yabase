@@ -1,5 +1,6 @@
 /// Base10 (decimal) encoding.
 /// Treats the input as a big integer and encodes in base 10 (0-9).
+/// Leading 0x00 bytes round-trip as leading "0" characters.
 import yabase/core/encoding.{type CodecError}
 import yabase/internal/bignum
 

@@ -66,6 +66,8 @@ pub fn main() {
 | Z85 | ZeroMQ variant of Ascii85 |
 | RFC 1924 Base85 | RFC 1924 alphabet |
 
+Big-integer encodings (Base8, Base10, Base36, Base58, Base62, Crockford Base32) preserve leading zero bytes: each leading 0x00 byte encodes as the alphabet's zero character, and decoding reverses this. For example, `base10.decode("001")` returns `Ok(<<0, 0, 1>>)`.
+
 ### Checksum-bearing (separate API)
 
 These encodings carry metadata (version bytes, checksums, HRP) and have their own API outside the `Encoding` ADT.

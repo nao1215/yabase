@@ -45,6 +45,10 @@ pub fn decode_case_insensitive_test() {
   assert base36.decode(upper) == Ok(data)
 }
 
+pub fn decode_leading_zeros_preserved_test() {
+  assert base36.decode("001") == Ok(<<0, 0, 1>>)
+}
+
 pub fn decode_invalid_char_test() {
   assert base36.decode("!!!") == Error(InvalidCharacter("!", 0))
 }

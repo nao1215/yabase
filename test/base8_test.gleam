@@ -53,3 +53,8 @@ pub fn roundtrip_leading_zeros_test() {
   let data = <<0, 0, 0, 42>>
   assert base8.decode(base8.encode(data)) == Ok(data)
 }
+
+// Leading zero chars in decode produce leading 0x00 bytes (API contract)
+pub fn decode_leading_zeros_preserved_test() {
+  assert base8.decode("001") == Ok(<<0, 0, 1>>)
+}

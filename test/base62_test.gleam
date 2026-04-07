@@ -42,6 +42,10 @@ pub fn roundtrip_high_bits_test() {
   assert base62.decode(base62.encode(data)) == Ok(data)
 }
 
+pub fn decode_leading_zeros_preserved_test() {
+  assert base62.decode("001") == Ok(<<0, 0, 1>>)
+}
+
 pub fn decode_invalid_char_test() {
   assert base62.decode("!!!") == Error(InvalidCharacter("!", 0))
 }

@@ -1,5 +1,10 @@
 /// Shared big-integer utilities for radix-based encodings
-/// (Base8, Base10, Base36, Base58, Base62).
+/// (Base8, Base10, Base36, Base58, Base62, Crockford Base32).
+///
+/// Leading-zero preservation: encode maps each leading 0x00 byte to
+/// the alphabet's zero character; decode maps each leading zero
+/// character back to a 0x00 byte. This means the codec round-trips
+/// byte arrays faithfully, not just numeric values.
 import gleam/bit_array
 import gleam/list
 import gleam/string
@@ -77,7 +82,7 @@ pub fn string_to_int(
 }
 
 /// Encode a BitArray using big-integer radix conversion.
-/// zero_char is the character representing 0 in the alphabet.
+/// Leading 0x00 bytes are preserved as the alphabet's zero character.
 pub fn encode(data: BitArray, radix: Int, alphabet: String) -> String {
   case bit_array.byte_size(data) {
     0 -> ""
@@ -95,7 +100,7 @@ pub fn encode(data: BitArray, radix: Int, alphabet: String) -> String {
 }
 
 /// Decode a string using big-integer radix conversion.
-/// zero_char is the character representing 0 in the alphabet.
+/// Leading zero characters are preserved as 0x00 bytes.
 pub fn decode(
   input: String,
   radix: Int,

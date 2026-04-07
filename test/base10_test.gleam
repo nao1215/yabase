@@ -53,3 +53,7 @@ pub fn roundtrip_leading_zeros_test() {
   let data = <<0, 0, 0, 42>>
   assert base10.decode(base10.encode(data)) == Ok(data)
 }
+
+pub fn decode_leading_zeros_preserved_test() {
+  assert base10.decode("001") == Ok(<<0, 0, 1>>)
+}
