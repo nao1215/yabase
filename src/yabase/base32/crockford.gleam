@@ -1,69 +1,69 @@
 /// Crockford's Base32 encoding.
+/// Encodes data as a number in base 32 per https://www.crockford.com/base32.html
 /// Alphabet: 0123456789ABCDEFGHJKMNPQRSTVWXYZ
-/// Case-insensitive decoding. O->0, I/L->1 on decode.
+/// Case-insensitive decoding. O->0, I/L->1 on decode. Hyphens ignored.
 /// No padding.
-import gleam/bit_array
 import gleam/string
 import yabase/core/encoding.{
-  type CodecError, InvalidCharacter, InvalidChecksum, InvalidLength,
+  type CodecError, InvalidChecksum, InvalidLength,
 }
+import yabase/internal/bignum
 
 const alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
 
-/// Encode a BitArray to Crockford Base32 string (no padding).
+/// Encode a BitArray to Crockford Base32 string.
+/// The input is treated as a big-endian unsigned integer and
+/// converted to base 32 using Crockford's alphabet.
 pub fn encode(data: BitArray) -> String {
-  encode_bits(data, "")
-}
-
-fn encode_bits(data: BitArray, acc: String) -> String {
-  case data {
-    <<a:5, rest:bits>> -> {
-      let char = string_char_at(alphabet, a)
-      encode_bits(rest, acc <> char)
-    }
-    <<a:4>> -> acc <> string_char_at(alphabet, a * 2)
-    <<a:3>> -> acc <> string_char_at(alphabet, a * 4)
-    <<a:2>> -> acc <> string_char_at(alphabet, a * 8)
-    <<a:1>> -> acc <> string_char_at(alphabet, a * 16)
-    _ -> acc
-  }
+  bignum.encode(data, 32, alphabet)
 }
 
 /// Decode a Crockford Base32 string to a BitArray.
-/// Accepts hyphens (ignored). O->0, I/L->1.
+/// Accepts hyphens (ignored). O->0, I/L->1. Case-insensitive.
 pub fn decode(input: String) -> Result(BitArray, CodecError) {
   let cleaned =
     string.uppercase(input)
     |> string.replace("-", "")
-  let len = string.length(cleaned)
-  case len % 8 {
-    1 | 3 | 6 -> Error(InvalidLength(string.length(input)))
-    _ -> decode_chars(cleaned, <<>>, 0)
-  }
+  bignum.decode(cleaned, 32, "0", char_to_value)
 }
 
-fn decode_chars(
-  input: String,
-  acc: BitArray,
-  pos: Int,
-) -> Result(BitArray, CodecError) {
-  case string.pop_grapheme(input) {
-    Error(Nil) -> extract_bytes(acc, <<>>)
-    Ok(#(c, rest)) ->
-      case char_to_value(c) {
-        Error(_) -> Error(InvalidCharacter(c, pos))
-        Ok(val) -> decode_chars(rest, bit_array.append(acc, <<val:5>>), pos + 1)
+/// Encode a BitArray to Crockford Base32 with a check symbol appended.
+/// The check symbol is computed as the numeric value of the data mod 37,
+/// mapped to the 37-character check alphabet (0-9A-Z plus *~$=U).
+pub fn encode_check(data: BitArray) -> String {
+  let encoded = encode(data)
+  let num = bignum.bytes_to_int(data, 0)
+  let check_index = num % 37
+  encoded <> string_char_at(check_alphabet, check_index)
+}
+
+/// Decode a Crockford Base32 string with check symbol verification.
+/// The last character is the check symbol; the rest is the encoded data.
+/// Returns Error(InvalidChecksum) if the check symbol does not match.
+pub fn decode_check(input: String) -> Result(BitArray, CodecError) {
+  let len = string.length(input)
+  case len < 1 {
+    True -> Error(InvalidLength(0))
+    False -> {
+      let body = string.slice(input, 0, len - 1)
+      let check_char = string.uppercase(string.slice(input, len - 1, 1))
+      case decode(body) {
+        Error(e) -> Error(e)
+        Ok(data) -> {
+          let num = bignum.bytes_to_int(data, 0)
+          let expected_index = num % 37
+          let expected_char = string_char_at(check_alphabet, expected_index)
+          case check_char == expected_char {
+            True -> Ok(data)
+            False -> Error(InvalidChecksum)
+          }
+        }
       }
+    }
   }
 }
 
-fn extract_bytes(bits: BitArray, acc: BitArray) -> Result(BitArray, CodecError) {
-  case bits {
-    <<byte:8, rest:bits>> ->
-      extract_bytes(rest, bit_array.append(acc, <<byte:int>>))
-    _ -> Ok(acc)
-  }
-}
+const check_alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ*~$=U"
 
 fn char_to_value(c: String) -> Result(Int, Nil) {
   case c {
@@ -100,51 +100,6 @@ fn char_to_value(c: String) -> Result(Int, Nil) {
     "Y" -> Ok(30)
     "Z" -> Ok(31)
     _ -> Error(Nil)
-  }
-}
-
-/// Encode a BitArray to Crockford Base32 with a check symbol appended.
-/// The check symbol is computed as the numeric value of the data mod 37,
-/// mapped to the 37-character check alphabet (0-9A-Z plus *~$=U).
-pub fn encode_check(data: BitArray) -> String {
-  let encoded = encode(data)
-  let num = bytes_to_int(data, 0)
-  let check_index = num % 37
-  encoded <> string_char_at(check_alphabet, check_index)
-}
-
-/// Decode a Crockford Base32 string with check symbol verification.
-/// The last character is the check symbol; the rest is the encoded data.
-/// Returns Error(InvalidChecksum) if the check symbol does not match.
-pub fn decode_check(input: String) -> Result(BitArray, CodecError) {
-  let len = string.length(input)
-  case len < 1 {
-    True -> Error(InvalidLength(0))
-    False -> {
-      let body = string.slice(input, 0, len - 1)
-      let check_char = string.uppercase(string.slice(input, len - 1, 1))
-      case decode(body) {
-        Error(e) -> Error(e)
-        Ok(data) -> {
-          let num = bytes_to_int(data, 0)
-          let expected_index = num % 37
-          let expected_char = string_char_at(check_alphabet, expected_index)
-          case check_char == expected_char {
-            True -> Ok(data)
-            False -> Error(InvalidChecksum)
-          }
-        }
-      }
-    }
-  }
-}
-
-const check_alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ*~$=U"
-
-fn bytes_to_int(data: BitArray, acc: Int) -> Int {
-  case data {
-    <<byte:8, rest:bits>> -> bytes_to_int(rest, acc * 256 + byte)
-    _ -> acc
   }
 }
 

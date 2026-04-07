@@ -164,9 +164,37 @@ pub fn hex_decode_pure_padding_test() {
 }
 
 // ===== Crockford =====
+// Crockford Base32 treats data as a number, not a byte stream.
+// See: https://www.crockford.com/base32.html
 
 pub fn crockford_encode_empty_test() {
   assert crockford.encode(<<>>) == ""
+}
+
+// Spec conformance: numeric value encoding
+pub fn crockford_encode_numeric_65_test() {
+  // <<65>> = numeric 65, 65 = 2*32 + 1 = "21"
+  assert crockford.encode(<<65>>) == "21"
+}
+
+pub fn crockford_encode_numeric_0_test() {
+  // <<0>> = numeric 0
+  assert crockford.encode(<<0>>) == "0"
+}
+
+pub fn crockford_encode_numeric_31_test() {
+  // <<31>> = numeric 31 = "Z"
+  assert crockford.encode(<<31>>) == "Z"
+}
+
+pub fn crockford_encode_numeric_32_test() {
+  // <<32>> = numeric 32 = 1*32 + 0 = "10"
+  assert crockford.encode(<<32>>) == "10"
+}
+
+pub fn crockford_encode_numeric_1023_test() {
+  // <<3, 0xFF>> = numeric 1023 = 31*32 + 31 = "ZZ"
+  assert crockford.encode(<<3, 255>>) == "ZZ"
 }
 
 pub fn crockford_roundtrip_test() {
@@ -180,6 +208,11 @@ pub fn crockford_roundtrip_empty_test() {
 
 pub fn crockford_roundtrip_single_zero_test() {
   assert crockford.decode(crockford.encode(<<0>>)) == Ok(<<0>>)
+}
+
+pub fn crockford_roundtrip_leading_zeros_test() {
+  let data = <<0, 0, 42>>
+  assert crockford.decode(crockford.encode(data)) == Ok(data)
 }
 
 pub fn crockford_decode_with_hyphens_test() {
@@ -227,6 +260,11 @@ pub fn crockford_decode_i_l_as_one_test() {
   let encoded = crockford.encode(data)
   let with_i = string.replace(encoded, "1", "I")
   assert crockford.decode(with_i) == Ok(data)
+}
+
+pub fn crockford_decode_case_insensitive_test() {
+  assert crockford.decode("21") == crockford.decode("21")
+  assert crockford.decode("zz") == crockford.decode("ZZ")
 }
 
 // ===== Crockford check symbol =====
