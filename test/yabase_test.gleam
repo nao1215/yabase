@@ -2,8 +2,8 @@ import gleeunit
 import yabase
 import yabase/core/encoding.{
   Base16, Base32, Base45, Base58, Base64, Base85, Bitcoin, Btoa, DQ, Decoded,
-  Flickr, NoPadding, RFC4648, Standard, UnsupportedMultibaseEncoding,
-  UnsupportedPrefix, UrlSafeNoPadding,
+  Flickr, InvalidCharacter, NoPadding, RFC4648, Standard,
+  UnsupportedMultibaseEncoding, UnsupportedPrefix, UrlSafeNoPadding,
 }
 
 pub fn main() -> Nil {
@@ -113,6 +113,14 @@ pub fn multibase_roundtrip_urlsafe_nopadding_test() {
   let assert Ok(Decoded(encoding: Base64(UrlSafeNoPadding), data: decoded)) =
     yabase.decode_multibase(prefixed)
   assert decoded == data
+}
+
+pub fn decode_multibase_rejects_padded_nopadding_test() {
+  // u = base64url no-padding through top-level API
+  assert case yabase.decode_multibase("uZg==") {
+    Error(InvalidCharacter("=", _)) -> True
+    _ -> False
+  }
 }
 
 pub fn multibase_roundtrip_base45_test() {

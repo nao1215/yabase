@@ -1,8 +1,9 @@
 import yabase/core/encoding.{
   Adobe, Base10, Base16, Base2, Base32, Base36, Base45, Base58, Base62, Base64,
   Base8, Base85, Base91, Bitcoin, Btoa, Clockwork, Crockford, Decoded, Flickr,
-  Hex, NoPadding, RFC4648, Rfc1924, Standard, UnsupportedMultibaseEncoding,
-  UnsupportedPrefix, UrlSafe, UrlSafeNoPadding, Z85, ZBase32,
+  Hex, InvalidCharacter, NoPadding, RFC4648, Rfc1924, Standard,
+  UnsupportedMultibaseEncoding, UnsupportedPrefix, UrlSafe, UrlSafeNoPadding,
+  Z85, ZBase32,
 }
 import yabase/core/multibase
 
@@ -268,4 +269,22 @@ pub fn decode_bytes_roundtrip_test() {
   let data = <<"Hello":utf8>>
   let assert Ok(encoded) = multibase.encode_with_prefix(Base32(RFC4648), data)
   assert multibase.decode_bytes(encoded) == Ok(data)
+}
+
+// ===== No-padding rejection through multibase wrapper =====
+
+pub fn multibase_m_rejects_padded_input_test() {
+  // m = base64 no-padding; "mZg==" has padding and must be rejected
+  assert case multibase.decode("mZg==") {
+    Error(InvalidCharacter("=", _)) -> True
+    _ -> False
+  }
+}
+
+pub fn multibase_u_rejects_padded_input_test() {
+  // u = base64url no-padding; "uZg==" has padding and must be rejected
+  assert case multibase.decode("uZg==") {
+    Error(InvalidCharacter("=", _)) -> True
+    _ -> False
+  }
 }
