@@ -15,9 +15,9 @@ import yabase/core/encoding.{
   Base36 as Base36Encoding, Base45 as Base45Encoding, Base58 as Base58Encoding,
   Base62 as Base62Encoding, Base64 as Base64Encoding, Base8 as Base8Encoding,
   Base85 as Base85Encoding, Base91 as Base91Encoding, Bitcoin, Btoa, Clockwork,
-  Crockford, DQ, Decoded, Flickr, Hex, NoPadding, RFC4648, Rfc1924, Standard,
-  UnsupportedMultibaseEncoding, UnsupportedPrefix, UrlSafe, UrlSafeNoPadding,
-  Z85, ZBase32,
+  Crockford, CrockfordCheck, DQ, Decoded, Flickr, Hex, NoPadding, RFC4648,
+  Rfc1924, Standard, UnsupportedMultibaseEncoding, UnsupportedPrefix, UrlSafe,
+  UrlSafeNoPadding, Z85, ZBase32,
 }
 
 /// Encode data with a multibase prefix.
@@ -72,6 +72,7 @@ fn encoding_to_prefix(enc: Encoding) -> Result(String, Nil) {
     Base32Encoding(RFC4648) -> Ok("c")
     Base32Encoding(Hex) -> Ok("t")
     Base32Encoding(Crockford) -> Error(Nil)
+    Base32Encoding(CrockfordCheck) -> Error(Nil)
     Base32Encoding(Clockwork) -> Error(Nil)
     Base32Encoding(ZBase32) -> Ok("h")
     Base36Encoding -> Ok("k")
@@ -125,6 +126,7 @@ fn encoding_name(enc: Encoding) -> String {
     Base32Encoding(RFC4648) -> "base32pad"
     Base32Encoding(Hex) -> "base32hexpad"
     Base32Encoding(Crockford) -> "base32crockford"
+    Base32Encoding(CrockfordCheck) -> "base32crockford-check"
     Base32Encoding(Clockwork) -> "base32clockwork"
     Base32Encoding(ZBase32) -> "base32z"
     Base36Encoding -> "base36"

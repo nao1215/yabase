@@ -27,8 +27,8 @@ import yabase/core/encoding.{
   Base36 as Base36Encoding, Base45 as Base45Encoding, Base58 as Base58Encoding,
   Base62 as Base62Encoding, Base64 as Base64Encoding, Base8 as Base8Encoding,
   Base85 as Base85Encoding, Base91 as Base91Encoding, Bitcoin, Btoa, Clockwork,
-  Crockford, DQ, Flickr, Hex, NoPadding, RFC4648, Rfc1924, Standard, UrlSafe,
-  UrlSafeNoPadding, Z85, ZBase32,
+  Crockford, CrockfordCheck, DQ, Flickr, Hex, NoPadding, RFC4648, Rfc1924,
+  Standard, UrlSafe, UrlSafeNoPadding, Z85, ZBase32,
 }
 import yabase/rfc1924_base85
 import yabase/z85
@@ -44,6 +44,7 @@ pub fn encode(enc: Encoding, data: BitArray) -> Result(String, CodecError) {
     Base32Encoding(RFC4648) -> Ok(base32_rfc4648.encode(data))
     Base32Encoding(Hex) -> Ok(base32_hex.encode(data))
     Base32Encoding(Crockford) -> Ok(crockford.encode(data))
+    Base32Encoding(CrockfordCheck) -> Ok(crockford.encode_check(data))
     Base32Encoding(Clockwork) -> Ok(clockwork.encode(data))
     Base32Encoding(ZBase32) -> Ok(zbase32.encode(data))
     Base36Encoding -> Ok(base36.encode(data))
@@ -75,6 +76,7 @@ pub fn decode_as(enc: Encoding, value: String) -> Result(BitArray, CodecError) {
     Base32Encoding(RFC4648) -> base32_rfc4648.decode(value)
     Base32Encoding(Hex) -> base32_hex.decode(value)
     Base32Encoding(Crockford) -> crockford.decode(value)
+    Base32Encoding(CrockfordCheck) -> crockford.decode_check(value)
     Base32Encoding(Clockwork) -> clockwork.decode(value)
     Base32Encoding(ZBase32) -> zbase32.decode(value)
     Base36Encoding -> base36.decode(value)

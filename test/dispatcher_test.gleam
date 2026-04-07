@@ -1,8 +1,8 @@
 import yabase/core/dispatcher
 import yabase/core/encoding.{
   Adobe, Base10, Base16, Base2, Base32, Base36, Base45, Base58, Base62, Base64,
-  Base8, Base85, Base91, Bitcoin, Btoa, Clockwork, Crockford, DQ, Flickr, Hex,
-  InvalidLength, NoPadding, RFC4648, Rfc1924, Standard, UrlSafe,
+  Base8, Base85, Base91, Bitcoin, Btoa, Clockwork, Crockford, CrockfordCheck, DQ,
+  Flickr, Hex, InvalidLength, NoPadding, RFC4648, Rfc1924, Standard, UrlSafe,
   UrlSafeNoPadding, Z85, ZBase32,
 }
 
@@ -40,6 +40,10 @@ pub fn base32_hex_test() {
 
 pub fn base32_crockford_test() {
   assert_roundtrip(Base32(Crockford), <<"test":utf8>>)
+}
+
+pub fn base32_crockford_check_test() {
+  assert_roundtrip(Base32(CrockfordCheck), <<"test":utf8>>)
 }
 
 pub fn base32_clockwork_test() {

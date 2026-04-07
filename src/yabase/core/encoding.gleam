@@ -7,6 +7,8 @@ pub type Base32Variant {
   Hex
   /// Crockford's Base32
   Crockford
+  /// Crockford's Base32 with mod-37 check symbol
+  CrockfordCheck
   /// Clockwork Base32 (human-friendly, no padding)
   Clockwork
   /// z-base-32 (human-oriented, no padding)
