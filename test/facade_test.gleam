@@ -6,6 +6,11 @@ import yabase/facade
 
 // --- Roundtrip tests for each facade pair ---
 
+pub fn base2_roundtrip_test() {
+  let data = <<"Hello":utf8>>
+  assert facade.decode_base2(facade.encode_base2(data)) == Ok(data)
+}
+
 pub fn base16_roundtrip_test() {
   let data = <<"Hello":utf8>>
   assert facade.decode_base16(facade.encode_base16(data)) == Ok(data)

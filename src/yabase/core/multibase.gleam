@@ -12,7 +12,8 @@ import yabase/core/dispatcher
 import yabase/core/encoding.{
   type CodecError, type Decoded, type Encoding,
   AdobeAscii85 as AdobeAscii85Encoding, Ascii85 as Ascii85Encoding,
-  Base16 as Base16Encoding, Base32 as Base32Encoding, Base36 as Base36Encoding,
+  Base16 as Base16Encoding, Base2 as Base2Encoding,
+  Base32 as Base32Encoding, Base36 as Base36Encoding,
   Base45 as Base45Encoding, Base58 as Base58Encoding, Base62 as Base62Encoding,
   Bitcoin, Flickr,
   Base64 as Base64Encoding, Base91 as Base91Encoding, Clockwork, Crockford, DQ,
@@ -67,6 +68,8 @@ pub fn decode_bytes(value: String) -> Result(BitArray, CodecError) {
 /// See: https://github.com/multiformats/multibase/blob/master/multibase.csv
 fn encoding_to_prefix(enc: Encoding) -> Result(String, Nil) {
   case enc {
+    // 0 = base2
+    Base2Encoding -> Ok("0")
     // f = base16 (lowercase)
     Base16Encoding -> Ok("f")
     // c = base32 padded (lowercase, RFC 4648)
@@ -109,6 +112,8 @@ fn encoding_to_prefix(enc: Encoding) -> Result(String, Nil) {
 /// Map a multibase prefix character to its Encoding.
 fn prefix_to_encoding(prefix: String) -> Result(Encoding, Nil) {
   case prefix {
+    // base2
+    "0" -> Ok(Base2Encoding)
     // base16
     "f" | "F" -> Ok(Base16Encoding)
     // base32 padded (RFC 4648)
@@ -144,6 +149,7 @@ fn prefix_to_encoding(prefix: String) -> Result(Encoding, Nil) {
 
 fn encoding_name(enc: Encoding) -> String {
   case enc {
+    Base2Encoding -> "base2"
     Base16Encoding -> "base16"
     Base32Encoding(RFC4648) -> "base32pad"
     Base32Encoding(Hex) -> "base32hexpad"

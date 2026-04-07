@@ -7,6 +7,7 @@
 import yabase/adobe_ascii85
 import yabase/ascii85
 import yabase/base16
+import yabase/base2
 import yabase/base32/clockwork
 import yabase/base32/crockford
 import yabase/base32/hex as base32_hex
@@ -26,6 +27,18 @@ import yabase/base91
 import yabase/core/encoding.{type CodecError}
 import yabase/rfc1924_base85
 import yabase/z85
+
+// --- Base2 ---
+
+/// Encode a BitArray to a binary string (each byte as 8 chars of 0/1).
+pub fn encode_base2(data: BitArray) -> String {
+  base2.encode(data)
+}
+
+/// Decode a binary string to a BitArray. Length must be a multiple of 8.
+pub fn decode_base2(input: String) -> Result(BitArray, CodecError) {
+  base2.decode(input)
+}
 
 // --- Base16 ---
 

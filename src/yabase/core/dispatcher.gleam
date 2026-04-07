@@ -2,6 +2,7 @@
 import yabase/adobe_ascii85
 import yabase/ascii85
 import yabase/base16
+import yabase/base2
 import yabase/base32/clockwork
 import yabase/base32/crockford
 import yabase/base32/hex as base32_hex
@@ -20,7 +21,8 @@ import yabase/base64/urlsafe_nopadding as base64_urlsafe_nopadding
 import yabase/base91
 import yabase/core/encoding.{
   type CodecError, type Encoding, AdobeAscii85 as AdobeAscii85Encoding,
-  Ascii85 as Ascii85Encoding, Base16 as Base16Encoding, Base32 as Base32Encoding,
+  Ascii85 as Ascii85Encoding, Base16 as Base16Encoding, Base2 as Base2Encoding,
+  Base32 as Base32Encoding,
   Base36 as Base36Encoding, Base45 as Base45Encoding, Base58 as Base58Encoding,
   Base62 as Base62Encoding, Base64 as Base64Encoding, Base91 as Base91Encoding,
   Bitcoin, Flickr,
@@ -35,6 +37,7 @@ import yabase/z85
 /// Returns Result because some encodings have input length constraints.
 pub fn encode(enc: Encoding, data: BitArray) -> Result(String, CodecError) {
   case enc {
+    Base2Encoding -> Ok(base2.encode(data))
     Base16Encoding -> Ok(base16.encode(data))
     Base32Encoding(RFC4648) -> Ok(base32_rfc4648.encode(data))
     Base32Encoding(Hex) -> Ok(base32_hex.encode(data))
@@ -63,6 +66,7 @@ pub fn encode(enc: Encoding, data: BitArray) -> Result(String, CodecError) {
 /// Decode data using the specified encoding.
 pub fn decode_as(enc: Encoding, value: String) -> Result(BitArray, CodecError) {
   case enc {
+    Base2Encoding -> base2.decode(value)
     Base16Encoding -> base16.decode(value)
     Base32Encoding(RFC4648) -> base32_rfc4648.decode(value)
     Base32Encoding(Hex) -> base32_hex.decode(value)

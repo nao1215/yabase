@@ -1,6 +1,7 @@
 import yabase/core/encoding.{
-  AdobeAscii85, Ascii85, Base16, Base32, Base36, Base45, Base58, Base62, Base64,
-  Base91, Bitcoin, Clockwork, Crockford, Decoded, Flickr, Hex, NoPadding, RFC4648,
+  AdobeAscii85, Ascii85, Base16, Base2, Base32, Base36, Base45, Base58, Base62,
+  Base64, Base91, Bitcoin, Clockwork, Crockford, Decoded, Flickr, Hex, NoPadding,
+  RFC4648,
   Rfc1924Base85, Standard, UnsupportedMultibaseEncoding, UnsupportedPrefix,
   UrlSafe, UrlSafeNoPadding, Z85, ZBase32,
 }
@@ -9,6 +10,16 @@ import yabase/core/multibase
 // ===== Official multibase registry vectors =====
 // Prefix assignments from:
 // https://github.com/multiformats/multibase/blob/master/multibase.csv
+
+// 0 = base2
+pub fn registry_0_base2_test() {
+  let data = <<"Hi":utf8>>
+  let assert Ok(encoded) = multibase.encode_with_prefix(Base2, data)
+  assert encoded == "00100100001101001"
+  let assert Ok(Decoded(encoding: Base2, data: decoded)) =
+    multibase.decode(encoded)
+  assert decoded == data
+}
 
 // f = base16 (lowercase)
 pub fn registry_f_base16_test() {

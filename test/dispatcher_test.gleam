@@ -1,7 +1,7 @@
 import yabase/core/dispatcher
 import yabase/core/encoding.{
-  AdobeAscii85, Ascii85, Base16, Base32, Base36, Base45, Base58, Base62, Base64,
-  Base91, Bitcoin, Clockwork, Crockford, DQ, Flickr, Hex, InvalidLength,
+  AdobeAscii85, Ascii85, Base16, Base2, Base32, Base36, Base45, Base58, Base62,
+  Base64, Base91, Bitcoin, Clockwork, Crockford, DQ, Flickr, Hex, InvalidLength,
   NoPadding, RFC4648, Rfc1924Base85, Standard, UrlSafe, UrlSafeNoPadding, Z85,
   ZBase32,
 }
@@ -12,6 +12,10 @@ import yabase/core/encoding.{
 fn assert_roundtrip(enc, data) {
   let assert Ok(encoded) = dispatcher.encode(enc, data)
   assert dispatcher.decode_as(enc, encoded) == Ok(data)
+}
+
+pub fn base2_test() {
+  assert_roundtrip(Base2, <<"test":utf8>>)
 }
 
 pub fn base16_test() {
