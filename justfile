@@ -30,6 +30,7 @@ check:
   gleam build --warnings-as-errors
   gleam test
   @just verify-examples
+  @just verify-readme
 
 verify-examples:
   #!/usr/bin/env bash
@@ -39,6 +40,9 @@ verify-examples:
   done
   gleam build
   rm -f src/yabase/example_*.gleam
+
+verify-readme:
+  bash scripts/verify-readme.sh
 
 ci: deps check
 

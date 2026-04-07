@@ -37,6 +37,8 @@ jobs:
           done
           gleam build
           rm -f src/yabase/example_*.gleam
+      - name: Verify README snippets compile
+        run: bash scripts/verify-readme.sh
 
   test:
     name: Test (OTP ${{ matrix.otp }} / Gleam ${{ matrix.gleam }})
