@@ -48,7 +48,7 @@ pub fn main() {
 | Base16 | (hex) |
 | Base32 | RFC4648, Hex, Crockford, Clockwork, z-base-32 |
 | Base64 | Standard, URL-safe, No padding, URL-safe no padding, DQ (hiragana) |
-| Base58 | Bitcoin |
+| Base58 | Bitcoin, Flickr |
 
 ### Additional
 
@@ -175,7 +175,8 @@ let assert Ok(decoded) = base58check.decode(encoded)
 | `yabase/base64/*` | Base64 variants: `standard`, `urlsafe`, `nopadding`, `urlsafe_nopadding`, `dq` |
 | `yabase/base36` | Base36 |
 | `yabase/base45` | Base45 (RFC 9285) |
-| `yabase/base58` | Base58 (Bitcoin) |
+| `yabase/base58/bitcoin` | Base58 (Bitcoin alphabet) |
+| `yabase/base58/flickr` | Base58 (Flickr alphabet) |
 | `yabase/base62` | Base62 |
 | `yabase/base91` | Base91 |
 | `yabase/ascii85` | Ascii85 (btoa) |

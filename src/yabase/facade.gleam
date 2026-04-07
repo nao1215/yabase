@@ -14,7 +14,8 @@ import yabase/base32/rfc4648
 import yabase/base32/zbase32
 import yabase/base36
 import yabase/base45
-import yabase/base58
+import yabase/base58/bitcoin as base58_bitcoin
+import yabase/base58/flickr as base58_flickr
 import yabase/base62
 import yabase/base64/dq
 import yabase/base64/nopadding
@@ -118,12 +119,22 @@ pub fn decode_base45(input: String) -> Result(BitArray, CodecError) {
 
 /// Encode a BitArray to Base58 (Bitcoin alphabet). Leading zero bytes become '1'.
 pub fn encode_base58(data: BitArray) -> String {
-  base58.encode(data)
+  base58_bitcoin.encode(data)
 }
 
-/// Decode a Base58 string to a BitArray. Leading '1' characters become zero bytes.
+/// Decode a Base58 (Bitcoin) string to a BitArray. Leading '1' characters become zero bytes.
 pub fn decode_base58(input: String) -> Result(BitArray, CodecError) {
-  base58.decode(input)
+  base58_bitcoin.decode(input)
+}
+
+/// Encode a BitArray to Base58 (Flickr alphabet). Same as Bitcoin but with swapped case.
+pub fn encode_base58_flickr(data: BitArray) -> String {
+  base58_flickr.encode(data)
+}
+
+/// Decode a Base58 (Flickr) string to a BitArray.
+pub fn decode_base58_flickr(input: String) -> Result(BitArray, CodecError) {
+  base58_flickr.decode(input)
 }
 
 // --- Base62 ---

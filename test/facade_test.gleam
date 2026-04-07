@@ -48,6 +48,12 @@ pub fn base58_roundtrip_test() {
   assert facade.decode_base58(facade.encode_base58(data)) == Ok(data)
 }
 
+pub fn base58_flickr_roundtrip_test() {
+  let data = <<"Hello":utf8>>
+  assert facade.decode_base58_flickr(facade.encode_base58_flickr(data))
+    == Ok(data)
+}
+
 pub fn base62_roundtrip_test() {
   let data = <<"Hello":utf8>>
   assert facade.decode_base62(facade.encode_base62(data)) == Ok(data)

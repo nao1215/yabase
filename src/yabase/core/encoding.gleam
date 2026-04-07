@@ -27,13 +27,21 @@ pub type Base64Variant {
   DQ
 }
 
+/// Variants for Base58 encoding.
+pub type Base58Variant {
+  /// Bitcoin alphabet (uppercase before lowercase)
+  Bitcoin
+  /// Flickr alphabet (lowercase before uppercase)
+  Flickr
+}
+
 /// Represents a supported encoding scheme.
 pub type Encoding {
   Base16
   Base32(Base32Variant)
   Base36
   Base45
-  Base58
+  Base58(Base58Variant)
   Base62
   Base64(Base64Variant)
   Base91

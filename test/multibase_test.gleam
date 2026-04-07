@@ -1,8 +1,8 @@
 import yabase/core/encoding.{
   AdobeAscii85, Ascii85, Base16, Base32, Base36, Base45, Base58, Base62, Base64,
-  Base91, Clockwork, Crockford, Decoded, Hex, NoPadding, RFC4648, Rfc1924Base85,
-  Standard, UnsupportedMultibaseEncoding, UnsupportedPrefix, UrlSafe,
-  UrlSafeNoPadding, Z85, ZBase32,
+  Base91, Bitcoin, Clockwork, Crockford, Decoded, Flickr, Hex, NoPadding, RFC4648,
+  Rfc1924Base85, Standard, UnsupportedMultibaseEncoding, UnsupportedPrefix,
+  UrlSafe, UrlSafeNoPadding, Z85, ZBase32,
 }
 import yabase/core/multibase
 
@@ -82,12 +82,25 @@ pub fn registry_k_base36_test() {
 // z = base58btc
 pub fn registry_z_base58btc_test() {
   let data = <<"yes mani !":utf8>>
-  let assert Ok(encoded) = multibase.encode_with_prefix(Base58, data)
+  let assert Ok(encoded) = multibase.encode_with_prefix(Base58(Bitcoin), data)
   assert case encoded {
     "z" <> _ -> True
     _ -> False
   }
-  let assert Ok(Decoded(encoding: Base58, data: decoded)) =
+  let assert Ok(Decoded(encoding: Base58(Bitcoin), data: decoded)) =
+    multibase.decode(encoded)
+  assert decoded == data
+}
+
+// Z = base58flickr
+pub fn registry_upper_z_base58flickr_test() {
+  let data = <<"yes mani !":utf8>>
+  let assert Ok(encoded) = multibase.encode_with_prefix(Base58(Flickr), data)
+  assert case encoded {
+    "Z" <> _ -> True
+    _ -> False
+  }
+  let assert Ok(Decoded(encoding: Base58(Flickr), data: decoded)) =
     multibase.decode(encoded)
   assert decoded == data
 }

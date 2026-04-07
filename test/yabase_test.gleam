@@ -1,8 +1,8 @@
 import gleeunit
 import yabase
 import yabase/core/encoding.{
-  Ascii85, Base16, Base32, Base45, Base58, Base64, DQ, Decoded, NoPadding,
-  RFC4648, Standard, UnsupportedMultibaseEncoding, UnsupportedPrefix,
+  Ascii85, Base16, Base32, Base45, Base58, Base64, Bitcoin, DQ, Decoded, Flickr,
+  NoPadding, RFC4648, Standard, UnsupportedMultibaseEncoding, UnsupportedPrefix,
   UrlSafeNoPadding,
 }
 
@@ -42,10 +42,22 @@ pub fn encode_with_prefix_decode_base16_test() {
   assert decoded == data
 }
 
-pub fn encode_with_prefix_decode_base58_test() {
+pub fn encode_with_prefix_decode_base58_bitcoin_test() {
   let data = <<"Hello":utf8>>
-  let assert Ok(prefixed) = yabase.encode_with_prefix(Base58, data)
-  let assert Ok(Decoded(encoding: Base58, data: decoded)) =
+  let assert Ok(prefixed) = yabase.encode_with_prefix(Base58(Bitcoin), data)
+  let assert Ok(Decoded(encoding: Base58(Bitcoin), data: decoded)) =
+    yabase.decode(prefixed)
+  assert decoded == data
+}
+
+pub fn encode_with_prefix_decode_base58_flickr_test() {
+  let data = <<"Hello":utf8>>
+  let assert Ok(prefixed) = yabase.encode_with_prefix(Base58(Flickr), data)
+  assert case prefixed {
+    "Z" <> _ -> True
+    _ -> False
+  }
+  let assert Ok(Decoded(encoding: Base58(Flickr), data: decoded)) =
     yabase.decode(prefixed)
   assert decoded == data
 }

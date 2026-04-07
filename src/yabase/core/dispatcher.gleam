@@ -9,7 +9,8 @@ import yabase/base32/rfc4648 as base32_rfc4648
 import yabase/base32/zbase32
 import yabase/base36
 import yabase/base45
-import yabase/base58
+import yabase/base58/bitcoin as base58_bitcoin
+import yabase/base58/flickr as base58_flickr
 import yabase/base62
 import yabase/base64/dq as base64_dq
 import yabase/base64/nopadding as base64_nopadding
@@ -22,6 +23,7 @@ import yabase/core/encoding.{
   Ascii85 as Ascii85Encoding, Base16 as Base16Encoding, Base32 as Base32Encoding,
   Base36 as Base36Encoding, Base45 as Base45Encoding, Base58 as Base58Encoding,
   Base62 as Base62Encoding, Base64 as Base64Encoding, Base91 as Base91Encoding,
+  Bitcoin, Flickr,
   Clockwork, Crockford, DQ, Hex, NoPadding, RFC4648,
   Rfc1924Base85 as Rfc1924Encoding, Standard, UrlSafe, UrlSafeNoPadding,
   Z85 as Z85Encoding, ZBase32,
@@ -41,7 +43,8 @@ pub fn encode(enc: Encoding, data: BitArray) -> Result(String, CodecError) {
     Base32Encoding(ZBase32) -> Ok(zbase32.encode(data))
     Base36Encoding -> Ok(base36.encode(data))
     Base45Encoding -> Ok(base45.encode(data))
-    Base58Encoding -> Ok(base58.encode(data))
+    Base58Encoding(Bitcoin) -> Ok(base58_bitcoin.encode(data))
+    Base58Encoding(Flickr) -> Ok(base58_flickr.encode(data))
     Base62Encoding -> Ok(base62.encode(data))
     Base64Encoding(Standard) -> Ok(base64_standard.encode(data))
     Base64Encoding(UrlSafe) -> Ok(base64_urlsafe.encode(data))
@@ -68,7 +71,8 @@ pub fn decode_as(enc: Encoding, value: String) -> Result(BitArray, CodecError) {
     Base32Encoding(ZBase32) -> zbase32.decode(value)
     Base36Encoding -> base36.decode(value)
     Base45Encoding -> base45.decode(value)
-    Base58Encoding -> base58.decode(value)
+    Base58Encoding(Bitcoin) -> base58_bitcoin.decode(value)
+    Base58Encoding(Flickr) -> base58_flickr.decode(value)
     Base62Encoding -> base62.decode(value)
     Base64Encoding(Standard) -> base64_standard.decode(value)
     Base64Encoding(UrlSafe) -> base64_urlsafe.decode(value)

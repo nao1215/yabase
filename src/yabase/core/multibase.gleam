@@ -14,6 +14,7 @@ import yabase/core/encoding.{
   AdobeAscii85 as AdobeAscii85Encoding, Ascii85 as Ascii85Encoding,
   Base16 as Base16Encoding, Base32 as Base32Encoding, Base36 as Base36Encoding,
   Base45 as Base45Encoding, Base58 as Base58Encoding, Base62 as Base62Encoding,
+  Bitcoin, Flickr,
   Base64 as Base64Encoding, Base91 as Base91Encoding, Clockwork, Crockford, DQ,
   Decoded, Hex, NoPadding, RFC4648, Rfc1924Base85 as Rfc1924Encoding, Standard,
   UnsupportedMultibaseEncoding, UnsupportedPrefix, UrlSafe, UrlSafeNoPadding,
@@ -82,7 +83,9 @@ fn encoding_to_prefix(enc: Encoding) -> Result(String, Nil) {
     // R = base45
     Base45Encoding -> Ok("R")
     // z = base58btc
-    Base58Encoding -> Ok("z")
+    Base58Encoding(Bitcoin) -> Ok("z")
+    // Z = base58flickr
+    Base58Encoding(Flickr) -> Ok("Z")
     // Not in official registry
     Base62Encoding -> Error(Nil)
     // M = base64 padded (RFC 4648)
@@ -122,7 +125,9 @@ fn prefix_to_encoding(prefix: String) -> Result(Encoding, Nil) {
     // R = base45
     "R" -> Ok(Base45Encoding)
     // base58btc
-    "z" -> Ok(Base58Encoding)
+    "z" -> Ok(Base58Encoding(Bitcoin))
+    // base58flickr
+    "Z" -> Ok(Base58Encoding(Flickr))
     // h = base32z (z-base-32)
     "h" -> Ok(Base32Encoding(ZBase32))
     // M = base64pad (with padding)
@@ -147,7 +152,8 @@ fn encoding_name(enc: Encoding) -> String {
     Base32Encoding(ZBase32) -> "base32z"
     Base36Encoding -> "base36"
     Base45Encoding -> "base45"
-    Base58Encoding -> "base58btc"
+    Base58Encoding(Bitcoin) -> "base58btc"
+    Base58Encoding(Flickr) -> "base58flickr"
     Base62Encoding -> "base62"
     Base64Encoding(Standard) -> "base64pad"
     Base64Encoding(UrlSafe) -> "base64urlpad"
