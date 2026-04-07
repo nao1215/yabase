@@ -198,7 +198,6 @@ let assert Ok(decoded) = base58check.decode(encoded)
 | `yabase` | Top-level unified API: `encode`, `decode_as`, `encode_with_prefix`, `decode` |
 | `yabase/facade` | Developer-friendly shortcut functions for each encoding |
 | `yabase/core/encoding` | Type definitions: `Encoding`, `Decoded`, `CodecError` |
-| `yabase/core/dispatcher` | Internal dispatch from `Encoding` to codec modules |
 | `yabase/core/multibase` | Multibase prefix encoding and auto-detection |
 | `yabase/base2` | Base2 (binary string) |
 | `yabase/base8` | Base8 (octal) |
