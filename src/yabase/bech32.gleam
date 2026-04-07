@@ -31,16 +31,16 @@ const bech32_const = 1
 
 const bech32m_const = 0x2bc830a3
 
-/// Encode byte data with Bech32 (BIP 173).
+/// Encode byte data with Bech32 or Bech32m.
+/// variant: Bech32 (BIP 173) or Bech32m (BIP 350).
 /// hrp: human-readable part (e.g. "bc" for Bitcoin mainnet).
 /// data: raw bytes (8-to-5 bit conversion is done internally).
-pub fn encode(hrp: String, data: BitArray) -> Result(String, CodecError) {
-  encode_variant(Bech32V, hrp, data)
-}
-
-/// Encode data with Bech32m (BIP 350).
-pub fn encode_m(hrp: String, data: BitArray) -> Result(String, CodecError) {
-  encode_variant(Bech32mV, hrp, data)
+pub fn encode(
+  variant: Bech32Variant,
+  hrp: String,
+  data: BitArray,
+) -> Result(String, CodecError) {
+  encode_variant(variant, hrp, data)
 }
 
 /// Decode a Bech32 or Bech32m string, auto-detecting the variant.
