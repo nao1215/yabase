@@ -245,8 +245,12 @@ pub fn nopadding_decode_rejects_single_pad_test() {
 
 // ===== URL-safe no padding =====
 
-pub fn urlsafe_nopadding_decode_rejects_padding_test() {
+pub fn urlsafe_nopadding_decode_rejects_double_pad_test() {
   assert urlsafe_nopadding.decode("Zg==") == Error(InvalidCharacter("=", 2))
+}
+
+pub fn urlsafe_nopadding_decode_rejects_single_pad_test() {
+  assert urlsafe_nopadding.decode("Zm8=") == Error(InvalidCharacter("=", 3))
 }
 
 // ===== DQ =====

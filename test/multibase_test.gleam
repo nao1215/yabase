@@ -294,6 +294,23 @@ pub fn multibase_u_rejects_padded_input_test() {
 // encode_with_prefix emits canonical prefixes only;
 // these test that non-canonical alias prefixes decode correctly.
 
+// base32pad (c) decoder accepts unpadded input (RFC 4648 decoder flexibility)
+pub fn decode_base32pad_accepts_unpadded_test() {
+  let data = <<"f":utf8>>
+  // "cMY======" is canonical padded; "cMY" is unpadded
+  let assert Ok(Decoded(encoding: Base32(RFC4648), data: decoded)) =
+    multibase.decode("cMY")
+  assert decoded == data
+}
+
+pub fn decode_base32hexpad_accepts_unpadded_test() {
+  let data = <<"f":utf8>>
+  // "tCO======" is canonical padded; "tCO" is unpadded
+  let assert Ok(Decoded(encoding: Base32(Hex), data: decoded)) =
+    multibase.decode("tCO")
+  assert decoded == data
+}
+
 pub fn decode_alias_upper_c_base32pad_test() {
   // C = base32pad (uppercase); encode emits c
   let data = <<"Hi":utf8>>

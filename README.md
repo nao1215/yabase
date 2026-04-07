@@ -150,8 +150,8 @@ yabase supports the following [multibase](https://github.com/multiformats/multib
 | `f` | base16 (lowercase) | encode + decode |
 | `F` | base16 (uppercase) | decode only (encode emits `f`) |
 | `b` / `B` | base32 (no padding) | decode only (encode emits `c`) |
-| `c` / `C` | base32pad | encode + decode |
-| `t` / `T` | base32hexpad | encode + decode |
+| `c` / `C` | base32pad | encode + decode (decoder also accepts unpadded) |
+| `t` / `T` | base32hexpad | encode + decode (decoder also accepts unpadded) |
 | `v` / `V` | base32hex (no padding) | decode only (encode emits `t`) |
 | `h` | base32z | encode + decode |
 | `k` / `K` | base36 | encode + decode |
@@ -244,7 +244,7 @@ The `CodecError` type provides specific error information:
 |---------|---------------|---------|
 | `InvalidCharacter(character, position)` | decode | Input contains a character not in the alphabet |
 | `InvalidLength(length)` | encode / decode | Input length is not valid for the encoding |
-| `Overflow` | decode | Decoded value overflows the expected range (Base45, Z85, Adobe Ascii85, RFC 1924 Base85) |
+| `Overflow` | decode | Decoded value overflows the expected range (Base45, Ascii85, Adobe Ascii85, Z85, RFC 1924 Base85) |
 | `UnsupportedPrefix(prefix)` | `yabase.decode_multibase` | Unknown multibase prefix during auto-detection |
 | `UnsupportedMultibaseEncoding(name)` | `yabase.encode_multibase` | Encoding has no assigned multibase prefix (e.g. Base64 DQ) |
 | `InvalidChecksum` | `base58check.decode`, `bech32.decode` | Checksum verification failed |
