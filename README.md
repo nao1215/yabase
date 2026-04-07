@@ -34,8 +34,8 @@ pub fn main() {
   let assert Ok(encoded) = yabase.encode(Base64(Standard), <<"Hello":utf8>>)
   // encoded == "SGVsbG8="
 
-  let assert Ok(decoded) = yabase.decode(Base64(Standard), encoded)
-  // decoded == <<"Hello":utf8>>
+  let assert Ok(_decoded) = yabase.decode(Base64(Standard), encoded)
+  // _decoded == <<"Hello":utf8>>
 }
 ```
 
@@ -93,12 +93,11 @@ Each encoding is accessible directly:
 ```gleam
 import yabase/base64/standard
 import yabase/base32/clockwork
-import yabase/base45
 
-let encoded = standard.encode(<<"Hello":utf8>>)
+let _encoded = standard.encode(<<"Hello":utf8>>)
 // "SGVsbG8="
 
-let assert Ok(data) = clockwork.decode("91JPRV3F41BPYWKCCGGG")
+let assert Ok(_data) = clockwork.decode("91JPRV3F41BPYWKCCGGG")
 ```
 
 ### 2. Unified API (dispatch by Encoding type)
@@ -108,7 +107,7 @@ import yabase
 import yabase/core/encoding.{Base32, Clockwork}
 
 let assert Ok(encoded) = yabase.encode(Base32(Clockwork), <<"Hello":utf8>>)
-let assert Ok(decoded) = yabase.decode(Base32(Clockwork), encoded)
+let assert Ok(_decoded) = yabase.decode(Base32(Clockwork), encoded)
 ```
 
 ### 3. Facade (developer-friendly shortcuts)
@@ -117,7 +116,7 @@ let assert Ok(decoded) = yabase.decode(Base32(Clockwork), encoded)
 import yabase/facade
 
 let encoded = facade.encode_base64(<<"Hello":utf8>>)
-let assert Ok(decoded) = facade.decode_base64(encoded)
+let assert Ok(_decoded) = facade.decode_base64(encoded)
 ```
 
 ### Multibase support
@@ -126,14 +125,14 @@ Prefix-based encoding and auto-detection:
 
 ```gleam
 import yabase
-import yabase/core/encoding.{Base16, Base58, Bitcoin, Decoded}
+import yabase/core/encoding.{Base16, Decoded}
 
 // Encode with multibase prefix
 let assert Ok(prefixed) = yabase.encode_multibase(Base16, <<"Hello":utf8>>)
 // "f48656c6c6f"
 
 // Decode with auto-detection
-let assert Ok(Decoded(encoding: Base16, data: data)) =
+let assert Ok(Decoded(encoding: Base16, data: _data)) =
   yabase.decode_multibase(prefixed)
 ```
 
@@ -170,15 +169,15 @@ Byte-payload convenience API. Takes raw bytes, handles 8-to-5 bit conversion int
 
 ```gleam
 import yabase/bech32
-import yabase/core/encoding.{Bech32, Bech32m}
+import yabase/core/encoding.{Bech32}
 
 // Bech32 encode
 let assert Ok(encoded) = bech32.encode(Bech32, "bc", <<0, 14, 20, 15>>)
 // "bc1..." with 6-char checksum
 
 // Auto-detect Bech32 vs Bech32m on decode
-let assert Ok(decoded) = bech32.decode(encoded)
-// decoded.hrp == "bc", decoded.variant == Bech32
+let assert Ok(_decoded) = bech32.decode(encoded)
+// _decoded.hrp == "bc", _decoded.variant == Bech32
 ```
 
 ### Base58Check (Bitcoin)
@@ -191,8 +190,8 @@ let assert Ok(encoded) = base58check.encode(0, <<0xab, 0xcd>>)
 // Base58 string with 4-byte SHA-256 checksum
 
 // Decode and verify checksum
-let assert Ok(decoded) = base58check.decode(encoded)
-// decoded.version == 0, decoded.payload == <<0xab, 0xcd>>
+let assert Ok(_decoded) = base58check.decode(encoded)
+// _decoded.version == 0, _decoded.payload == <<0xab, 0xcd>>
 ```
 
 ## Modules

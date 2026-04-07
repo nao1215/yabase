@@ -39,10 +39,10 @@ while IFS= read -r line; do
 done < README.md
 
 result=0
-gleam build 2>&1 || result=$?
+gleam build --warnings-as-errors 2>&1 || result=$?
 rm -f src/yabase/readme_snippet_*_.gleam
 if [ $result -ne 0 ]; then
-  echo "ERROR: README code snippets failed to compile"
+  echo "ERROR: README code snippets failed to compile (or have warnings)"
   exit 1
 fi
 echo "README snippets OK"
