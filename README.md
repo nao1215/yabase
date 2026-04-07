@@ -45,8 +45,11 @@ pub fn main() {
 
 | Encoding | Variants |
 |----------|----------|
+| Base2 | (binary string) |
+| Base8 | (octal) |
+| Base10 | (decimal) |
 | Base16 | (hex) |
-| Base32 | RFC4648, Hex, Crockford, Clockwork, z-base-32 |
+| Base32 | RFC4648, Hex, Crockford (with optional check symbol), Clockwork, z-base-32 |
 | Base64 | Standard, URL-safe, No padding, URL-safe no padding, DQ (hiragana) |
 | Base58 | Bitcoin, Flickr |
 
@@ -121,7 +124,7 @@ Prefix-based encoding and auto-detection:
 
 ```gleam
 import yabase
-import yabase/core/encoding.{Base16, Base58, Decoded}
+import yabase/core/encoding.{Base16, Base58, Bitcoin, Decoded}
 
 // Encode with multibase prefix
 let assert Ok(prefixed) = yabase.encode_with_prefix(Base16, <<"Hello":utf8>>)
@@ -130,6 +133,30 @@ let assert Ok(prefixed) = yabase.encode_with_prefix(Base16, <<"Hello":utf8>>)
 // Decode with auto-detection
 let assert Ok(Decoded(encoding: Base16, data: data)) = yabase.decode(prefixed)
 ```
+
+### Multibase prefix coverage
+
+yabase supports the following [multibase](https://github.com/multiformats/multibase) prefixes:
+
+| Prefix | Encoding | Status |
+|--------|----------|--------|
+| `0` | base2 | supported |
+| `7` | base8 | supported |
+| `9` | base10 | supported |
+| `f` / `F` | base16 | supported |
+| `b` / `B` | base32 (no padding) | supported |
+| `c` / `C` | base32pad | supported |
+| `t` / `T` | base32hexpad | supported |
+| `v` / `V` | base32hex (no padding) | supported |
+| `h` | base32z | supported |
+| `k` / `K` | base36 | supported |
+| `R` | base45 | supported |
+| `z` | base58btc | supported |
+| `Z` | base58flickr | supported |
+| `m` | base64 (no padding) | supported |
+| `M` | base64pad | supported |
+| `u` | base64url (no padding) | supported |
+| `U` | base64urlpad | supported |
 
 ### Bech32 / Bech32m (BIP 173, BIP 350)
 
@@ -170,8 +197,11 @@ let assert Ok(decoded) = base58check.decode(encoded)
 | `yabase/core/encoding` | Type definitions: `Encoding`, `Decoded`, `CodecError` |
 | `yabase/core/dispatcher` | Internal dispatch from `Encoding` to codec modules |
 | `yabase/core/multibase` | Multibase prefix encoding and auto-detection |
+| `yabase/base2` | Base2 (binary string) |
+| `yabase/base8` | Base8 (octal) |
+| `yabase/base10` | Base10 (decimal) |
 | `yabase/base16` | Base16 (hex) |
-| `yabase/base32/*` | Base32 variants: `rfc4648`, `hex`, `crockford`, `clockwork`, `zbase32` |
+| `yabase/base32/*` | Base32 variants: `rfc4648`, `hex`, `crockford` (with `encode_check`/`decode_check`), `clockwork`, `zbase32` |
 | `yabase/base64/*` | Base64 variants: `standard`, `urlsafe`, `nopadding`, `urlsafe_nopadding`, `dq` |
 | `yabase/base36` | Base36 |
 | `yabase/base45` | Base45 (RFC 9285) |
