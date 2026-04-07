@@ -1,5 +1,7 @@
 import yabase/base58check
-import yabase/core/encoding.{InvalidChecksum, InvalidLength, Overflow}
+import yabase/core/encoding.{
+  InvalidCharacter, InvalidChecksum, InvalidLength, Overflow,
+}
 
 // --- Roundtrip ---
 
@@ -107,4 +109,21 @@ pub fn decode_invalid_checksum_test() {
     Error(InvalidChecksum) -> True
     _ -> False
   }
+}
+
+// Invalid Base58 characters must propagate through base58check.decode
+pub fn decode_invalid_char_zero_test() {
+  assert base58check.decode("0invalid") == Error(InvalidCharacter("0", 0))
+}
+
+pub fn decode_invalid_char_uppercase_o_test() {
+  assert base58check.decode("O") == Error(InvalidCharacter("O", 0))
+}
+
+pub fn decode_invalid_char_uppercase_i_test() {
+  assert base58check.decode("I") == Error(InvalidCharacter("I", 0))
+}
+
+pub fn decode_invalid_char_lowercase_l_test() {
+  assert base58check.decode("l") == Error(InvalidCharacter("l", 0))
 }

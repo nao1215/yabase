@@ -1,3 +1,4 @@
+import gleam/string
 import yabase/core/encoding.{
   Adobe, Base10, Base16, Base2, Base32, Base36, Base45, Base58, Base62, Base64,
   Base8, Base85, Base91, Bitcoin, Btoa, Clockwork, Crockford, Decoded, Flickr,
@@ -287,4 +288,68 @@ pub fn multibase_u_rejects_padded_input_test() {
     Error(InvalidCharacter("=", _)) -> True
     _ -> False
   }
+}
+
+// ===== Decode alias prefix regression =====
+// encode_with_prefix emits canonical prefixes only;
+// these test that non-canonical alias prefixes decode correctly.
+
+pub fn decode_alias_upper_c_base32pad_test() {
+  // C = base32pad (uppercase); encode emits c
+  let data = <<"Hi":utf8>>
+  let assert Ok(canonical) = multibase.encode_with_prefix(Base32(RFC4648), data)
+  // Replace lowercase c prefix with uppercase C
+  let alias_encoded = "C" <> string.drop_start(canonical, 1)
+  let assert Ok(Decoded(encoding: Base32(RFC4648), data: decoded)) =
+    multibase.decode(alias_encoded)
+  assert decoded == data
+}
+
+pub fn decode_alias_lowercase_b_base32_nopad_test() {
+  // b = base32 no-padding (lowercase); maps to RFC4648 codec
+  let assert Ok(Decoded(encoding: Base32(RFC4648), data: decoded)) =
+    multibase.decode("bMY")
+  assert decoded == <<"f":utf8>>
+}
+
+pub fn decode_alias_upper_t_base32hexpad_test() {
+  // T = base32hexpad (uppercase); encode emits t
+  let data = <<"Hi":utf8>>
+  let assert Ok(canonical) = multibase.encode_with_prefix(Base32(Hex), data)
+  let alias_encoded = "T" <> string.drop_start(canonical, 1)
+  let assert Ok(Decoded(encoding: Base32(Hex), data: decoded)) =
+    multibase.decode(alias_encoded)
+  assert decoded == data
+}
+
+pub fn decode_alias_lowercase_v_base32hex_nopad_test() {
+  // v = base32hex no-padding; maps to Hex codec
+  let data = <<"Hi":utf8>>
+  let assert Ok(canonical) = multibase.encode_with_prefix(Base32(Hex), data)
+  // Strip t prefix, strip trailing padding, prepend v
+  let body = string.drop_start(canonical, 1) |> string.replace("=", "")
+  let alias_encoded = "v" <> body
+  let assert Ok(Decoded(encoding: Base32(Hex), data: decoded)) =
+    multibase.decode(alias_encoded)
+  assert decoded == data
+}
+
+pub fn decode_alias_upper_v_base32hex_nopad_test() {
+  let data = <<"Hi":utf8>>
+  let assert Ok(canonical) = multibase.encode_with_prefix(Base32(Hex), data)
+  let body = string.drop_start(canonical, 1) |> string.replace("=", "")
+  let alias_encoded = "V" <> body
+  let assert Ok(Decoded(encoding: Base32(Hex), data: decoded)) =
+    multibase.decode(alias_encoded)
+  assert decoded == data
+}
+
+pub fn decode_alias_upper_k_base36_test() {
+  // K = base36 (uppercase); encode emits k
+  let data = <<"Hi":utf8>>
+  let assert Ok(canonical) = multibase.encode_with_prefix(Base36, data)
+  let alias_encoded = "K" <> string.drop_start(canonical, 1)
+  let assert Ok(Decoded(encoding: Base36, data: decoded)) =
+    multibase.decode(alias_encoded)
+  assert decoded == data
 }

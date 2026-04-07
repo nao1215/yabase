@@ -243,3 +243,29 @@ pub fn dq_decode_data_after_double_pad_test() {
     _ -> False
   }
 }
+
+// --- DQ error cases ---
+
+pub fn dq_decode_non_hiragana_ascii_test() {
+  // ASCII "ABCD" is not in the DQ hiragana alphabet
+  assert case dq.decode("ABCD") {
+    Error(InvalidCharacter("A", 0)) -> True
+    _ -> False
+  }
+}
+
+pub fn dq_decode_non_hiragana_kanji_test() {
+  // Kanji is not in the DQ alphabet
+  assert case dq.decode("漢字漢字") {
+    Error(InvalidCharacter(_, 0)) -> True
+    _ -> False
+  }
+}
+
+pub fn dq_decode_stray_char_in_middle_test() {
+  // 4-char aligned input with invalid first char
+  assert case dq.decode("Xいうえ") {
+    Error(InvalidCharacter("X", 0)) -> True
+    _ -> False
+  }
+}

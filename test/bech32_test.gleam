@@ -192,3 +192,55 @@ pub fn bech32m_long_hrp_test() {
   assert decoded.hrp == "abcdefghij"
   assert decoded.variant == Bech32mV
 }
+
+// ===== Additional edge cases =====
+
+pub fn decode_all_uppercase_valid_test() {
+  // All-uppercase is valid per BIP 173; decode normalizes to lowercase
+  let assert Ok(encoded) = bech32.encode(Bech32V, "test", <<1, 2>>)
+  let upper = string_uppercase(encoded)
+  let assert Ok(decoded) = bech32.decode(upper)
+  assert decoded.data == <<1, 2>>
+}
+
+fn string_uppercase(s: String) -> String {
+  do_uppercase(s, "")
+}
+
+fn do_uppercase(s: String, acc: String) -> String {
+  case string.pop_grapheme(s) {
+    Error(Nil) -> acc
+    Ok(#(c, rest)) -> do_uppercase(rest, acc <> string.uppercase(c))
+  }
+}
+
+pub fn decode_hrp_out_of_range_test() {
+  // HRP with character below ASCII 33 (space = 32)
+  assert case bech32.decode(" 1nwldj5") {
+    Error(InvalidHrp(_)) -> True
+    _ -> False
+  }
+}
+
+pub fn decode_hrp_del_char_test() {
+  // HRP with DEL (127) is out of range
+  assert case bech32.decode("\u{007F}1axkwrx") {
+    Error(InvalidHrp(_)) -> True
+    _ -> False
+  }
+}
+
+pub fn decode_data_part_too_short_test() {
+  // Separator found but data part is less than 6 chars (checksum alone)
+  assert case bech32.decode("a1aaaa") {
+    Error(InvalidLength(_)) -> True
+    _ -> False
+  }
+}
+
+pub fn decode_data_part_exactly_6_chars_test() {
+  // 6 chars in data part = checksum only, no actual data -> valid empty data
+  let assert Ok(encoded) = bech32.encode(Bech32V, "a", <<>>)
+  let assert Ok(decoded) = bech32.decode(encoded)
+  assert decoded.data == <<>>
+}
