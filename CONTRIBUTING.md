@@ -51,7 +51,7 @@ This project follows these standards:
 1. **Follow the [Gleam language guide](https://gleam.run/)**
 2. **Keep the public API surface small** -- use `pub opaque type` where appropriate
 3. **Pure functions only** -- no actors or OTP in this library
-4. **Consistent module interfaces** -- encode functions return `String` for total encodings, `Result(String, CodecError)` for constrained ones (Z85, RFC 1924 Base85, Bech32). Decode functions return `Result(BitArray, CodecError)` for low-level modules, `Result(Decoded, CodecError)` for the top-level `yabase.decode`, `Result(Bech32Decoded, CodecError)` for `bech32.decode`, and `Result(Base58CheckDecoded, CodecError)` for `base58check.decode`
+4. **Consistent module interfaces** -- encode functions return `String` for total encodings, `Result(String, CodecError)` for constrained ones (Base85 Z85/Rfc1924, Bech32). Decode functions return `Result(BitArray, CodecError)` for low-level modules, `Result(Decoded, CodecError)` for `yabase.decode_multibase`, `Result(Bech32Decoded, CodecError)` for `bech32.decode`, and `Result(Base58CheckDecoded, CodecError)` for `base58check.decode`
 5. **Add doc comments to all public functions and types**
 6. **No `@external` unless absolutely necessary** -- prefer pure Gleam implementations
 

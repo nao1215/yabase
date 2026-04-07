@@ -22,6 +22,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Changed
 
 - **BREAKING**: `Base58` is now `Base58(Bitcoin)` in the `Encoding` ADT
+- **BREAKING**: `Ascii85`, `AdobeAscii85`, `Rfc1924Base85`, `Z85` are now `Base85(Btoa)`, `Base85(Adobe)`, `Base85(Rfc1924)`, `Base85(Z85)`
+- **BREAKING**: `yabase.decode_as` renamed to `yabase.decode`
+- **BREAKING**: `yabase.encode_with_prefix` / `yabase.decode` (multibase) renamed to `yabase.encode_multibase` / `yabase.decode_multibase`
+- **BREAKING**: `bech32.encode(hrp, data)` / `bech32.encode_m(hrp, data)` merged into `bech32.encode(variant, hrp, data)`
+- **BREAKING**: `CrockfordCheck` added to `Base32Variant` for unified API access
 - Crockford Base32 now uses number encoding per spec (was byte-stream chunking)
 - Bech32 module documentation clarified as byte-payload convenience API
 

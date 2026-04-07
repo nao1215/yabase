@@ -34,7 +34,7 @@ pub fn main() {
   let assert Ok(encoded) = yabase.encode(Base64(Standard), <<"Hello":utf8>>)
   // encoded == "SGVsbG8="
 
-  let assert Ok(decoded) = yabase.decode_as(Base64(Standard), encoded)
+  let assert Ok(decoded) = yabase.decode(Base64(Standard), encoded)
   // decoded == <<"Hello":utf8>>
 }
 ```
@@ -108,7 +108,7 @@ import yabase
 import yabase/core/encoding.{Base32, Clockwork}
 
 let assert Ok(encoded) = yabase.encode(Base32(Clockwork), <<"Hello":utf8>>)
-let assert Ok(decoded) = yabase.decode_as(Base32(Clockwork), encoded)
+let assert Ok(decoded) = yabase.decode(Base32(Clockwork), encoded)
 ```
 
 ### 3. Facade (developer-friendly shortcuts)
@@ -129,18 +129,19 @@ import yabase
 import yabase/core/encoding.{Base16, Base58, Bitcoin, Decoded}
 
 // Encode with multibase prefix
-let assert Ok(prefixed) = yabase.encode_with_prefix(Base16, <<"Hello":utf8>>)
+let assert Ok(prefixed) = yabase.encode_multibase(Base16, <<"Hello":utf8>>)
 // "f48656c6c6f"
 
 // Decode with auto-detection
-let assert Ok(Decoded(encoding: Base16, data: data)) = yabase.decode(prefixed)
+let assert Ok(Decoded(encoding: Base16, data: data)) =
+  yabase.decode_multibase(prefixed)
 ```
 
 ### Multibase prefix coverage
 
 yabase supports the following [multibase](https://github.com/multiformats/multibase) prefixes.
-"encode + decode" means `encode_with_prefix` emits this prefix and `decode` recognizes it.
-"decode only" means `decode` recognizes the prefix but `encode_with_prefix` uses the canonical form.
+"encode + decode" means `encode_multibase` emits this prefix and `decode_multibase` recognizes it.
+"decode only" means `decode_multibase` recognizes the prefix but `encode_multibase` uses the canonical form.
 
 | Prefix | Encoding | Support |
 |--------|----------|---------|
@@ -169,9 +170,10 @@ Byte-payload convenience API. Takes raw bytes, handles 8-to-5 bit conversion int
 
 ```gleam
 import yabase/bech32
+import yabase/core/encoding.{Bech32, Bech32m}
 
 // Bech32 encode
-let assert Ok(encoded) = bech32.encode("bc", <<0, 14, 20, 15>>)
+let assert Ok(encoded) = bech32.encode(Bech32, "bc", <<0, 14, 20, 15>>)
 // "bc1..." with 6-char checksum
 
 // Auto-detect Bech32 vs Bech32m on decode
@@ -197,7 +199,7 @@ let assert Ok(decoded) = base58check.decode(encoded)
 
 | Module | Responsibility |
 |--------|---------------|
-| `yabase` | Top-level unified API: `encode`, `decode_as`, `encode_with_prefix`, `decode` |
+| `yabase` | Top-level unified API: `encode`, `decode`, `encode_multibase`, `decode_multibase` |
 | `yabase/facade` | Developer-friendly shortcut functions for each encoding |
 | `yabase/core/encoding` | Type definitions: `Encoding`, `Decoded`, `CodecError` |
 | `yabase/core/multibase` | Multibase prefix encoding and auto-detection |
@@ -227,12 +229,12 @@ Encode and decode functions that can fail return `Result(_, CodecError)`. The co
 | Function | Return type |
 |----------|-------------|
 | `yabase.encode` | `Result(String, CodecError)` |
-| `yabase.decode_as` | `Result(BitArray, CodecError)` |
-| `yabase.decode` | `Result(Decoded, CodecError)` |
-| `yabase.encode_with_prefix` | `Result(String, CodecError)` |
+| `yabase.decode` | `Result(BitArray, CodecError)` |
+| `yabase.encode_multibase` | `Result(String, CodecError)` |
+| `yabase.decode_multibase` | `Result(Decoded, CodecError)` |
 | Low-level `*.decode` | `Result(BitArray, CodecError)` |
 | Low-level `*.encode` | `String` (total; except `z85`/`rfc1924_base85` which return `Result`) |
-| `bech32.encode` / `bech32.encode_m` | `Result(String, CodecError)` |
+| `bech32.encode(variant, hrp, data)` | `Result(String, CodecError)` |
 | `bech32.decode` | `Result(Bech32Decoded, CodecError)` |
 | `base58check.encode` | `Result(String, CodecError)` |
 | `base58check.decode` | `Result(Base58CheckDecoded, CodecError)` |
@@ -244,8 +246,8 @@ The `CodecError` type provides specific error information:
 | `InvalidCharacter(character, position)` | decode | Input contains a character not in the alphabet |
 | `InvalidLength(length)` | encode / decode | Input length is not valid for the encoding |
 | `Overflow` | decode | Decoded value overflows the expected range (Base45, Z85, Adobe Ascii85, RFC 1924 Base85) |
-| `UnsupportedPrefix(prefix)` | `yabase.decode` | Unknown multibase prefix during auto-detection |
-| `UnsupportedMultibaseEncoding(name)` | `encode_with_prefix` | Encoding has no assigned multibase prefix (e.g. Base64 DQ) |
+| `UnsupportedPrefix(prefix)` | `yabase.decode_multibase` | Unknown multibase prefix during auto-detection |
+| `UnsupportedMultibaseEncoding(name)` | `yabase.encode_multibase` | Encoding has no assigned multibase prefix (e.g. Base64 DQ) |
 | `InvalidChecksum` | `base58check.decode`, `bech32.decode` | Checksum verification failed |
 | `InvalidHrp(reason)` | `bech32.encode`, `bech32.decode` | Invalid human-readable part in Bech32 |
 
