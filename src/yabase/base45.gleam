@@ -10,28 +10,29 @@ const alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:"
 
 /// Encode a BitArray to Base45.
 pub fn encode(data: BitArray) -> String {
-  encode_pairs(data, "")
+  encode_pairs(data, [])
+  |> list_reverse
+  |> string.join("")
 }
 
-fn encode_pairs(data: BitArray, acc: String) -> String {
+fn encode_pairs(data: BitArray, acc: List(String)) -> List(String) {
   case data {
     <<a:8, b:8, rest:bits>> -> {
       let n = a * 256 + b
       let c = n % 45
       let d = { n / 45 } % 45
       let e = n / 45 / 45
-      encode_pairs(
-        rest,
-        acc
-          <> string_char_at(alphabet, c)
-          <> string_char_at(alphabet, d)
-          <> string_char_at(alphabet, e),
-      )
+      encode_pairs(rest, [
+        string_char_at(alphabet, e),
+        string_char_at(alphabet, d),
+        string_char_at(alphabet, c),
+        ..acc
+      ])
     }
     <<a:8>> -> {
       let c = a % 45
       let d = a / 45
-      acc <> string_char_at(alphabet, c) <> string_char_at(alphabet, d)
+      [string_char_at(alphabet, d), string_char_at(alphabet, c), ..acc]
     }
     _ -> acc
   }

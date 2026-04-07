@@ -5,12 +5,15 @@ import yabase/core/encoding.{type CodecError, InvalidCharacter, InvalidLength}
 
 /// Encode a BitArray to a binary string (e.g. <<0x41>> -> "01000001").
 pub fn encode(data: BitArray) -> String {
-  encode_bytes(data, "")
+  encode_bytes(data, [])
+  |> list_reverse
+  |> string.join("")
 }
 
-fn encode_bytes(data: BitArray, acc: String) -> String {
+fn encode_bytes(data: BitArray, acc: List(String)) -> List(String) {
   case data {
-    <<byte:8, rest:bits>> -> encode_bytes(rest, acc <> encode_byte(byte, 7, ""))
+    <<byte:8, rest:bits>> ->
+      encode_bytes(rest, [encode_byte(byte, 7, ""), ..acc])
     _ -> acc
   }
 }
@@ -82,5 +85,16 @@ fn decode_byte(
             _ -> Error(InvalidCharacter(c, pos))
           }
       }
+  }
+}
+
+fn list_reverse(l: List(a)) -> List(a) {
+  list_reverse_acc(l, [])
+}
+
+fn list_reverse_acc(l: List(a), acc: List(a)) -> List(a) {
+  case l {
+    [] -> acc
+    [h, ..t] -> list_reverse_acc(t, [h, ..acc])
   }
 }

@@ -105,7 +105,10 @@ fn encode_variant(
               let checksum =
                 create_checksum(lower_hrp, data_values, checksum_const)
               let all_values = list_append(data_values, checksum)
-              let encoded_data = values_to_chars(all_values, "")
+              let encoded_data =
+                values_to_chars(all_values, [])
+                |> list_reverse
+                |> string.join("")
               let result = lower_hrp <> "1" <> encoded_data
               // BIP 173: total length must not exceed 90
               case string.length(result) > 90 {
@@ -218,10 +221,10 @@ fn chars_to_values(
   }
 }
 
-fn values_to_chars(values: List(Int), acc: String) -> String {
+fn values_to_chars(values: List(Int), acc: List(String)) -> List(String) {
   case values {
     [] -> acc
-    [v, ..rest] -> values_to_chars(rest, acc <> string_char_at(charset, v))
+    [v, ..rest] -> values_to_chars(rest, [string_char_at(charset, v), ..acc])
   }
 }
 
