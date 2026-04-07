@@ -49,5 +49,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - `Decoded` type for multibase auto-detection results
 - `Bech32Decoded` type with HRP, data, and variant auto-detection
 - `Base58CheckDecoded` type with version byte and payload
-- Strict input validation: padding position checks (Base32/Base64), trailing data rejection, pure-padding rejection, length constraints (Z85)
+- Input validation: padding position checks (Base32/Base64), trailing data rejection, pure-padding rejection, length constraints (Z85). Note: non-canonical trailing bits in Base32/Base64 padding are accepted per RFC 4648 decoder flexibility; canonicality is not enforced
 - 302 tests covering fixed vectors, roundtrips, error cases, and edge cases
