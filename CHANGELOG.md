@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Base2 (binary string), Base8 (octal), Base10 (decimal) encodings
+- Base58 Flickr variant with multibase `Z` prefix
+- Crockford Base32 check symbol support (`encode_check` / `decode_check`)
+- Multibase prefixes `0` (base2), `7` (base8), `9` (base10), `Z` (base58flickr)
+- Shared `internal/bignum` module for radix-based encodings
+- NIST test vectors for SHA-256 (448-bit, 896-bit, padding boundary cases)
+- Multibase coverage matrix in README
+- Examples for JWT, QR, Bitcoin, and multibase use cases
+- CI test matrix: OTP 26, 27, 28
+
+### Changed
+
+- **BREAKING**: `Base58` is now `Base58(Bitcoin)` in the `Encoding` ADT
+- Crockford Base32 now uses number encoding per spec (was byte-stream chunking)
+- Bech32 module documentation clarified as byte-payload convenience API
+
+### Fixed
+
+- SHA-256 now uses full 64-bit length in padding (was 32-bit)
+- Crockford Base32 encoding now matches the published specification
+
 ## [0.1.0] - 2026-04-06
 
 ### Added

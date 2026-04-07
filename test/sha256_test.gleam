@@ -28,9 +28,9 @@ pub fn sha256_448bit_test() {
   // NIST FIPS 180-4 one-block message: "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"
   // This is exactly 448 bits (56 bytes), which exercises the padding boundary.
   let hash =
-    sha256.hash(
-      <<"abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq":utf8>>,
-    )
+    sha256.hash(<<
+      "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq":utf8,
+    >>)
   assert hash
     == <<
       0x24, 0x8d, 0x6a, 0x61, 0xd2, 0x06, 0x38, 0xb8, 0xe5, 0xc0, 0x26, 0x93,
@@ -43,9 +43,9 @@ pub fn sha256_896bit_test() {
   // NIST two-block message (112 bytes):
   // "abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu"
   let hash =
-    sha256.hash(
-      <<"abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu":utf8>>,
-    )
+    sha256.hash(<<
+      "abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu":utf8,
+    >>)
   assert hash
     == <<
       0xcf, 0x5b, 0x16, 0xa7, 0x78, 0xaf, 0x83, 0x80, 0x03, 0x6c, 0xe5, 0x9e,

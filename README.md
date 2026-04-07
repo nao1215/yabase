@@ -136,27 +136,30 @@ let assert Ok(Decoded(encoding: Base16, data: data)) = yabase.decode(prefixed)
 
 ### Multibase prefix coverage
 
-yabase supports the following [multibase](https://github.com/multiformats/multibase) prefixes:
+yabase supports the following [multibase](https://github.com/multiformats/multibase) prefixes.
+"encode + decode" means `encode_with_prefix` emits this prefix and `decode` recognizes it.
+"decode only" means `decode` recognizes the prefix but `encode_with_prefix` uses the canonical form.
 
-| Prefix | Encoding | Status |
-|--------|----------|--------|
-| `0` | base2 | supported |
-| `7` | base8 | supported |
-| `9` | base10 | supported |
-| `f` / `F` | base16 | supported |
-| `b` / `B` | base32 (no padding) | supported |
-| `c` / `C` | base32pad | supported |
-| `t` / `T` | base32hexpad | supported |
-| `v` / `V` | base32hex (no padding) | supported |
-| `h` | base32z | supported |
-| `k` / `K` | base36 | supported |
-| `R` | base45 | supported |
-| `z` | base58btc | supported |
-| `Z` | base58flickr | supported |
-| `m` | base64 (no padding) | supported |
-| `M` | base64pad | supported |
-| `u` | base64url (no padding) | supported |
-| `U` | base64urlpad | supported |
+| Prefix | Encoding | Support |
+|--------|----------|---------|
+| `0` | base2 | encode + decode |
+| `7` | base8 | encode + decode |
+| `9` | base10 | encode + decode |
+| `f` | base16 (lowercase) | encode + decode |
+| `F` | base16 (uppercase) | decode only (encode emits `f`) |
+| `b` / `B` | base32 (no padding) | decode only (encode emits `c`) |
+| `c` / `C` | base32pad | encode + decode |
+| `t` / `T` | base32hexpad | encode + decode |
+| `v` / `V` | base32hex (no padding) | decode only (encode emits `t`) |
+| `h` | base32z | encode + decode |
+| `k` / `K` | base36 | encode + decode |
+| `R` | base45 | encode + decode |
+| `z` | base58btc | encode + decode |
+| `Z` | base58flickr | encode + decode |
+| `m` | base64 (no padding) | encode + decode |
+| `M` | base64pad | encode + decode |
+| `u` | base64url (no padding) | encode + decode |
+| `U` | base64urlpad | encode + decode |
 
 ### Bech32 / Bech32m (BIP 173, BIP 350)
 

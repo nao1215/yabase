@@ -4,9 +4,7 @@
 /// Case-insensitive decoding. O->0, I/L->1 on decode. Hyphens ignored.
 /// No padding.
 import gleam/string
-import yabase/core/encoding.{
-  type CodecError, InvalidChecksum, InvalidLength,
-}
+import yabase/core/encoding.{type CodecError, InvalidChecksum, InvalidLength}
 import yabase/internal/bignum
 
 const alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
