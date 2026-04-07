@@ -6,6 +6,21 @@ import yabase/facade
 
 // --- Roundtrip tests for each facade pair ---
 
+pub fn base2_roundtrip_test() {
+  let data = <<"Hello":utf8>>
+  assert facade.decode_base2(facade.encode_base2(data)) == Ok(data)
+}
+
+pub fn base8_roundtrip_test() {
+  let data = <<"Hello":utf8>>
+  assert facade.decode_base8(facade.encode_base8(data)) == Ok(data)
+}
+
+pub fn base10_roundtrip_test() {
+  let data = <<"Hello":utf8>>
+  assert facade.decode_base10(facade.encode_base10(data)) == Ok(data)
+}
+
 pub fn base16_roundtrip_test() {
   let data = <<"Hello":utf8>>
   assert facade.decode_base16(facade.encode_base16(data)) == Ok(data)
@@ -24,6 +39,14 @@ pub fn base32_hex_roundtrip_test() {
 pub fn base32_crockford_roundtrip_test() {
   let data = <<"Hello":utf8>>
   assert facade.decode_base32_crockford(facade.encode_base32_crockford(data))
+    == Ok(data)
+}
+
+pub fn base32_crockford_check_roundtrip_test() {
+  let data = <<"Hello":utf8>>
+  assert facade.decode_base32_crockford_check(
+      facade.encode_base32_crockford_check(data),
+    )
     == Ok(data)
 }
 
@@ -46,6 +69,12 @@ pub fn base45_roundtrip_test() {
 pub fn base58_roundtrip_test() {
   let data = <<"Hello":utf8>>
   assert facade.decode_base58(facade.encode_base58(data)) == Ok(data)
+}
+
+pub fn base58_flickr_roundtrip_test() {
+  let data = <<"Hello":utf8>>
+  assert facade.decode_base58_flickr(facade.encode_base58_flickr(data))
+    == Ok(data)
 }
 
 pub fn base62_roundtrip_test() {

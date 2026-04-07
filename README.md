@@ -15,7 +15,7 @@ Yet Another Base -- a unified, type-safe interface for multiple binary-to-text e
 ## Requirements
 
 - Gleam 1.15 or later
-- Erlang/OTP 27 or later
+- Erlang/OTP 26 or later (CI tests OTP 26, 27, 28)
 
 ## Install
 
@@ -34,8 +34,8 @@ pub fn main() {
   let assert Ok(encoded) = yabase.encode(Base64(Standard), <<"Hello":utf8>>)
   // encoded == "SGVsbG8="
 
-  let assert Ok(decoded) = yabase.decode_as(Base64(Standard), encoded)
-  // decoded == <<"Hello":utf8>>
+  let assert Ok(_decoded) = yabase.decode(Base64(Standard), encoded)
+  // _decoded == <<"Hello":utf8>>
 }
 ```
 
@@ -45,10 +45,13 @@ pub fn main() {
 
 | Encoding | Variants |
 |----------|----------|
+| Base2 | (binary string) |
+| Base8 | (octal) |
+| Base10 | (decimal) |
 | Base16 | (hex) |
-| Base32 | RFC4648, Hex, Crockford, Clockwork, z-base-32 |
+| Base32 | RFC4648, Hex, Crockford (with optional check symbol), Clockwork, z-base-32 |
 | Base64 | Standard, URL-safe, No padding, URL-safe no padding, DQ (hiragana) |
-| Base58 | Bitcoin |
+| Base58 | Bitcoin, Flickr |
 
 ### Additional
 
@@ -63,6 +66,8 @@ pub fn main() {
 | Z85 | ZeroMQ variant of Ascii85 |
 | RFC 1924 Base85 | RFC 1924 alphabet |
 
+Big-integer encodings (Base8, Base10, Base36, Base58, Base62, Crockford Base32) preserve leading zero bytes: each leading 0x00 byte encodes as the alphabet's zero character, and decoding reverses this. For example, `base10.decode("001")` returns `Ok(<<0, 0, 1>>)`.
+
 ### Checksum-bearing (separate API)
 
 These encodings carry metadata (version bytes, checksums, HRP) and have their own API outside the `Encoding` ADT.
@@ -70,12 +75,16 @@ These encodings carry metadata (version bytes, checksums, HRP) and have their ow
 | Encoding | Module | Description |
 |----------|--------|-------------|
 | Base58Check | `yabase/base58check` | Bitcoin-style: version byte + payload + SHA-256 double-hash checksum |
-| Bech32 | `yabase/bech32` | BIP 173: raw framing (HRP + base32 data + checksum), not SegWit address validation |
-| Bech32m | `yabase/bech32` | BIP 350: improved checksum constant, same framing |
+| Bech32 | `yabase/bech32` | BIP 173: byte-payload encoding (HRP + 8-to-5 conversion + checksum), not SegWit address validation |
+| Bech32m | `yabase/bech32` | BIP 350: improved checksum constant, same byte-payload API |
 
 ## API layers
 
-yabase provides three API layers. Choose the one that fits your use case.
+yabase provides three API layers:
+
+- **Start with `yabase/facade`** -- one function per encoding, no type parameters. Covers most use cases.
+- **Use the unified API (`yabase`)** when you need to select an encoding at runtime (e.g. user config, multibase auto-detection).
+- **Use low-level modules** (`yabase/base64/standard`, etc.) when you need full control over a specific codec.
 
 ### 1. Low-level modules (direct usage)
 
@@ -84,12 +93,11 @@ Each encoding is accessible directly:
 ```gleam
 import yabase/base64/standard
 import yabase/base32/clockwork
-import yabase/base45
 
-let encoded = standard.encode(<<"Hello":utf8>>)
+let _encoded = standard.encode(<<"Hello":utf8>>)
 // "SGVsbG8="
 
-let assert Ok(data) = clockwork.decode("91JPRV3F41BPYWKCCGGG")
+let assert Ok(_data) = clockwork.decode("91JPRV3F41BPYWKCCGGG")
 ```
 
 ### 2. Unified API (dispatch by Encoding type)
@@ -99,7 +107,7 @@ import yabase
 import yabase/core/encoding.{Base32, Clockwork}
 
 let assert Ok(encoded) = yabase.encode(Base32(Clockwork), <<"Hello":utf8>>)
-let assert Ok(decoded) = yabase.decode_as(Base32(Clockwork), encoded)
+let assert Ok(_decoded) = yabase.decode(Base32(Clockwork), encoded)
 ```
 
 ### 3. Facade (developer-friendly shortcuts)
@@ -108,7 +116,7 @@ let assert Ok(decoded) = yabase.decode_as(Base32(Clockwork), encoded)
 import yabase/facade
 
 let encoded = facade.encode_base64(<<"Hello":utf8>>)
-let assert Ok(decoded) = facade.decode_base64(encoded)
+let assert Ok(_decoded) = facade.decode_base64(encoded)
 ```
 
 ### Multibase support
@@ -117,30 +125,62 @@ Prefix-based encoding and auto-detection:
 
 ```gleam
 import yabase
-import yabase/core/encoding.{Base16, Base58, Decoded}
+import yabase/core/encoding.{Base16, Decoded}
 
 // Encode with multibase prefix
-let assert Ok(prefixed) = yabase.encode_with_prefix(Base16, <<"Hello":utf8>>)
+let assert Ok(prefixed) = yabase.encode_multibase(Base16, <<"Hello":utf8>>)
 // "f48656c6c6f"
 
 // Decode with auto-detection
-let assert Ok(Decoded(encoding: Base16, data: data)) = yabase.decode(prefixed)
+let assert Ok(Decoded(encoding: Base16, data: _data)) =
+  yabase.decode_multibase(prefixed)
 ```
+
+### Multibase prefix coverage
+
+yabase supports the following [multibase](https://github.com/multiformats/multibase) prefixes.
+"encode + decode" means `encode_multibase` emits this prefix and `decode_multibase` recognizes it.
+"decode only" means `decode_multibase` recognizes the prefix but `encode_multibase` uses the canonical form.
+
+| Prefix | Encoding | Support |
+|--------|----------|---------|
+| `0` | base2 | encode + decode |
+| `7` | base8 | encode + decode |
+| `9` | base10 | encode + decode |
+| `f` | base16 (lowercase) | encode + decode |
+| `F` | base16 (uppercase) | decode only (encode emits `f`) |
+| `b` / `B` | base32 (no padding) | decode only (encode emits `c`) |
+| `c` | base32pad | encode + decode (decoder also accepts unpadded) |
+| `C` | base32pad (uppercase prefix) | decode only (encode emits `c`) |
+| `t` | base32hexpad | encode + decode (decoder also accepts unpadded) |
+| `T` | base32hexpad (uppercase prefix) | decode only (encode emits `t`) |
+| `v` / `V` | base32hex (no padding) | decode only (encode emits `t`) |
+| `h` | base32z | encode + decode |
+| `k` | base36 | encode + decode |
+| `K` | base36 (uppercase prefix) | decode only (encode emits `k`) |
+| `R` | base45 | encode + decode |
+| `z` | base58btc | encode + decode |
+| `Z` | base58flickr | encode + decode |
+| `m` | base64 (no padding) | encode + decode |
+| `M` | base64pad | encode + decode |
+| `u` | base64url (no padding) | encode + decode |
+| `U` | base64urlpad | encode + decode |
 
 ### Bech32 / Bech32m (BIP 173, BIP 350)
 
-Raw Bech32 framing and checksum. Does not validate SegWit address semantics (witness version, program length):
+Byte-payload convenience API. Takes raw bytes, handles 8-to-5 bit conversion internally, and produces the checksummed Bech32 string. Does not validate SegWit address semantics (witness version, program length):
 
 ```gleam
 import yabase/bech32
+import yabase/core/encoding.{Bech32}
 
 // Bech32 encode
-let assert Ok(encoded) = bech32.encode("bc", <<0, 14, 20, 15>>)
+let assert Ok(encoded) = bech32.encode(Bech32, "bc", <<0, 14, 20, 15>>)
 // "bc1..." with 6-char checksum
 
 // Auto-detect Bech32 vs Bech32m on decode
-let assert Ok(decoded) = bech32.decode(encoded)
-// decoded.hrp == "bc", decoded.variant == Bech32
+let assert Ok(_decoded) = bech32.decode(encoded)
+// _decoded.hrp == "bc", _decoded.variant == Bech32
 ```
 
 ### Base58Check (Bitcoin)
@@ -153,25 +193,28 @@ let assert Ok(encoded) = base58check.encode(0, <<0xab, 0xcd>>)
 // Base58 string with 4-byte SHA-256 checksum
 
 // Decode and verify checksum
-let assert Ok(decoded) = base58check.decode(encoded)
-// decoded.version == 0, decoded.payload == <<0xab, 0xcd>>
+let assert Ok(_decoded) = base58check.decode(encoded)
+// _decoded.version == 0, _decoded.payload == <<0xab, 0xcd>>
 ```
 
 ## Modules
 
 | Module | Responsibility |
 |--------|---------------|
-| `yabase` | Top-level unified API: `encode`, `decode_as`, `encode_with_prefix`, `decode` |
+| `yabase` | Top-level unified API: `encode`, `decode`, `encode_multibase`, `decode_multibase` |
 | `yabase/facade` | Developer-friendly shortcut functions for each encoding |
 | `yabase/core/encoding` | Type definitions: `Encoding`, `Decoded`, `CodecError` |
-| `yabase/core/dispatcher` | Internal dispatch from `Encoding` to codec modules |
 | `yabase/core/multibase` | Multibase prefix encoding and auto-detection |
+| `yabase/base2` | Base2 (binary string) |
+| `yabase/base8` | Base8 (octal) |
+| `yabase/base10` | Base10 (decimal) |
 | `yabase/base16` | Base16 (hex) |
-| `yabase/base32/*` | Base32 variants: `rfc4648`, `hex`, `crockford`, `clockwork`, `zbase32` |
+| `yabase/base32/*` | Base32 variants: `rfc4648`, `hex`, `crockford` (with `encode_check`/`decode_check`), `clockwork`, `zbase32` |
 | `yabase/base64/*` | Base64 variants: `standard`, `urlsafe`, `nopadding`, `urlsafe_nopadding`, `dq` |
 | `yabase/base36` | Base36 |
 | `yabase/base45` | Base45 (RFC 9285) |
-| `yabase/base58` | Base58 (Bitcoin) |
+| `yabase/base58/bitcoin` | Base58 (Bitcoin alphabet) |
+| `yabase/base58/flickr` | Base58 (Flickr alphabet) |
 | `yabase/base62` | Base62 |
 | `yabase/base91` | Base91 |
 | `yabase/ascii85` | Ascii85 (btoa) |
@@ -179,7 +222,7 @@ let assert Ok(decoded) = base58check.decode(encoded)
 | `yabase/rfc1924_base85` | RFC 1924 Base85 |
 | `yabase/z85` | Z85 (ZeroMQ) |
 | `yabase/base58check` | Base58Check (version byte + SHA-256 checksum) |
-| `yabase/bech32` | Raw Bech32/Bech32m framing and checksum (not SegWit address validation) |
+| `yabase/bech32` | Bech32/Bech32m byte-payload encoding with checksum (not SegWit address validation) |
 
 ## Error handling
 
@@ -188,12 +231,12 @@ Encode and decode functions that can fail return `Result(_, CodecError)`. The co
 | Function | Return type |
 |----------|-------------|
 | `yabase.encode` | `Result(String, CodecError)` |
-| `yabase.decode_as` | `Result(BitArray, CodecError)` |
-| `yabase.decode` | `Result(Decoded, CodecError)` |
-| `yabase.encode_with_prefix` | `Result(String, CodecError)` |
+| `yabase.decode` | `Result(BitArray, CodecError)` |
+| `yabase.encode_multibase` | `Result(String, CodecError)` |
+| `yabase.decode_multibase` | `Result(Decoded, CodecError)` |
 | Low-level `*.decode` | `Result(BitArray, CodecError)` |
 | Low-level `*.encode` | `String` (total; except `z85`/`rfc1924_base85` which return `Result`) |
-| `bech32.encode` / `bech32.encode_m` | `Result(String, CodecError)` |
+| `bech32.encode(variant, hrp, data)` | `Result(String, CodecError)` |
 | `bech32.decode` | `Result(Bech32Decoded, CodecError)` |
 | `base58check.encode` | `Result(String, CodecError)` |
 | `base58check.decode` | `Result(Base58CheckDecoded, CodecError)` |
@@ -204,11 +247,23 @@ The `CodecError` type provides specific error information:
 |---------|---------------|---------|
 | `InvalidCharacter(character, position)` | decode | Input contains a character not in the alphabet |
 | `InvalidLength(length)` | encode / decode | Input length is not valid for the encoding |
-| `Overflow` | decode | Decoded value overflows the expected range (Base45, Z85, Adobe Ascii85, RFC 1924 Base85) |
-| `UnsupportedPrefix(prefix)` | `yabase.decode` | Unknown multibase prefix during auto-detection |
-| `UnsupportedMultibaseEncoding(name)` | `encode_with_prefix` | Encoding has no assigned multibase prefix (e.g. Base64 DQ) |
+| `Overflow` | encode / decode | Decoded value overflows the expected range (Base45, Ascii85, Adobe Ascii85, Z85, RFC 1924 Base85); `base58check.encode` returns this when version is outside 0..255 |
+| `UnsupportedPrefix(prefix)` | `yabase.decode_multibase` | Unknown multibase prefix during auto-detection |
+| `UnsupportedMultibaseEncoding(name)` | `yabase.encode_multibase` | Encoding has no assigned multibase prefix (e.g. Base64 DQ) |
 | `InvalidChecksum` | `base58check.decode`, `bech32.decode` | Checksum verification failed |
 | `InvalidHrp(reason)` | `bech32.encode`, `bech32.decode` | Invalid human-readable part in Bech32 |
+
+## Examples
+
+The [`examples/`](examples/) directory contains runnable use-case examples:
+
+| File | Use case |
+|------|----------|
+| `jwt_urlsafe_base64.gleam` | JWT header/payload encoding (URL-safe Base64 without padding) |
+| `qr_base45.gleam` | QR-code-friendly encoding (RFC 9285) |
+| `bitcoin_base58check.gleam` | Bitcoin address encoding with version byte and checksum |
+| `bitcoin_bech32.gleam` | Bech32/Bech32m address framing (BIP 173 / BIP 350) |
+| `multibase_auto_detect.gleam` | Prefix-based encoding auto-detection for content-addressed systems |
 
 ## Development
 

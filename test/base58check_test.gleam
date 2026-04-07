@@ -1,5 +1,7 @@
 import yabase/base58check
-import yabase/core/encoding.{InvalidChecksum, InvalidLength, Overflow}
+import yabase/core/encoding.{
+  InvalidCharacter, InvalidChecksum, InvalidLength, Overflow,
+}
 
 // --- Roundtrip ---
 
@@ -107,4 +109,117 @@ pub fn decode_invalid_checksum_test() {
     Error(InvalidChecksum) -> True
     _ -> False
   }
+}
+
+// Invalid Base58 characters must propagate through base58check.decode
+pub fn decode_invalid_char_zero_test() {
+  assert base58check.decode("0invalid") == Error(InvalidCharacter("0", 0))
+}
+
+pub fn decode_invalid_char_uppercase_o_test() {
+  assert base58check.decode("O") == Error(InvalidCharacter("O", 0))
+}
+
+pub fn decode_invalid_char_uppercase_i_test() {
+  assert base58check.decode("I") == Error(InvalidCharacter("I", 0))
+}
+
+pub fn decode_invalid_char_lowercase_l_test() {
+  assert base58check.decode("l") == Error(InvalidCharacter("l", 0))
+}
+
+// === Cross-reference: bitcoinjs/bs58check fixtures ===
+// Source: https://github.com/bitcoinjs/bs58check
+
+pub fn bs58check_vector_1agn_test() {
+  let assert Ok(decoded) =
+    base58check.decode("1AGNa15ZQXAZUgFiqJ2i7Z2DPU2J6hW62i")
+  assert decoded.version == 0x00
+  assert decoded.payload
+    == <<
+      0x65,
+      0xa1,
+      0x60,
+      0x59,
+      0x86,
+      0x4a,
+      0x2f,
+      0xdb,
+      0xc7,
+      0xc9,
+      0x9a,
+      0x47,
+      0x23,
+      0xa8,
+      0x39,
+      0x5b,
+      0xc6,
+      0xf1,
+      0x88,
+      0xeb,
+    >>
+}
+
+pub fn bs58check_vector_3cmn_test() {
+  let assert Ok(decoded) =
+    base58check.decode("3CMNFxN1oHBc4R1EpboAL5yzHGgE611Xou")
+  assert decoded.version == 0x05
+  assert decoded.payload
+    == <<
+      0x74,
+      0xf2,
+      0x09,
+      0xf6,
+      0xea,
+      0x90,
+      0x7e,
+      0x2e,
+      0xa4,
+      0x8f,
+      0x74,
+      0xfa,
+      0xe0,
+      0x57,
+      0x82,
+      0xae,
+      0x8a,
+      0x66,
+      0x52,
+      0x57,
+    >>
+}
+
+pub fn bs58check_vector_mo9n_test() {
+  let assert Ok(decoded) =
+    base58check.decode("mo9ncXisMeAoXwqcV5EWuyncbmCcQN4rVs")
+  assert decoded.version == 0x6f
+}
+
+pub fn bs58check_vector_1ax4_test() {
+  let assert Ok(decoded) =
+    base58check.decode("1Ax4gZtb7gAit2TivwejZHYtNNLT18PUXJ")
+  assert decoded.version == 0x00
+  assert decoded.payload
+    == <<
+      0x6d,
+      0x23,
+      0x15,
+      0x6c,
+      0xbb,
+      0xdc,
+      0xc8,
+      0x2a,
+      0x5a,
+      0x47,
+      0xee,
+      0xe4,
+      0xc2,
+      0xc7,
+      0xc5,
+      0x83,
+      0xc1,
+      0x8b,
+      0x6b,
+      0xf4,
+    >>
 }

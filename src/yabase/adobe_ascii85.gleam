@@ -14,16 +14,22 @@ const suffix = "~>"
 
 /// Encode a BitArray to Adobe Ascii85 with <~ ~> delimiters.
 pub fn encode(data: BitArray) -> String {
-  prefix <> encode_groups(data, "") <> suffix
+  prefix
+  <> {
+    encode_groups(data, [])
+    |> list_reverse_str
+    |> string.join("")
+  }
+  <> suffix
 }
 
-fn encode_groups(data: BitArray, acc: String) -> String {
+fn encode_groups(data: BitArray, acc: List(String)) -> List(String) {
   case data {
-    <<0:32, rest:bits>> -> encode_groups(rest, acc <> "z")
+    <<0:32, rest:bits>> -> encode_groups(rest, ["z", ..acc])
     <<a:8, b:8, c:8, d:8, rest:bits>> -> {
       let n = a * 16_777_216 + b * 65_536 + c * 256 + d
       let encoded = encode_u32(n, 5, [])
-      encode_groups(rest, acc <> chars_to_string(encoded))
+      encode_groups(rest, [chars_to_string(encoded), ..acc])
     }
     <<>> -> acc
     remaining -> {
@@ -32,7 +38,7 @@ fn encode_groups(data: BitArray, acc: String) -> String {
         <<a:8, b:8, c:8, d:8>> -> {
           let n = a * 16_777_216 + b * 65_536 + c * 256 + d
           let encoded = encode_u32(n, 5, [])
-          acc <> chars_to_string(list_take(encoded, original_len + 1))
+          [chars_to_string(list_take(encoded, original_len + 1)), ..acc]
         }
         _ -> acc
       }
@@ -103,11 +109,12 @@ fn decode_groups(
 ) -> Result(BitArray, CodecError) {
   case string.pop_grapheme(input) {
     Error(Nil) -> Ok(acc)
-    // Skip whitespace (space, tab, newline, carriage return)
+    // Skip whitespace (space, tab, newline, carriage return, form feed)
     Ok(#(" ", rest)) -> decode_groups(rest, acc, pos + 1)
     Ok(#("\t", rest)) -> decode_groups(rest, acc, pos + 1)
     Ok(#("\n", rest)) -> decode_groups(rest, acc, pos + 1)
     Ok(#("\r", rest)) -> decode_groups(rest, acc, pos + 1)
+    Ok(#("\u{000C}", rest)) -> decode_groups(rest, acc, pos + 1)
     Ok(#("z", rest)) ->
       decode_groups(rest, bit_array.append(acc, <<0:32>>), pos + 1)
     Ok(#(c1, r1)) ->
@@ -173,6 +180,7 @@ fn collect_group(
         Ok(#("\t", rest)) -> collect_group(rest, acc, count, pos + 1)
         Ok(#("\n", rest)) -> collect_group(rest, acc, count, pos + 1)
         Ok(#("\r", rest)) -> collect_group(rest, acc, count, pos + 1)
+        Ok(#("\u{000C}", rest)) -> collect_group(rest, acc, count, pos + 1)
         Ok(#(c, rest)) ->
           case char_to_value(c) {
             Error(_) -> Error(InvalidCharacter(c, pos))
@@ -190,6 +198,17 @@ fn list_reverse_acc(l: List(Int), acc: List(Int)) -> List(Int) {
   case l {
     [] -> acc
     [h, ..t] -> list_reverse_acc(t, [h, ..acc])
+  }
+}
+
+fn list_reverse_str(l: List(String)) -> List(String) {
+  list_reverse_str_acc(l, [])
+}
+
+fn list_reverse_str_acc(l: List(String), acc: List(String)) -> List(String) {
+  case l {
+    [] -> acc
+    [h, ..t] -> list_reverse_str_acc(t, [h, ..acc])
   }
 }
 

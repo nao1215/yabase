@@ -6,7 +6,9 @@
 /// because they require input length to be a multiple of 4 bytes.
 import yabase/adobe_ascii85
 import yabase/ascii85
+import yabase/base10
 import yabase/base16
+import yabase/base2
 import yabase/base32/clockwork
 import yabase/base32/crockford
 import yabase/base32/hex as base32_hex
@@ -14,17 +16,55 @@ import yabase/base32/rfc4648
 import yabase/base32/zbase32
 import yabase/base36
 import yabase/base45
-import yabase/base58
+import yabase/base58/bitcoin as base58_bitcoin
+import yabase/base58/flickr as base58_flickr
 import yabase/base62
 import yabase/base64/dq
 import yabase/base64/nopadding
 import yabase/base64/standard
 import yabase/base64/urlsafe
 import yabase/base64/urlsafe_nopadding
+import yabase/base8
 import yabase/base91
 import yabase/core/encoding.{type CodecError}
 import yabase/rfc1924_base85
 import yabase/z85
+
+// --- Base2 ---
+
+/// Encode a BitArray to a binary string (each byte as 8 chars of 0/1).
+pub fn encode_base2(data: BitArray) -> String {
+  base2.encode(data)
+}
+
+/// Decode a binary string to a BitArray. Length must be a multiple of 8.
+pub fn decode_base2(input: String) -> Result(BitArray, CodecError) {
+  base2.decode(input)
+}
+
+// --- Base8 ---
+
+/// Encode a BitArray to an octal string.
+pub fn encode_base8(data: BitArray) -> String {
+  base8.encode(data)
+}
+
+/// Decode an octal string to a BitArray.
+pub fn decode_base8(input: String) -> Result(BitArray, CodecError) {
+  base8.decode(input)
+}
+
+// --- Base10 ---
+
+/// Encode a BitArray to a decimal string.
+pub fn encode_base10(data: BitArray) -> String {
+  base10.encode(data)
+}
+
+/// Decode a decimal string to a BitArray.
+pub fn decode_base10(input: String) -> Result(BitArray, CodecError) {
+  base10.decode(input)
+}
 
 // --- Base16 ---
 
@@ -68,6 +108,18 @@ pub fn encode_base32_crockford(data: BitArray) -> String {
 /// Decode a Crockford's Base32 string. O->0, I/L->1, hyphens ignored.
 pub fn decode_base32_crockford(input: String) -> Result(BitArray, CodecError) {
   crockford.decode(input)
+}
+
+/// Encode a BitArray to Crockford's Base32 with a check symbol appended.
+pub fn encode_base32_crockford_check(data: BitArray) -> String {
+  crockford.encode_check(data)
+}
+
+/// Decode a Crockford's Base32 string with check symbol verification.
+pub fn decode_base32_crockford_check(
+  input: String,
+) -> Result(BitArray, CodecError) {
+  crockford.decode_check(input)
 }
 
 /// Encode a BitArray to Clockwork Base32. No padding, no confusable characters.
@@ -118,12 +170,22 @@ pub fn decode_base45(input: String) -> Result(BitArray, CodecError) {
 
 /// Encode a BitArray to Base58 (Bitcoin alphabet). Leading zero bytes become '1'.
 pub fn encode_base58(data: BitArray) -> String {
-  base58.encode(data)
+  base58_bitcoin.encode(data)
 }
 
-/// Decode a Base58 string to a BitArray. Leading '1' characters become zero bytes.
+/// Decode a Base58 (Bitcoin) string to a BitArray. Leading '1' characters become zero bytes.
 pub fn decode_base58(input: String) -> Result(BitArray, CodecError) {
-  base58.decode(input)
+  base58_bitcoin.decode(input)
+}
+
+/// Encode a BitArray to Base58 (Flickr alphabet). Same as Bitcoin but with swapped case.
+pub fn encode_base58_flickr(data: BitArray) -> String {
+  base58_flickr.encode(data)
+}
+
+/// Decode a Base58 (Flickr) string to a BitArray.
+pub fn decode_base58_flickr(input: String) -> Result(BitArray, CodecError) {
+  base58_flickr.decode(input)
 }
 
 // --- Base62 ---
@@ -204,9 +266,9 @@ pub fn decode_base91(input: String) -> Result(BitArray, CodecError) {
   base91.decode(input)
 }
 
-// --- Ascii85 ---
+// --- Base85 ---
 
-/// Encode a BitArray to Ascii85 (btoa style). All-zero 4-byte groups encode as 'z'.
+/// Encode a BitArray to Ascii85 (btoa style).
 pub fn encode_ascii85(data: BitArray) -> String {
   ascii85.encode(data)
 }
@@ -215,21 +277,6 @@ pub fn encode_ascii85(data: BitArray) -> String {
 pub fn decode_ascii85(input: String) -> Result(BitArray, CodecError) {
   ascii85.decode(input)
 }
-
-// --- Z85 ---
-
-/// Encode a BitArray to Z85 (ZeroMQ variant of Ascii85).
-/// Returns `Error(InvalidLength)` if input length is not a multiple of 4 bytes.
-pub fn encode_z85(data: BitArray) -> Result(String, CodecError) {
-  z85.encode(data)
-}
-
-/// Decode a Z85 string to a BitArray. Input length must be a multiple of 5.
-pub fn decode_z85(input: String) -> Result(BitArray, CodecError) {
-  z85.decode(input)
-}
-
-// --- Adobe Ascii85 ---
 
 /// Encode a BitArray to Adobe Ascii85 with <~ ~> delimiters.
 pub fn encode_adobe_ascii85(data: BitArray) -> String {
@@ -241,7 +288,16 @@ pub fn decode_adobe_ascii85(input: String) -> Result(BitArray, CodecError) {
   adobe_ascii85.decode(input)
 }
 
-// --- RFC 1924 Base85 ---
+/// Encode a BitArray to Z85 (ZeroMQ variant of Base85).
+/// Returns `Error(InvalidLength)` if input length is not a multiple of 4 bytes.
+pub fn encode_z85(data: BitArray) -> Result(String, CodecError) {
+  z85.encode(data)
+}
+
+/// Decode a Z85 string to a BitArray. Input length must be a multiple of 5.
+pub fn decode_z85(input: String) -> Result(BitArray, CodecError) {
+  z85.decode(input)
+}
 
 /// Encode a BitArray to RFC 1924 Base85.
 /// Returns `Error(InvalidLength)` if input length is not a multiple of 4 bytes.

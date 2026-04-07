@@ -18,17 +18,22 @@ const max_u32 = 4_294_967_295
 pub fn encode(data: BitArray) -> Result(String, CodecError) {
   let len = bit_array.byte_size(data)
   case len % 4 {
-    0 -> Ok(encode_groups(data, ""))
+    0 ->
+      Ok(
+        encode_groups(data, [])
+        |> reverse_strings
+        |> string.join(""),
+      )
     _ -> Error(InvalidLength(len))
   }
 }
 
-fn encode_groups(data: BitArray, acc: String) -> String {
+fn encode_groups(data: BitArray, acc: List(String)) -> List(String) {
   case data {
     <<a:8, b:8, c:8, d:8, rest:bits>> -> {
       let n = a * 16_777_216 + b * 65_536 + c * 256 + d
       let encoded = encode_u32(n, 5, [])
-      encode_groups(rest, acc <> list_to_string(encoded))
+      encode_groups(rest, [list_to_string(encoded), ..acc])
     }
     _ -> acc
   }

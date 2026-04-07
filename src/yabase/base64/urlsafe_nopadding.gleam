@@ -2,7 +2,7 @@
 /// Same as URL-safe Base64 but padding characters are stripped.
 import gleam/string
 import yabase/base64/urlsafe
-import yabase/core/encoding.{type CodecError, InvalidLength}
+import yabase/core/encoding.{type CodecError, InvalidCharacter, InvalidLength}
 
 /// Encode a BitArray to URL-safe Base64 without padding.
 pub fn encode(data: BitArray) -> String {
@@ -12,14 +12,31 @@ pub fn encode(data: BitArray) -> String {
 
 /// Decode a URL-safe Base64 string without padding to a BitArray.
 /// Length % 4 must be 0, 2, or 3 (never 1).
+/// Padding characters (=) are rejected.
 pub fn decode(input: String) -> Result(BitArray, CodecError) {
-  let len = string.length(input)
-  case len % 4 {
-    1 -> Error(InvalidLength(len))
-    _ -> {
-      let padded = add_padding(input)
-      urlsafe.decode(padded)
+  case string.contains(input, "=") {
+    True -> Error(InvalidCharacter("=", find_char_pos(input, "=", 0)))
+    False -> {
+      let len = string.length(input)
+      case len % 4 {
+        1 -> Error(InvalidLength(len))
+        _ -> {
+          let padded = add_padding(input)
+          urlsafe.decode(padded)
+        }
+      }
     }
+  }
+}
+
+fn find_char_pos(input: String, target: String, pos: Int) -> Int {
+  case string.pop_grapheme(input) {
+    Error(Nil) -> pos
+    Ok(#(c, rest)) ->
+      case c == target {
+        True -> pos
+        False -> find_char_pos(rest, target, pos + 1)
+      }
   }
 }
 

@@ -1,13 +1,18 @@
 name = "yabase"
-version = "0.1.0"
+version = "0.2.0"
 target = "erlang"
-description = "Yet Another Base - A unified, type-safe interface for multiple binary-to-text encodings"
+description = "Unified binary-to-text encoding: base2, base8, base10, base16, base32, base36, base45, base58, base58check, base62, base64, base85, base91, ascii85, z85, bech32, bech32m, multibase"
 licences = ["MIT"]
 repository = { type = "github", user = "nao1215", repo = "yabase" }
+links = [
+  { title = "Examples", href = "https://github.com/nao1215/yabase/tree/main/examples" },
+  { title = "Changelog", href = "https://github.com/nao1215/yabase/blob/main/CHANGELOG.md" },
+]
 
 internal_modules = [
   "yabase/internal",
   "yabase/internal/*",
+  "yabase/core/dispatcher",
 ]
 
 [dependencies]

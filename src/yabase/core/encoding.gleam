@@ -7,6 +7,8 @@ pub type Base32Variant {
   Hex
   /// Crockford's Base32
   Crockford
+  /// Crockford's Base32 with mod-37 check symbol
+  CrockfordCheck
   /// Clockwork Base32 (human-friendly, no padding)
   Clockwork
   /// z-base-32 (human-oriented, no padding)
@@ -27,20 +29,40 @@ pub type Base64Variant {
   DQ
 }
 
+/// Variants for Base58 encoding.
+pub type Base58Variant {
+  /// Bitcoin alphabet (uppercase before lowercase)
+  Bitcoin
+  /// Flickr alphabet (lowercase before uppercase)
+  Flickr
+}
+
+/// Variants for Base85 encoding.
+pub type Base85Variant {
+  /// btoa-style Ascii85 (z for all-zero, y for all-space)
+  Btoa
+  /// Adobe Ascii85 with <~ ~> delimiters
+  Adobe
+  /// RFC 1924 alphabet (input must be 4-byte aligned)
+  Rfc1924
+  /// ZeroMQ Z85 (input must be 4-byte aligned)
+  Z85
+}
+
 /// Represents a supported encoding scheme.
 pub type Encoding {
+  Base2
+  Base8
+  Base10
   Base16
   Base32(Base32Variant)
   Base36
   Base45
-  Base58
+  Base58(Base58Variant)
   Base62
   Base64(Base64Variant)
+  Base85(Base85Variant)
   Base91
-  Ascii85
-  AdobeAscii85
-  Rfc1924Base85
-  Z85
 }
 
 /// A decoded value tagged with its detected encoding.

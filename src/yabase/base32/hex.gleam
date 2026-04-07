@@ -9,20 +9,22 @@ const pad = "="
 
 /// Encode a BitArray to Base32 Hex string with padding.
 pub fn encode(data: BitArray) -> String {
-  encode_bits(data, "")
+  encode_bits(data, [])
+  |> list_reverse
+  |> string.join("")
   |> add_padding
 }
 
-fn encode_bits(data: BitArray, acc: String) -> String {
+fn encode_bits(data: BitArray, acc: List(String)) -> List(String) {
   case data {
     <<a:5, rest:bits>> -> {
       let char = string_char_at(alphabet, a)
-      encode_bits(rest, acc <> char)
+      encode_bits(rest, [char, ..acc])
     }
-    <<a:4>> -> acc <> string_char_at(alphabet, a * 2)
-    <<a:3>> -> acc <> string_char_at(alphabet, a * 4)
-    <<a:2>> -> acc <> string_char_at(alphabet, a * 8)
-    <<a:1>> -> acc <> string_char_at(alphabet, a * 16)
+    <<a:4>> -> [string_char_at(alphabet, a * 2), ..acc]
+    <<a:3>> -> [string_char_at(alphabet, a * 4), ..acc]
+    <<a:2>> -> [string_char_at(alphabet, a * 8), ..acc]
+    <<a:1>> -> [string_char_at(alphabet, a * 16), ..acc]
     _ -> acc
   }
 }
@@ -150,5 +152,16 @@ fn string_char_at(s: String, index: Int) -> String {
   case string.drop_start(s, index) |> string.pop_grapheme {
     Ok(#(c, _)) -> c
     Error(_) -> ""
+  }
+}
+
+fn list_reverse(l: List(a)) -> List(a) {
+  list_reverse_acc(l, [])
+}
+
+fn list_reverse_acc(l: List(a), acc: List(a)) -> List(a) {
+  case l {
+    [] -> acc
+    [h, ..t] -> list_reverse_acc(t, [h, ..acc])
   }
 }

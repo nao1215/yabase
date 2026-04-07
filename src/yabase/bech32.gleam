@@ -1,12 +1,18 @@
-/// Raw Bech32 and Bech32m framing and checksum (BIP 173, BIP 350).
+/// Bech32 and Bech32m byte-payload encoding (BIP 173, BIP 350).
 ///
-/// This module implements the Bech32/Bech32m encoding layer only:
-/// HRP + "1" separator + base32 data + 6-character polynomial checksum.
-/// Alphabet: qpzry9x8gf2tvdw0s3jn54khce6mua7l
+/// This module provides a convenience API that accepts raw bytes,
+/// converts them to 5-bit groups internally (8-to-5 bit conversion),
+/// computes the polynomial checksum, and produces the final
+/// HRP + "1" + data + checksum string. Decoding reverses the process
+/// (5-to-8 bit conversion) and returns bytes.
+///
+/// This is NOT a raw 5-bit framing API. If you need to work with
+/// pre-converted 5-bit values (e.g. for SegWit witness programs
+/// where the witness version is a separate 5-bit value), you will
+/// need to handle the bit conversion yourself before calling this module.
 ///
 /// It does NOT implement SegWit address validation (witness version,
-/// program length constraints). Use this module as a building block
-/// for higher-level address codecs.
+/// program length constraints).
 ///
 /// This is a separate API from the Encoding ADT because it carries
 /// HRP metadata and a checksum.
@@ -25,16 +31,16 @@ const bech32_const = 1
 
 const bech32m_const = 0x2bc830a3
 
-/// Encode data with Bech32 (BIP 173).
+/// Encode byte data with Bech32 or Bech32m.
+/// variant: Bech32 (BIP 173) or Bech32m (BIP 350).
 /// hrp: human-readable part (e.g. "bc" for Bitcoin mainnet).
-/// data: the raw data bytes to encode.
-pub fn encode(hrp: String, data: BitArray) -> Result(String, CodecError) {
-  encode_variant(Bech32V, hrp, data)
-}
-
-/// Encode data with Bech32m (BIP 350).
-pub fn encode_m(hrp: String, data: BitArray) -> Result(String, CodecError) {
-  encode_variant(Bech32mV, hrp, data)
+/// data: raw bytes (8-to-5 bit conversion is done internally).
+pub fn encode(
+  variant: Bech32Variant,
+  hrp: String,
+  data: BitArray,
+) -> Result(String, CodecError) {
+  encode_variant(variant, hrp, data)
 }
 
 /// Decode a Bech32 or Bech32m string, auto-detecting the variant.
@@ -99,7 +105,10 @@ fn encode_variant(
               let checksum =
                 create_checksum(lower_hrp, data_values, checksum_const)
               let all_values = list_append(data_values, checksum)
-              let encoded_data = values_to_chars(all_values, "")
+              let encoded_data =
+                values_to_chars(all_values, [])
+                |> list_reverse
+                |> string.join("")
               let result = lower_hrp <> "1" <> encoded_data
               // BIP 173: total length must not exceed 90
               case string.length(result) > 90 {
@@ -212,10 +221,10 @@ fn chars_to_values(
   }
 }
 
-fn values_to_chars(values: List(Int), acc: String) -> String {
+fn values_to_chars(values: List(Int), acc: List(String)) -> List(String) {
   case values {
     [] -> acc
-    [v, ..rest] -> values_to_chars(rest, acc <> string_char_at(charset, v))
+    [v, ..rest] -> values_to_chars(rest, [string_char_at(charset, v), ..acc])
   }
 }
 

@@ -9,7 +9,7 @@ Thank you for considering contributing to the yabase project! This document expl
 ### Prerequisites
 
 - [Gleam](https://gleam.run/) 1.15 or later
-- [Erlang/OTP](https://www.erlang.org/) 27 or later
+- [Erlang/OTP](https://www.erlang.org/) 26 or later
 - [just](https://just.systems/) (task runner)
 - [mise](https://mise.jdx.dev/) (recommended for managing Gleam and Erlang versions)
 
@@ -51,7 +51,7 @@ This project follows these standards:
 1. **Follow the [Gleam language guide](https://gleam.run/)**
 2. **Keep the public API surface small** -- use `pub opaque type` where appropriate
 3. **Pure functions only** -- no actors or OTP in this library
-4. **Consistent module interfaces** -- encode functions return `String` for total encodings, `Result(String, CodecError)` for constrained ones (Z85, RFC 1924 Base85, Bech32). Decode functions return `Result(BitArray, CodecError)` for low-level modules, `Result(Decoded, CodecError)` for the top-level `yabase.decode`, `Result(Bech32Decoded, CodecError)` for `bech32.decode`, and `Result(Base58CheckDecoded, CodecError)` for `base58check.decode`
+4. **Consistent module interfaces** -- encode functions return `String` for total encodings, `Result(String, CodecError)` for constrained ones (Base85 Z85/Rfc1924, Bech32, Base58Check). Decode functions return `Result(BitArray, CodecError)` for low-level modules, `Result(Decoded, CodecError)` for `yabase.decode_multibase`, `Result(Bech32Decoded, CodecError)` for `bech32.decode`, and `Result(Base58CheckDecoded, CodecError)` for `base58check.decode`
 5. **Add doc comments to all public functions and types**
 6. **No `@external` unless absolutely necessary** -- prefer pure Gleam implementations
 
@@ -76,7 +76,7 @@ When adding a new encoding:
 1. Create the encoding module in `src/yabase/` (or a subdirectory for variants)
 2. Implement `encode` and `decode` functions with the standard signatures
 3. Add the variant to `Encoding` type in `src/yabase/core/encoding.gleam`
-4. Add dispatch entries in `src/yabase/core/dispatcher.gleam`
+4. Add dispatch entries in `src/yabase/core/dispatcher.gleam` (internal module)
 5. Add facade shortcut functions in `src/yabase/facade.gleam`
 6. Add a multibase prefix mapping in `src/yabase/core/multibase.gleam` (if applicable)
 7. Add comprehensive tests in `test/`

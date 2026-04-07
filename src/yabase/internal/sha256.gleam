@@ -1,4 +1,4 @@
-/// Pure Gleam SHA-256 implementation (FIPS 180-4).
+/// Pure Gleam SHA-256 implementation.
 /// Used only for checksum computation in Base58Check.
 import gleam/bit_array
 
@@ -216,15 +216,17 @@ fn small_sigma1(x: Int) -> Int {
   int_xor(int_xor(rotr(x, 17), rotr(x, 19)), shr(x, 10))
 }
 
-// Message padding: append 1 bit, pad zeros, append 64-bit length
+// Message padding: append 1 bit, pad zeros, append 64-bit big-endian length
 fn pad_message(data: BitArray) -> BitArray {
   let bit_len = bit_array.byte_size(data) * 8
+  let high = bit_len / 4_294_967_296
+  let low = bit_len % 4_294_967_296
   // Append 0x80 byte
   let with_one = bit_array.append(data, <<0x80>>)
   // Pad to 56 mod 64 bytes
   let padded = pad_zeros(with_one)
-  // Append 64-bit big-endian length
-  bit_array.append(padded, <<0:32, bit_len:32>>)
+  // Append full 64-bit big-endian length (FIPS 180-4 Section 5.1.1)
+  bit_array.append(padded, <<high:32, low:32>>)
 }
 
 fn pad_zeros(data: BitArray) -> BitArray {

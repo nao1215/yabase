@@ -17,20 +17,29 @@ const dq_pad = "・"
 
 /// Encode a BitArray to Base64 DQ (hiragana).
 pub fn encode(data: BitArray) -> String {
-  encode_chunks(data, "")
+  encode_chunks(data, [])
+  |> list_reverse
+  |> string.join("")
 }
 
-fn encode_chunks(data: BitArray, acc: String) -> String {
+fn encode_chunks(data: BitArray, acc: List(String)) -> List(String) {
   case data {
     <<a:6, b:6, c:6, d:6, rest:bits>> ->
-      encode_chunks(
-        rest,
-        acc <> dq_char_at(a) <> dq_char_at(b) <> dq_char_at(c) <> dq_char_at(d),
-      )
-    <<a:6, b:6, c:4>> ->
-      acc <> dq_char_at(a) <> dq_char_at(b) <> dq_char_at(c * 4) <> dq_pad
-    <<a:6, b:2>> ->
-      acc <> dq_char_at(a) <> dq_char_at(b * 16) <> dq_pad <> dq_pad
+      encode_chunks(rest, [
+        dq_char_at(d),
+        dq_char_at(c),
+        dq_char_at(b),
+        dq_char_at(a),
+        ..acc
+      ])
+    <<a:6, b:6, c:4>> -> [
+      dq_pad,
+      dq_char_at(c * 4),
+      dq_char_at(b),
+      dq_char_at(a),
+      ..acc
+    ]
+    <<a:6, b:2>> -> [dq_pad, dq_pad, dq_char_at(b * 16), dq_char_at(a), ..acc]
     _ -> acc
   }
 }
@@ -133,5 +142,16 @@ fn find_index(
         True -> Ok(idx)
         False -> find_index(rest, needle, idx + 1)
       }
+  }
+}
+
+fn list_reverse(l: List(a)) -> List(a) {
+  list_reverse_acc(l, [])
+}
+
+fn list_reverse_acc(l: List(a), acc: List(a)) -> List(a) {
+  case l {
+    [] -> acc
+    [h, ..t] -> list_reverse_acc(t, [h, ..acc])
   }
 }

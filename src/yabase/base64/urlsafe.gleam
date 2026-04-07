@@ -10,19 +10,23 @@ const pad = "="
 
 /// Encode a BitArray to URL-safe Base64 with padding.
 pub fn encode(data: BitArray) -> String {
-  encode_chunks(data, "")
+  encode_chunks(data, [])
+  |> list_reverse
+  |> string.join("")
 }
 
-fn encode_chunks(data: BitArray, acc: String) -> String {
+fn encode_chunks(data: BitArray, acc: List(String)) -> List(String) {
   case data {
     <<a:6, b:6, c:6, d:6, rest:bits>> ->
-      encode_chunks(
-        rest,
-        acc <> char_at(a) <> char_at(b) <> char_at(c) <> char_at(d),
-      )
-    <<a:6, b:6, c:4>> ->
-      acc <> char_at(a) <> char_at(b) <> char_at(c * 4) <> pad
-    <<a:6, b:2>> -> acc <> char_at(a) <> char_at(b * 16) <> pad <> pad
+      encode_chunks(rest, [
+        char_at(d),
+        char_at(c),
+        char_at(b),
+        char_at(a),
+        ..acc
+      ])
+    <<a:6, b:6, c:4>> -> [pad, char_at(c * 4), char_at(b), char_at(a), ..acc]
+    <<a:6, b:2>> -> [pad, pad, char_at(b * 16), char_at(a), ..acc]
     _ -> acc
   }
 }
@@ -126,6 +130,17 @@ fn char_at(index: Int) -> String {
   case string.drop_start(alphabet, index) |> string.pop_grapheme {
     Ok(#(c, _)) -> c
     Error(_) -> ""
+  }
+}
+
+fn list_reverse(l: List(a)) -> List(a) {
+  list_reverse_acc(l, [])
+}
+
+fn list_reverse_acc(l: List(a), acc: List(a)) -> List(a) {
+  case l {
+    [] -> acc
+    [h, ..t] -> list_reverse_acc(t, [h, ..acc])
   }
 }
 

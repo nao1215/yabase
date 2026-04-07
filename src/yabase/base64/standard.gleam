@@ -9,22 +9,34 @@ const pad = "="
 
 /// Encode a BitArray to standard Base64 with padding.
 pub fn encode(data: BitArray) -> String {
-  encode_chunks(data, "")
+  encode_chunks(data, [])
+  |> list_reverse
+  |> string.join("")
 }
 
-fn encode_chunks(data: BitArray, acc: String) -> String {
+fn encode_chunks(data: BitArray, acc: List(String)) -> List(String) {
   case data {
     <<a:6, b:6, c:6, d:6, rest:bits>> -> {
       let s = char_at(a) <> char_at(b) <> char_at(c) <> char_at(d)
-      encode_chunks(rest, acc <> s)
+      encode_chunks(rest, [s, ..acc])
     }
-    <<a:6, b:6, c:4>> -> {
-      acc <> char_at(a) <> char_at(b) <> char_at(c * 4) <> pad
-    }
-    <<a:6, b:2>> -> {
-      acc <> char_at(a) <> char_at(b * 16) <> pad <> pad
-    }
+    <<a:6, b:6, c:4>> -> [
+      char_at(a) <> char_at(b) <> char_at(c * 4) <> pad,
+      ..acc
+    ]
+    <<a:6, b:2>> -> [char_at(a) <> char_at(b * 16) <> pad <> pad, ..acc]
     _ -> acc
+  }
+}
+
+fn list_reverse(l: List(a)) -> List(a) {
+  list_reverse_acc(l, [])
+}
+
+fn list_reverse_acc(l: List(a), acc: List(a)) -> List(a) {
+  case l {
+    [] -> acc
+    [h, ..t] -> list_reverse_acc(t, [h, ..acc])
   }
 }
 
