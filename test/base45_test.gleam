@@ -56,6 +56,37 @@ pub fn rfc9285_example3_decode_test() {
   assert base45.decode("UJCLQE7W581") == Ok(<<"base-45":utf8>>)
 }
 
+// --- Cross-reference vectors (shogo82148/base45) ---
+
+pub fn rfc9285_ietf_encode_test() {
+  assert base45.encode(<<"ietf!":utf8>>) == "QED8WEX0"
+}
+
+pub fn rfc9285_ietf_decode_test() {
+  assert base45.decode("QED8WEX0") == Ok(<<"ietf!":utf8>>)
+}
+
+pub fn encode_hello_world_test() {
+  assert base45.encode(<<"Hello, world!":utf8>>) == "%69 VDK2EV4404ESVDX0"
+}
+
+pub fn decode_hello_world_test() {
+  assert base45.decode("%69 VDK2EV4404ESVDX0") == Ok(<<"Hello, world!":utf8>>)
+}
+
+pub fn encode_with_null_byte_test() {
+  // "some data with \x00 and \ufeff"
+  let data = <<"some data with ":utf8, 0x00, " and ":utf8, 0xEF, 0xBB, 0xBF>>
+  assert base45.encode(data) == "VQEF$DC44IECOCCE4FAWE2249440/DG743XN"
+}
+
+pub fn decode_with_null_byte_test() {
+  let expected = <<
+    "some data with ":utf8, 0x00, " and ":utf8, 0xEF, 0xBB, 0xBF,
+  >>
+  assert base45.decode("VQEF$DC44IECOCCE4FAWE2249440/DG743XN") == Ok(expected)
+}
+
 // --- Overflow rejection ---
 
 pub fn decode_overflow_3char_group_test() {

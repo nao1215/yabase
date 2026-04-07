@@ -244,6 +244,104 @@ pub fn dq_decode_data_after_double_pad_test() {
   }
 }
 
+// --- DQ cross-reference vectors (shogo82148/base64dq) ---
+
+// RFC 4648 examples in DQ encoding
+pub fn dq_rfc4648_f_test() {
+  assert dq.encode(<<"f":utf8>>) == "はむ・・"
+  assert dq.decode("はむ・・") == Ok(<<"f":utf8>>)
+}
+
+pub fn dq_rfc4648_fo_test() {
+  assert dq.encode(<<"fo":utf8>>) == "はらび・"
+  assert dq.decode("はらび・") == Ok(<<"fo":utf8>>)
+}
+
+pub fn dq_rfc4648_foo_test() {
+  assert dq.encode(<<"foo":utf8>>) == "はらぶげ"
+  assert dq.decode("はらぶげ") == Ok(<<"foo":utf8>>)
+}
+
+pub fn dq_rfc4648_foob_test() {
+  assert dq.encode(<<"foob":utf8>>) == "はらぶげのむ・・"
+  assert dq.decode("はらぶげのむ・・") == Ok(<<"foob":utf8>>)
+}
+
+pub fn dq_rfc4648_fooba_test() {
+  assert dq.encode(<<"fooba":utf8>>) == "はらぶげのらお・"
+  assert dq.decode("はらぶげのらお・") == Ok(<<"fooba":utf8>>)
+}
+
+pub fn dq_rfc4648_foobar_test() {
+  assert dq.encode(<<"foobar":utf8>>) == "はらぶげのらかじ"
+  assert dq.decode("はらぶげのらかじ") == Ok(<<"foobar":utf8>>)
+}
+
+// Wikipedia examples
+pub fn dq_wikipedia_sure_dot_test() {
+  assert dq.encode(<<"sure.":utf8>>) == "へぢにじはてづ・"
+  assert dq.decode("へぢにじはてづ・") == Ok(<<"sure.":utf8>>)
+}
+
+pub fn dq_wikipedia_sure_test() {
+  assert dq.encode(<<"sure":utf8>>) == "へぢにじはち・・"
+  assert dq.decode("へぢにじはち・・") == Ok(<<"sure":utf8>>)
+}
+
+pub fn dq_wikipedia_sur_test() {
+  assert dq.encode(<<"sur":utf8>>) == "へぢにじ"
+  assert dq.decode("へぢにじ") == Ok(<<"sur":utf8>>)
+}
+
+pub fn dq_wikipedia_su_test() {
+  assert dq.encode(<<"su":utf8>>) == "へぢな・"
+  assert dq.decode("へぢな・") == Ok(<<"su":utf8>>)
+}
+
+// DQ1 password vectors
+pub fn dq_dq1_password_vector_1_test() {
+  let data = <<0x14, 0xFB, 0x9C, 0x03, 0xD9, 0x7E>>
+  assert dq.encode(data) == "かたぐへあぶよべ"
+  assert dq.decode("かたぐへあぶよべ") == Ok(data)
+}
+
+pub fn dq_dq1_password_vector_2_test() {
+  let data = <<0x14, 0xFB, 0x9C, 0x03, 0xD9>>
+  assert dq.encode(data) == "かたぐへあぶゆ・"
+  assert dq.decode("かたぐへあぶゆ・") == Ok(data)
+}
+
+pub fn dq_dq1_password_vector_3_test() {
+  let data = <<0x14, 0xFB, 0x9C, 0x03>>
+  assert dq.encode(data) == "かたぐへあご・・"
+  assert dq.decode("かたぐへあご・・") == Ok(data)
+}
+
+// Bigtest: "Twas brillig, and the slithy toves"
+pub fn dq_bigtest_test() {
+  let data = <<"Twas brillig, and the slithy toves":utf8>>
+  let expected = "にくほめへじいもへらよがふきよりしういめふらちむほきめよけくせがひねつるまていぜふぢはよへご・・"
+  assert dq.encode(data) == expected
+  assert dq.decode(expected) == Ok(data)
+}
+
+// Corrupt input cases from shogo82148/base64dq
+pub fn dq_decode_pad_at_start_test() {
+  // "・・・・" -> pad at position 0 is invalid
+  assert case dq.decode("・・・・") {
+    Error(InvalidCharacter("・", 0)) -> True
+    _ -> False
+  }
+}
+
+pub fn dq_decode_pad_after_one_char_test() {
+  // "が・・・" -> pad at position 1 in first group
+  assert case dq.decode("が・・・") {
+    Error(InvalidCharacter("・", _)) -> True
+    _ -> False
+  }
+}
+
 // --- DQ error cases ---
 
 pub fn dq_decode_non_hiragana_ascii_test() {
