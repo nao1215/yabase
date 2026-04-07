@@ -30,26 +30,24 @@ jobs:
       - run: gleam deps download
       - run: gleam build --warnings-as-errors
 
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: erlef/setup-beam@v1
-        with:
-          otp-version: "27"
-          gleam-version: "1.15"
-      - run: gleam deps download
-      - run: gleam build
-
   test:
-    name: Test
+    name: Test (OTP ${{ matrix.otp }} / Gleam ${{ matrix.gleam }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - otp: "26"
+            gleam: "1.15"
+          - otp: "27"
+            gleam: "1.15"
+          - otp: "28"
+            gleam: "1.15"
     steps:
       - uses: actions/checkout@v6
       - uses: erlef/setup-beam@v1
         with:
-          otp-version: "27"
-          gleam-version: "1.15"
+          otp-version: ${{ matrix.otp }}
+          gleam-version: ${{ matrix.gleam }}
       - run: gleam deps download
       - run: gleam test

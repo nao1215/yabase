@@ -15,7 +15,7 @@ Yet Another Base -- a unified, type-safe interface for multiple binary-to-text e
 ## Requirements
 
 - Gleam 1.15 or later
-- Erlang/OTP 27 or later
+- Erlang/OTP 26 or later (CI tests OTP 26, 27, 28)
 
 ## Install
 
