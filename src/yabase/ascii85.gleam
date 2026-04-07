@@ -11,17 +11,19 @@ import yabase/core/encoding.{
 
 /// Encode a BitArray to Ascii85.
 pub fn encode(data: BitArray) -> String {
-  encode_groups(data, "")
+  encode_groups(data, [])
+  |> list_reverse_str
+  |> string.join("")
 }
 
-fn encode_groups(data: BitArray, acc: String) -> String {
+fn encode_groups(data: BitArray, acc: List(String)) -> List(String) {
   case data {
-    <<0:32, rest:bits>> -> encode_groups(rest, acc <> "z")
-    <<0x20, 0x20, 0x20, 0x20, rest:bits>> -> encode_groups(rest, acc <> "y")
+    <<0:32, rest:bits>> -> encode_groups(rest, ["z", ..acc])
+    <<0x20, 0x20, 0x20, 0x20, rest:bits>> -> encode_groups(rest, ["y", ..acc])
     <<a:8, b:8, c:8, d:8, rest:bits>> -> {
       let n = a * 16_777_216 + b * 65_536 + c * 256 + d
       let encoded = encode_u32(n, 5, [])
-      encode_groups(rest, acc <> chars_to_string(encoded))
+      encode_groups(rest, [chars_to_string(encoded), ..acc])
     }
     <<>> -> acc
     remaining -> {
@@ -30,11 +32,22 @@ fn encode_groups(data: BitArray, acc: String) -> String {
         <<a:8, b:8, c:8, d:8>> -> {
           let n = a * 16_777_216 + b * 65_536 + c * 256 + d
           let encoded = encode_u32(n, 5, [])
-          acc <> chars_to_string(list_take(encoded, original_len + 1))
+          [chars_to_string(list_take(encoded, original_len + 1)), ..acc]
         }
         _ -> acc
       }
     }
+  }
+}
+
+fn list_reverse_str(l: List(String)) -> List(String) {
+  list_reverse_str_acc(l, [])
+}
+
+fn list_reverse_str_acc(l: List(String), acc: List(String)) -> List(String) {
+  case l {
+    [] -> acc
+    [h, ..t] -> list_reverse_str_acc(t, [h, ..acc])
   }
 }
 
