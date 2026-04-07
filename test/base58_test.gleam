@@ -123,3 +123,36 @@ pub fn bitcoin_flickr_same_data_test() {
   let assert Ok(d2) = flickr.decode(flickr.encode(data))
   assert d1 == d2
 }
+
+// === Cross-reference vectors (paulmillr/scure-base) ===
+
+pub fn scure_hello_world_test() {
+  assert bitcoin.encode(<<"hello world":utf8>>) == "StV1DL6CwTryKyV"
+  assert bitcoin.decode("StV1DL6CwTryKyV") == Ok(<<"hello world":utf8>>)
+}
+
+pub fn scure_hello_world_excl_test() {
+  assert bitcoin.encode(<<"Hello World!":utf8>>) == "2NEpo7TZRRrLZSi2U"
+  assert bitcoin.decode("2NEpo7TZRRrLZSi2U") == Ok(<<"Hello World!":utf8>>)
+}
+
+pub fn scure_leading_zeros_test() {
+  assert bitcoin.encode(<<0, 0, 0x28, 0x7f, 0xb4, 0xcd>>) == "11233QC4"
+  assert bitcoin.decode("11233QC4") == Ok(<<0, 0, 0x28, 0x7f, 0xb4, 0xcd>>)
+}
+
+pub fn scure_quick_brown_fox_test() {
+  let data = <<"The quick brown fox jumps over the lazy dog.":utf8>>
+  assert bitcoin.encode(data)
+    == "USm3fpXnKG5EUBx2ndxBDMPVciP5hGey2Jh4NDv6gmeo1LkMeiKrLJUUBk6Z"
+}
+
+pub fn scure_short_bytes_test() {
+  assert bitcoin.encode(<<0x51, 0x6b, 0x6f, 0xcd, 0x0f>>) == "ABnLTmg"
+  assert bitcoin.decode("ABnLTmg") == Ok(<<0x51, 0x6b, 0x6f, 0xcd, 0x0f>>)
+}
+
+pub fn scure_leading_zeros_hello_test() {
+  assert bitcoin.encode(<<0, 0, "hello world":utf8>>) == "11StV1DL6CwTryKyV"
+  assert bitcoin.decode("11StV1DL6CwTryKyV") == Ok(<<0, 0, "hello world":utf8>>)
+}

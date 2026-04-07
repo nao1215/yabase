@@ -244,3 +244,130 @@ pub fn decode_data_part_exactly_6_chars_test() {
   let assert Ok(decoded) = bech32.decode(encoded)
   assert decoded.data == <<>>
 }
+
+// ===== sipa/bech32 reference vectors =====
+// Source: https://github.com/sipa/bech32
+
+// Valid Bech32 strings (raw decode should succeed)
+pub fn sipa_valid_bech32_a12uel5l_test() {
+  let assert Ok(d) = bech32.decode("A12UEL5L")
+  assert d.hrp == "a"
+  assert d.variant == Bech32V
+}
+
+pub fn sipa_valid_bech32_long_hrp_test() {
+  let assert Ok(d) =
+    bech32.decode(
+      "an83characterlonghumanreadablepartthatcontainsthenumber1andtheexcludedcharactersbio1tt5tgs",
+    )
+  assert d.variant == Bech32V
+}
+
+pub fn sipa_valid_bech32_split_test() {
+  let assert Ok(d) =
+    bech32.decode(
+      "split1checkupstagehandshakeupstreamerranterredcaperred2y9e3w",
+    )
+  assert d.hrp == "split"
+  assert d.variant == Bech32V
+}
+
+pub fn sipa_valid_bech32_question_mark_test() {
+  let assert Ok(d) = bech32.decode("?1ezyfcl")
+  assert d.hrp == "?"
+  assert d.variant == Bech32V
+}
+
+// Valid Bech32m strings
+pub fn sipa_valid_bech32m_a1lqfn3a_test() {
+  let assert Ok(d) = bech32.decode("A1LQFN3A")
+  assert d.hrp == "a"
+  assert d.variant == Bech32mV
+}
+
+pub fn sipa_valid_bech32m_question_mark_test() {
+  let assert Ok(d) = bech32.decode("?1v759aa")
+  assert d.hrp == "?"
+  assert d.variant == Bech32mV
+}
+
+pub fn sipa_valid_bech32m_split_test() {
+  let assert Ok(d) =
+    bech32.decode(
+      "split1checkupstagehandshakeupstreamerranterredcaperredlc445v",
+    )
+  assert d.hrp == "split"
+  assert d.variant == Bech32mV
+}
+
+// Invalid Bech32 strings (must fail to decode)
+pub fn sipa_invalid_bech32_no_separator_test() {
+  assert case bech32.decode("pzry9x0s0muk") {
+    Error(_) -> True
+    _ -> False
+  }
+}
+
+pub fn sipa_invalid_bech32_empty_hrp_1pzry_test() {
+  assert case bech32.decode("1pzry9x0s0muk") {
+    Error(InvalidHrp(_)) -> True
+    _ -> False
+  }
+}
+
+pub fn sipa_invalid_bech32_empty_hrp_10a06t8_test() {
+  assert case bech32.decode("10a06t8") {
+    Error(InvalidHrp(_)) -> True
+    _ -> False
+  }
+}
+
+pub fn sipa_invalid_bech32_empty_hrp_1qzzfhee_test() {
+  assert case bech32.decode("1qzzfhee") {
+    Error(InvalidHrp(_)) -> True
+    _ -> False
+  }
+}
+
+pub fn sipa_invalid_bech32_too_short_li1dgmt3_test() {
+  assert case bech32.decode("li1dgmt3") {
+    Error(InvalidLength(_)) -> True
+    _ -> False
+  }
+}
+
+// Invalid Bech32m strings
+pub fn sipa_invalid_bech32m_no_separator_test() {
+  assert case bech32.decode("qyrz8wqd2c9m") {
+    Error(_) -> True
+    _ -> False
+  }
+}
+
+pub fn sipa_invalid_bech32m_empty_hrp_test() {
+  assert case bech32.decode("1qyrz8wqd2c9m") {
+    Error(InvalidHrp(_)) -> True
+    _ -> False
+  }
+}
+
+pub fn sipa_invalid_bech32m_too_short_in1muywd_test() {
+  assert case bech32.decode("in1muywd") {
+    Error(InvalidLength(_)) -> True
+    _ -> False
+  }
+}
+
+pub fn sipa_invalid_bech32m_empty_hrp_16plkw9_test() {
+  assert case bech32.decode("16plkw9") {
+    Error(InvalidHrp(_)) -> True
+    _ -> False
+  }
+}
+
+pub fn sipa_invalid_bech32m_empty_hrp_1p2gdwpf_test() {
+  assert case bech32.decode("1p2gdwpf") {
+    Error(InvalidHrp(_)) -> True
+    _ -> False
+  }
+}

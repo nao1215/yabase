@@ -353,3 +353,135 @@ pub fn decode_alias_upper_k_base36_test() {
     multibase.decode(alias_encoded)
   assert decoded == data
 }
+
+// ===== multiformats/multibase spec vectors =====
+// Source: https://github.com/multiformats/multibase/tree/master/tests
+
+// basic.csv: "yes mani !"
+pub fn spec_basic_base16_test() {
+  let data = <<"yes mani !":utf8>>
+  let assert Ok(Decoded(encoding: Base16, data: d)) =
+    multibase.decode("f796573206d616e692021")
+  assert d == data
+}
+
+pub fn spec_basic_base32pad_test() {
+  let data = <<"yes mani !":utf8>>
+  let assert Ok(Decoded(encoding: Base32(RFC4648), data: d)) =
+    multibase.decode("cpfsxgidnmfxgsibb")
+  assert d == data
+}
+
+pub fn spec_basic_base32z_test() {
+  let data = <<"yes mani !":utf8>>
+  let assert Ok(Decoded(encoding: Base32(ZBase32), data: d)) =
+    multibase.decode("hxf1zgedpcfzg1ebb")
+  assert d == data
+}
+
+pub fn spec_basic_base36_test() {
+  let data = <<"yes mani !":utf8>>
+  let assert Ok(Decoded(encoding: Base36, data: d)) =
+    multibase.decode("k2lcpzo5yikidynfl")
+  assert d == data
+}
+
+pub fn spec_basic_base58btc_test() {
+  let data = <<"yes mani !":utf8>>
+  let assert Ok(Decoded(encoding: Base58(Bitcoin), data: d)) =
+    multibase.decode("z7paNL19xttacUY")
+  assert d == data
+}
+
+pub fn spec_basic_base58flickr_test() {
+  let data = <<"yes mani !":utf8>>
+  let assert Ok(Decoded(encoding: Base58(Flickr), data: d)) =
+    multibase.decode("Z7Pznk19XTTzBtx")
+  assert d == data
+}
+
+pub fn spec_basic_base64_test() {
+  let data = <<"yes mani !":utf8>>
+  let assert Ok(Decoded(encoding: Base64(NoPadding), data: d)) =
+    multibase.decode("meWVzIG1hbmkgIQ")
+  assert d == data
+}
+
+pub fn spec_basic_base64pad_test() {
+  let data = <<"yes mani !":utf8>>
+  let assert Ok(Decoded(encoding: Base64(Standard), data: d)) =
+    multibase.decode("MeWVzIG1hbmkgIQ==")
+  assert d == data
+}
+
+pub fn spec_basic_base64url_test() {
+  let data = <<"yes mani !":utf8>>
+  let assert Ok(Decoded(encoding: Base64(UrlSafeNoPadding), data: d)) =
+    multibase.decode("ueWVzIG1hbmkgIQ")
+  assert d == data
+}
+
+pub fn spec_basic_base64urlpad_test() {
+  let data = <<"yes mani !":utf8>>
+  let assert Ok(Decoded(encoding: Base64(UrlSafe), data: d)) =
+    multibase.decode("UeWVzIG1hbmkgIQ==")
+  assert d == data
+}
+
+// leading_zero.csv: "\x00yes mani !"
+pub fn spec_leading_zero_base16_test() {
+  let data = <<0, "yes mani !":utf8>>
+  let assert Ok(Decoded(encoding: Base16, data: d)) =
+    multibase.decode("f00796573206d616e692021")
+  assert d == data
+}
+
+pub fn spec_leading_zero_base36_test() {
+  let data = <<0, "yes mani !":utf8>>
+  let assert Ok(Decoded(encoding: Base36, data: d)) =
+    multibase.decode("k02lcpzo5yikidynfl")
+  assert d == data
+}
+
+pub fn spec_leading_zero_base58btc_test() {
+  let data = <<0, "yes mani !":utf8>>
+  let assert Ok(Decoded(encoding: Base58(Bitcoin), data: d)) =
+    multibase.decode("z17paNL19xttacUY")
+  assert d == data
+}
+
+pub fn spec_leading_zero_base58flickr_test() {
+  let data = <<0, "yes mani !":utf8>>
+  let assert Ok(Decoded(encoding: Base58(Flickr), data: d)) =
+    multibase.decode("Z17Pznk19XTTzBtx")
+  assert d == data
+}
+
+pub fn spec_leading_zero_base64pad_test() {
+  let data = <<0, "yes mani !":utf8>>
+  let assert Ok(Decoded(encoding: Base64(Standard), data: d)) =
+    multibase.decode("MAHllcyBtYW5pICE=")
+  assert d == data
+}
+
+// two_leading_zeros.csv: "\x00\x00yes mani !"
+pub fn spec_two_leading_zeros_base16_test() {
+  let data = <<0, 0, "yes mani !":utf8>>
+  let assert Ok(Decoded(encoding: Base16, data: d)) =
+    multibase.decode("f0000796573206d616e692021")
+  assert d == data
+}
+
+pub fn spec_two_leading_zeros_base58btc_test() {
+  let data = <<0, 0, "yes mani !":utf8>>
+  let assert Ok(Decoded(encoding: Base58(Bitcoin), data: d)) =
+    multibase.decode("z117paNL19xttacUY")
+  assert d == data
+}
+
+pub fn spec_two_leading_zeros_base36_test() {
+  let data = <<0, 0, "yes mani !":utf8>>
+  let assert Ok(Decoded(encoding: Base36, data: d)) =
+    multibase.decode("k002lcpzo5yikidynfl")
+  assert d == data
+}

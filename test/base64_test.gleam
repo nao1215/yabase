@@ -67,6 +67,54 @@ pub fn standard_decode_invalid_char_test() {
   assert standard.decode("Z!==") == Error(InvalidCharacter("!", 1))
 }
 
+// scure-base bad input vectors (paulmillr/scure-base)
+pub fn scure_bad_a_triple_eq_test() {
+  // "A===" -> invalid (only 1 data char with 3 pad)
+  assert case standard.decode("A===") {
+    Error(_) -> True
+    _ -> False
+  }
+}
+
+pub fn scure_bad_aa_single_eq_test() {
+  // "AA=" -> 3 chars, not multiple of 4
+  assert standard.decode("AA=") == Error(InvalidLength(3))
+}
+
+pub fn scure_bad_aaaa_8eq_test() {
+  // "AAAA====" -> 8 chars but excess padding
+  assert case standard.decode("AAAA====") {
+    Error(_) -> True
+    _ -> False
+  }
+}
+
+pub fn scure_bad_aaa_test() {
+  // "AAA" -> 3 chars, not multiple of 4
+  assert standard.decode("AAA") == Error(InvalidLength(3))
+}
+
+pub fn scure_bad_pad_prefix_test() {
+  // "=Zm8" -> pad at start
+  assert case standard.decode("=Zm8") {
+    Error(InvalidCharacter("=", 0)) -> True
+    _ -> False
+  }
+}
+
+pub fn scure_bad_aaaaa_test() {
+  // "AAAAA" -> 5 chars, not multiple of 4
+  assert standard.decode("AAAAA") == Error(InvalidLength(5))
+}
+
+pub fn scure_bad_single_eq_test() {
+  assert standard.decode("=") == Error(InvalidLength(1))
+}
+
+pub fn scure_bad_double_eq_test() {
+  assert standard.decode("==") == Error(InvalidLength(2))
+}
+
 // --- CRLF rejection (RFC 4648 section 3.3) ---
 
 pub fn standard_decode_rejects_lf_test() {
