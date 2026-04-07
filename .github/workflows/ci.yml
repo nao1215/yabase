@@ -31,12 +31,12 @@ jobs:
       - run: gleam build --warnings-as-errors
       - name: Verify examples compile
         run: |
+          trap 'rm -f src/yabase/example_*.gleam' EXIT
           for f in examples/*.gleam; do
             mod=$(basename "$f" .gleam)
             cp "$f" "src/yabase/example_${mod}.gleam"
           done
           gleam build
-          rm -f src/yabase/example_*.gleam
       - name: Verify README snippets compile
         run: bash scripts/verify-readme.sh
 

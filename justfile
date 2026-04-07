@@ -34,12 +34,12 @@ check:
 
 verify-examples:
   #!/usr/bin/env bash
+  trap 'rm -f src/yabase/example_*.gleam' EXIT
   for f in examples/*.gleam; do
     mod=$(basename "$f" .gleam)
     cp "$f" "src/yabase/example_${mod}.gleam"
   done
   gleam build
-  rm -f src/yabase/example_*.gleam
 
 verify-readme:
   bash scripts/verify-readme.sh

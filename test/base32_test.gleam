@@ -84,6 +84,16 @@ pub fn rfc4648_decode_pure_padding_test() {
   }
 }
 
+// --- Unpadded decode ---
+
+pub fn rfc4648_decode_unpadded_f_test() {
+  assert rfc4648.decode("MY") == Ok(<<"f":utf8>>)
+}
+
+pub fn rfc4648_decode_unpadded_foobar_test() {
+  assert rfc4648.decode("MZXW6YTBOI") == Ok(<<"foobar":utf8>>)
+}
+
 // --- Roundtrip corpus ---
 
 pub fn rfc4648_roundtrip_test() {
@@ -122,6 +132,10 @@ pub fn hex_encode_empty_test() {
 
 pub fn hex_encode_foo_test() {
   assert base32_hex.encode(<<"foo":utf8>>) == "CPNMU==="
+}
+
+pub fn hex_decode_unpadded_foo_test() {
+  assert base32_hex.decode("CPNMU") == Ok(<<"foo":utf8>>)
 }
 
 pub fn hex_roundtrip_test() {

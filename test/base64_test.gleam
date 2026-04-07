@@ -296,6 +296,39 @@ pub fn dq_decode_data_after_double_pad_test() {
   }
 }
 
+// --- DQ InvalidCharacter at each position ---
+
+pub fn dq_decode_invalid_char_pos0_double_pad_test() {
+  // "X" + valid + pad + pad  (invalid at position 0, double-pad branch)
+  assert dq.decode("Xい・・") == Error(InvalidCharacter("X", 0))
+}
+
+pub fn dq_decode_invalid_char_pos1_double_pad_test() {
+  // valid + "X" + pad + pad  (invalid at position 1, double-pad branch)
+  assert dq.decode("あX・・") == Error(InvalidCharacter("X", 1))
+}
+
+pub fn dq_decode_invalid_char_pos0_single_pad_test() {
+  // "X" + valid + valid + pad  (invalid at position 0, single-pad branch)
+  assert dq.decode("Xいう・") == Error(InvalidCharacter("X", 0))
+}
+
+pub fn dq_decode_invalid_char_pos1_single_pad_test() {
+  assert dq.decode("あXう・") == Error(InvalidCharacter("X", 1))
+}
+
+pub fn dq_decode_invalid_char_pos2_single_pad_test() {
+  assert dq.decode("あいX・") == Error(InvalidCharacter("X", 2))
+}
+
+pub fn dq_decode_invalid_char_no_pad_test() {
+  // All 4 positions unpadded
+  assert dq.decode("Xいうえ") == Error(InvalidCharacter("X", 0))
+  assert dq.decode("あXうえ") == Error(InvalidCharacter("X", 1))
+  assert dq.decode("あいXえ") == Error(InvalidCharacter("X", 2))
+  assert dq.decode("あいうX") == Error(InvalidCharacter("X", 3))
+}
+
 // --- DQ cross-reference vectors (shogo82148/base64dq) ---
 
 // RFC 4648 examples in DQ encoding

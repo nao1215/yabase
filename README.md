@@ -150,11 +150,14 @@ yabase supports the following [multibase](https://github.com/multiformats/multib
 | `f` | base16 (lowercase) | encode + decode |
 | `F` | base16 (uppercase) | decode only (encode emits `f`) |
 | `b` / `B` | base32 (no padding) | decode only (encode emits `c`) |
-| `c` / `C` | base32pad | encode + decode (decoder also accepts unpadded) |
-| `t` / `T` | base32hexpad | encode + decode (decoder also accepts unpadded) |
+| `c` | base32pad | encode + decode (decoder also accepts unpadded) |
+| `C` | base32pad (uppercase prefix) | decode only (encode emits `c`) |
+| `t` | base32hexpad | encode + decode (decoder also accepts unpadded) |
+| `T` | base32hexpad (uppercase prefix) | decode only (encode emits `t`) |
 | `v` / `V` | base32hex (no padding) | decode only (encode emits `t`) |
 | `h` | base32z | encode + decode |
-| `k` / `K` | base36 | encode + decode |
+| `k` | base36 | encode + decode |
+| `K` | base36 (uppercase prefix) | decode only (encode emits `k`) |
 | `R` | base45 | encode + decode |
 | `z` | base58btc | encode + decode |
 | `Z` | base58flickr | encode + decode |
@@ -244,7 +247,7 @@ The `CodecError` type provides specific error information:
 |---------|---------------|---------|
 | `InvalidCharacter(character, position)` | decode | Input contains a character not in the alphabet |
 | `InvalidLength(length)` | encode / decode | Input length is not valid for the encoding |
-| `Overflow` | decode | Decoded value overflows the expected range (Base45, Ascii85, Adobe Ascii85, Z85, RFC 1924 Base85) |
+| `Overflow` | encode / decode | Decoded value overflows the expected range (Base45, Ascii85, Adobe Ascii85, Z85, RFC 1924 Base85); `base58check.encode` returns this when version is outside 0..255 |
 | `UnsupportedPrefix(prefix)` | `yabase.decode_multibase` | Unknown multibase prefix during auto-detection |
 | `UnsupportedMultibaseEncoding(name)` | `yabase.encode_multibase` | Encoding has no assigned multibase prefix (e.g. Base64 DQ) |
 | `InvalidChecksum` | `base58check.decode`, `bech32.decode` | Checksum verification failed |
