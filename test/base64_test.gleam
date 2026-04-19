@@ -9,92 +9,92 @@ import yabase/core/encoding.{InvalidCharacter, InvalidLength}
 
 // --- Fixed vectors (RFC 4648 section 10) ---
 
-pub fn standard_encode_empty_test() {
+pub fn standard_encode_empty_test() -> Nil {
   assert standard.encode(<<>>) == ""
 }
 
-pub fn standard_encode_f_test() {
+pub fn standard_encode_f_test() -> Nil {
   assert standard.encode(<<"f":utf8>>) == "Zg=="
 }
 
-pub fn standard_encode_fo_test() {
+pub fn standard_encode_fo_test() -> Nil {
   assert standard.encode(<<"fo":utf8>>) == "Zm8="
 }
 
-pub fn standard_encode_foo_test() {
+pub fn standard_encode_foo_test() -> Nil {
   assert standard.encode(<<"foo":utf8>>) == "Zm9v"
 }
 
-pub fn standard_encode_foob_test() {
+pub fn standard_encode_foob_test() -> Nil {
   assert standard.encode(<<"foob":utf8>>) == "Zm9vYg=="
 }
 
-pub fn standard_encode_fooba_test() {
+pub fn standard_encode_fooba_test() -> Nil {
   assert standard.encode(<<"fooba":utf8>>) == "Zm9vYmE="
 }
 
-pub fn standard_encode_foobar_test() {
+pub fn standard_encode_foobar_test() -> Nil {
   assert standard.encode(<<"foobar":utf8>>) == "Zm9vYmFy"
 }
 
-pub fn standard_decode_empty_test() {
+pub fn standard_decode_empty_test() -> Nil {
   assert standard.decode("") == Ok(<<>>)
 }
 
-pub fn standard_decode_foobar_test() {
+pub fn standard_decode_foobar_test() -> Nil {
   assert standard.decode("Zm9vYmFy") == Ok(<<"foobar":utf8>>)
 }
 
-pub fn standard_decode_with_padding_test() {
+pub fn standard_decode_with_padding_test() -> Nil {
   assert standard.decode("Zg==") == Ok(<<"f":utf8>>)
 }
 
 // --- Decode error cases ---
 
-pub fn standard_decode_truncated_1char_test() {
+pub fn standard_decode_truncated_1char_test() -> Nil {
   assert standard.decode("Z") == Error(InvalidLength(1))
 }
 
-pub fn standard_decode_truncated_2char_test() {
+pub fn standard_decode_truncated_2char_test() -> Nil {
   assert standard.decode("Zg") == Error(InvalidLength(2))
 }
 
-pub fn standard_decode_truncated_3char_test() {
+pub fn standard_decode_truncated_3char_test() -> Nil {
   assert standard.decode("Zg=") == Error(InvalidLength(3))
 }
 
-pub fn standard_decode_invalid_char_test() {
+pub fn standard_decode_invalid_char_test() -> Nil {
   assert standard.decode("Z!==") == Error(InvalidCharacter("!", 1))
 }
 
 // scure-base bad input vectors (paulmillr/scure-base)
-pub fn scure_bad_a_triple_eq_test() {
+pub fn scure_bad_a_triple_eq_test() -> Nil {
   // "A===" -> invalid (only 1 data char with 3 pad)
   assert case standard.decode("A===") {
-    Error(_) -> True
+    Error(InvalidCharacter(_, _)) -> True
     _ -> False
   }
 }
 
-pub fn scure_bad_aa_single_eq_test() {
+pub fn scure_bad_aa_single_eq_test() -> Nil {
   // "AA=" -> 3 chars, not multiple of 4
   assert standard.decode("AA=") == Error(InvalidLength(3))
 }
 
-pub fn scure_bad_aaaa_8eq_test() {
+pub fn scure_bad_aaaa_8eq_test() -> Nil {
   // "AAAA====" -> 8 chars but excess padding
   assert case standard.decode("AAAA====") {
-    Error(_) -> True
+    Error(InvalidCharacter(_, _)) -> True
     _ -> False
   }
 }
 
-pub fn scure_bad_aaa_test() {
+pub fn scure_bad_aaa_test() -> Nil {
   // "AAA" -> 3 chars, not multiple of 4
   assert standard.decode("AAA") == Error(InvalidLength(3))
 }
 
-pub fn scure_bad_pad_prefix_test() {
+pub fn scure_bad_pad_prefix_test() -> Nil {
   // "=Zm8" -> pad at start
   assert case standard.decode("=Zm8") {
     Error(InvalidCharacter("=", 0)) -> True
@@ -102,34 +102,34 @@ pub fn scure_bad_pad_prefix_test() {
   }
 }
 
-pub fn scure_bad_aaaaa_test() {
+pub fn scure_bad_aaaaa_test() -> Nil {
   // "AAAAA" -> 5 chars, not multiple of 4
   assert standard.decode("AAAAA") == Error(InvalidLength(5))
 }
 
-pub fn scure_bad_single_eq_test() {
+pub fn scure_bad_single_eq_test() -> Nil {
   assert standard.decode("=") == Error(InvalidLength(1))
 }
 
-pub fn scure_bad_double_eq_test() {
+pub fn scure_bad_double_eq_test() -> Nil {
   assert standard.decode("==") == Error(InvalidLength(2))
 }
 
 // --- CRLF rejection (RFC 4648 section 3.3) ---
 
-pub fn standard_decode_rejects_lf_test() {
+pub fn standard_decode_rejects_lf_test() -> Nil {
   // "Zm9v\n" is 5 chars -> 5 % 4 != 0 -> InvalidLength
   assert standard.decode("Zm9v\n") == Error(InvalidLength(5))
 }
 
-pub fn standard_decode_rejects_crlf_in_middle_test() {
+pub fn standard_decode_rejects_crlf_in_middle_test() -> Nil {
   // "Zg==\r\n" - \r\n is one grapheme cluster in Unicode -> 5 graphemes
   assert standard.decode("Zg==\r\n") == Error(InvalidLength(5))
 }
 
 // --- Padding-then-trailing-data regression ---
 
-pub fn standard_decode_data_after_double_pad_test() {
+pub fn standard_decode_data_after_double_pad_test() -> Nil {
   // "Zg==AAAA" must be rejected, not silently truncated
   assert case standard.decode("Zg==AAAA") {
     Error(InvalidLength(_)) -> True
@@ -137,7 +137,7 @@ pub fn standard_decode_data_after_double_pad_test() {
   }
 }
 
-pub fn standard_decode_data_after_single_pad_test() {
+pub fn standard_decode_data_after_single_pad_test() -> Nil {
   // "Zm8=AAAA" must be rejected
   assert case standard.decode("Zm8=AAAA") {
     Error(InvalidLength(_)) -> True
@@ -147,63 +147,63 @@ pub fn standard_decode_data_after_single_pad_test() {
 
 // --- Roundtrip corpus ---
 
-pub fn standard_roundtrip_test() {
+pub fn standard_roundtrip_test() -> Nil {
   let data = <<"Hello, World!":utf8>>
   assert standard.decode(standard.encode(data)) == Ok(data)
 }
 
-pub fn standard_roundtrip_empty_test() {
+pub fn standard_roundtrip_empty_test() -> Nil {
   assert standard.decode(standard.encode(<<>>)) == Ok(<<>>)
 }
 
-pub fn standard_roundtrip_single_zero_test() {
+pub fn standard_roundtrip_single_zero_test() -> Nil {
   assert standard.decode(standard.encode(<<0>>)) == Ok(<<0>>)
 }
 
-pub fn standard_roundtrip_leading_zeros_test() {
+pub fn standard_roundtrip_leading_zeros_test() -> Nil {
   let data = <<0, 0, 0, 42>>
   assert standard.decode(standard.encode(data)) == Ok(data)
 }
 
-pub fn standard_roundtrip_high_bits_test() {
+pub fn standard_roundtrip_high_bits_test() -> Nil {
   let data = <<0xff, 0xfe, 0x80>>
   assert standard.decode(standard.encode(data)) == Ok(data)
 }
 
 // ===== URL-safe =====
 
-pub fn urlsafe_encode_test() {
+pub fn urlsafe_encode_test() -> Nil {
   let data = <<251, 255, 254>>
   let encoded = urlsafe.encode(data)
   assert encoded == "-__-"
 }
 
-pub fn urlsafe_roundtrip_test() {
+pub fn urlsafe_roundtrip_test() -> Nil {
   let data = <<"Hello, World!":utf8>>
   assert urlsafe.decode(urlsafe.encode(data)) == Ok(data)
 }
 
-pub fn urlsafe_roundtrip_empty_test() {
+pub fn urlsafe_roundtrip_empty_test() -> Nil {
   assert urlsafe.decode(urlsafe.encode(<<>>)) == Ok(<<>>)
 }
 
-pub fn urlsafe_decode_truncated_test() {
+pub fn urlsafe_decode_truncated_test() -> Nil {
   assert urlsafe.decode("ab") == Error(InvalidLength(2))
 }
 
-pub fn urlsafe_decode_rejects_lf_test() {
+pub fn urlsafe_decode_rejects_lf_test() -> Nil {
   // "Zm9v\n" is 5 chars -> 5 % 4 != 0 -> InvalidLength
   assert urlsafe.decode("Zm9v\n") == Error(InvalidLength(5))
 }
 
-pub fn urlsafe_decode_data_after_double_pad_test() {
+pub fn urlsafe_decode_data_after_double_pad_test() -> Nil {
   assert case urlsafe.decode("Zg==AAAA") {
     Error(InvalidLength(_)) -> True
     _ -> False
   }
 }
 
-pub fn urlsafe_decode_data_after_single_pad_test() {
+pub fn urlsafe_decode_data_after_single_pad_test() -> Nil {
   assert case urlsafe.decode("Zm8=AAAA") {
     Error(InvalidLength(_)) -> True
     _ -> False
@@ -212,81 +212,81 @@ pub fn urlsafe_decode_data_after_single_pad_test() {
 
 // ===== No padding =====
 
-pub fn nopadding_encode_f_test() {
+pub fn nopadding_encode_f_test() -> Nil {
   assert nopadding.encode(<<"f":utf8>>) == "Zg"
 }
 
-pub fn nopadding_encode_fo_test() {
+pub fn nopadding_encode_fo_test() -> Nil {
   assert nopadding.encode(<<"fo":utf8>>) == "Zm8"
 }
 
-pub fn nopadding_roundtrip_test() {
+pub fn nopadding_roundtrip_test() -> Nil {
   let data = <<"Hello, World!":utf8>>
   assert nopadding.decode(nopadding.encode(data)) == Ok(data)
 }
 
-pub fn nopadding_roundtrip_empty_test() {
+pub fn nopadding_roundtrip_empty_test() -> Nil {
   assert nopadding.decode(nopadding.encode(<<>>)) == Ok(<<>>)
 }
 
-pub fn nopadding_decode_invalid_length_mod4_eq_1_test() {
+pub fn nopadding_decode_invalid_length_mod4_eq_1_test() -> Nil {
   // Length 5 -> 5 % 4 == 1 -> invalid
   assert nopadding.decode("AAAAA") == Error(InvalidLength(5))
 }
 
-pub fn nopadding_decode_rejects_padding_test() {
+pub fn nopadding_decode_rejects_padding_test() -> Nil {
   // "Zg==" is valid padded Base64 for "f", but nopadding must reject it
   assert nopadding.decode("Zg==") == Error(InvalidCharacter("=", 2))
 }
 
-pub fn nopadding_decode_rejects_single_pad_test() {
+pub fn nopadding_decode_rejects_single_pad_test() -> Nil {
   assert nopadding.decode("Zm8=") == Error(InvalidCharacter("=", 3))
 }
 
 // ===== URL-safe no padding =====
 
-pub fn urlsafe_nopadding_decode_rejects_double_pad_test() {
+pub fn urlsafe_nopadding_decode_rejects_double_pad_test() -> Nil {
   assert urlsafe_nopadding.decode("Zg==") == Error(InvalidCharacter("=", 2))
 }
 
-pub fn urlsafe_nopadding_decode_rejects_single_pad_test() {
+pub fn urlsafe_nopadding_decode_rejects_single_pad_test() -> Nil {
   assert urlsafe_nopadding.decode("Zm8=") == Error(InvalidCharacter("=", 3))
 }
 
 // ===== DQ =====
 
-pub fn dq_encode_empty_test() {
+pub fn dq_encode_empty_test() -> Nil {
   assert dq.encode(<<>>) == ""
 }
 
-pub fn dq_roundtrip_test() {
+pub fn dq_roundtrip_test() -> Nil {
   let data = <<"Hello":utf8>>
   assert dq.decode(dq.encode(data)) == Ok(data)
 }
 
-pub fn dq_roundtrip_with_padding_test() {
+pub fn dq_roundtrip_with_padding_test() -> Nil {
   let data = <<"Hi":utf8>>
   assert dq.decode(dq.encode(data)) == Ok(data)
 }
 
-pub fn dq_roundtrip_empty_test() {
+pub fn dq_roundtrip_empty_test() -> Nil {
   assert dq.decode(dq.encode(<<>>)) == Ok(<<>>)
 }
 
-pub fn dq_decode_truncated_test() {
+pub fn dq_decode_truncated_test() -> Nil {
   // 1 or 2 or 3 hiragana is invalid (must be multiple of 4)
   assert dq.decode("あ") == Error(InvalidLength(1))
 }
 
-pub fn dq_decode_truncated_2_test() {
+pub fn dq_decode_truncated_2_test() -> Nil {
   assert dq.decode("あい") == Error(InvalidLength(2))
 }
 
-pub fn dq_decode_truncated_3_test() {
+pub fn dq_decode_truncated_3_test() -> Nil {
   assert dq.decode("あいう") == Error(InvalidLength(3))
 }
 
-pub fn dq_decode_data_after_double_pad_test() {
+pub fn dq_decode_data_after_double_pad_test() -> Nil {
   // Encode "f" -> 4 chars with 2 pads, then append valid chars
   let encoded = dq.encode(<<"f":utf8>>)
   let with_extra = encoded <> "あいうえ"
@@ -298,30 +298,30 @@ pub fn dq_decode_data_after_double_pad_test() {
 
 // --- DQ InvalidCharacter at each position ---
 
-pub fn dq_decode_invalid_char_pos0_double_pad_test() {
+pub fn dq_decode_invalid_char_pos0_double_pad_test() -> Nil {
   // "X" + valid + pad + pad  (invalid at position 0, double-pad branch)
   assert dq.decode("Xい・・") == Error(InvalidCharacter("X", 0))
 }
 
-pub fn dq_decode_invalid_char_pos1_double_pad_test() {
+pub fn dq_decode_invalid_char_pos1_double_pad_test() -> Nil {
   // valid + "X" + pad + pad  (invalid at position 1, double-pad branch)
   assert dq.decode("あX・・") == Error(InvalidCharacter("X", 1))
 }
 
-pub fn dq_decode_invalid_char_pos0_single_pad_test() {
+pub fn dq_decode_invalid_char_pos0_single_pad_test() -> Nil {
   // "X" + valid + valid + pad  (invalid at position 0, single-pad branch)
   assert dq.decode("Xいう・") == Error(InvalidCharacter("X", 0))
 }
 
-pub fn dq_decode_invalid_char_pos1_single_pad_test() {
+pub fn dq_decode_invalid_char_pos1_single_pad_test() -> Nil {
   assert dq.decode("あXう・") == Error(InvalidCharacter("X", 1))
 }
 
-pub fn dq_decode_invalid_char_pos2_single_pad_test() {
+pub fn dq_decode_invalid_char_pos2_single_pad_test() -> Nil {
   assert dq.decode("あいX・") == Error(InvalidCharacter("X", 2))
 }
 
-pub fn dq_decode_invalid_char_no_pad_test() {
+pub fn dq_decode_invalid_char_no_pad_test() -> Nil {
   // All 4 positions unpadded
   assert dq.decode("Xいうえ") == Error(InvalidCharacter("X", 0))
   assert dq.decode("あXうえ") == Error(InvalidCharacter("X", 1))
@@ -332,78 +332,78 @@ pub fn dq_decode_invalid_char_no_pad_test() {
 // --- DQ cross-reference vectors (shogo82148/base64dq) ---
 
 // RFC 4648 examples in DQ encoding
-pub fn dq_rfc4648_f_test() {
+pub fn dq_rfc4648_f_test() -> Nil {
   assert dq.encode(<<"f":utf8>>) == "はむ・・"
   assert dq.decode("はむ・・") == Ok(<<"f":utf8>>)
 }
 
-pub fn dq_rfc4648_fo_test() {
+pub fn dq_rfc4648_fo_test() -> Nil {
   assert dq.encode(<<"fo":utf8>>) == "はらび・"
   assert dq.decode("はらび・") == Ok(<<"fo":utf8>>)
 }
 
-pub fn dq_rfc4648_foo_test() {
+pub fn dq_rfc4648_foo_test() -> Nil {
   assert dq.encode(<<"foo":utf8>>) == "はらぶげ"
   assert dq.decode("はらぶげ") == Ok(<<"foo":utf8>>)
 }
 
-pub fn dq_rfc4648_foob_test() {
+pub fn dq_rfc4648_foob_test() -> Nil {
   assert dq.encode(<<"foob":utf8>>) == "はらぶげのむ・・"
   assert dq.decode("はらぶげのむ・・") == Ok(<<"foob":utf8>>)
 }
 
-pub fn dq_rfc4648_fooba_test() {
+pub fn dq_rfc4648_fooba_test() -> Nil {
   assert dq.encode(<<"fooba":utf8>>) == "はらぶげのらお・"
   assert dq.decode("はらぶげのらお・") == Ok(<<"fooba":utf8>>)
 }
 
-pub fn dq_rfc4648_foobar_test() {
+pub fn dq_rfc4648_foobar_test() -> Nil {
   assert dq.encode(<<"foobar":utf8>>) == "はらぶげのらかじ"
   assert dq.decode("はらぶげのらかじ") == Ok(<<"foobar":utf8>>)
 }
 
 // Wikipedia examples
-pub fn dq_wikipedia_sure_dot_test() {
+pub fn dq_wikipedia_sure_dot_test() -> Nil {
   assert dq.encode(<<"sure.":utf8>>) == "へぢにじはてづ・"
   assert dq.decode("へぢにじはてづ・") == Ok(<<"sure.":utf8>>)
 }
 
-pub fn dq_wikipedia_sure_test() {
+pub fn dq_wikipedia_sure_test() -> Nil {
   assert dq.encode(<<"sure":utf8>>) == "へぢにじはち・・"
   assert dq.decode("へぢにじはち・・") == Ok(<<"sure":utf8>>)
 }
 
-pub fn dq_wikipedia_sur_test() {
+pub fn dq_wikipedia_sur_test() -> Nil {
   assert dq.encode(<<"sur":utf8>>) == "へぢにじ"
   assert dq.decode("へぢにじ") == Ok(<<"sur":utf8>>)
 }
 
-pub fn dq_wikipedia_su_test() {
+pub fn dq_wikipedia_su_test() -> Nil {
   assert dq.encode(<<"su":utf8>>) == "へぢな・"
   assert dq.decode("へぢな・") == Ok(<<"su":utf8>>)
 }
 
 // DQ1 password vectors
-pub fn dq_dq1_password_vector_1_test() {
+pub fn dq_dq1_password_vector_1_test() -> Nil {
   let data = <<0x14, 0xFB, 0x9C, 0x03, 0xD9, 0x7E>>
   assert dq.encode(data) == "かたぐへあぶよべ"
   assert dq.decode("かたぐへあぶよべ") == Ok(data)
 }
 
-pub fn dq_dq1_password_vector_2_test() {
+pub fn dq_dq1_password_vector_2_test() -> Nil {
   let data = <<0x14, 0xFB, 0x9C, 0x03, 0xD9>>
   assert dq.encode(data) == "かたぐへあぶゆ・"
   assert dq.decode("かたぐへあぶゆ・") == Ok(data)
 }
 
-pub fn dq_dq1_password_vector_3_test() {
+pub fn dq_dq1_password_vector_3_test() -> Nil {
   let data = <<0x14, 0xFB, 0x9C, 0x03>>
   assert dq.encode(data) == "かたぐへあご・・"
   assert dq.decode("かたぐへあご・・") == Ok(data)
 }
 
 // Bigtest: "Twas brillig, and the slithy toves"
-pub fn dq_bigtest_test() {
+pub fn dq_bigtest_test() -> Nil {
   let data = <<"Twas brillig, and the slithy toves":utf8>>
   let expected = "にくほめへじいもへらよがふきよりしういめふらちむほきめよけくせがひねつるまていぜふぢはよへご・・"
   assert dq.encode(data) == expected
@@ -411,7 +411,7 @@ pub fn dq_bigtest_test() {
 }
 
 // Corrupt input cases from shogo82148/base64dq
-pub fn dq_decode_pad_at_start_test() {
+pub fn dq_decode_pad_at_start_test() -> Nil {
   // "・・・・" -> pad at position 0 is invalid
   assert case dq.decode("・・・・") {
     Error(InvalidCharacter("・", 0)) -> True
@@ -419,7 +419,7 @@ pub fn dq_decode_pad_at_start_test() {
   }
 }
 
-pub fn dq_decode_pad_after_one_char_test() {
+pub fn dq_decode_pad_after_one_char_test() -> Nil {
   // "が・・・" -> pad at position 1 in first group
   assert case dq.decode("が・・・") {
     Error(InvalidCharacter("・", _)) -> True
@@ -429,7 +429,7 @@ pub fn dq_decode_pad_after_one_char_test() {
 
 // --- DQ error cases ---
 
-pub fn dq_decode_non_hiragana_ascii_test() {
+pub fn dq_decode_non_hiragana_ascii_test() -> Nil {
   // ASCII "ABCD" is not in the DQ hiragana alphabet
   assert case dq.decode("ABCD") {
     Error(InvalidCharacter("A", 0)) -> True
@@ -437,7 +437,7 @@ pub fn dq_decode_non_hiragana_ascii_test() {
   }
 }
 
-pub fn dq_decode_non_hiragana_kanji_test() {
+pub fn dq_decode_non_hiragana_kanji_test() -> Nil {
   // Kanji is not in the DQ alphabet
   assert case dq.decode("漢字漢字") {
     Error(InvalidCharacter(_, 0)) -> True
@@ -445,7 +445,7 @@ pub fn dq_decode_non_hiragana_kanji_test() {
   }
 }
 
-pub fn dq_decode_stray_char_in_middle_test() {
+pub fn dq_decode_stray_char_in_middle_test() -> Nil {
   // 4-char aligned input with invalid first char
   assert case dq.decode("Xいうえ") {
     Error(InvalidCharacter("X", 0)) -> True

@@ -18,6 +18,9 @@ typecheck:
 build:
   gleam build --warnings-as-errors
 
+lint:
+  gleam run -m glinter
+
 test:
   gleam test
 
@@ -25,12 +28,19 @@ docs:
   gleam docs build
 
 check:
+  #!/usr/bin/env bash
   gleam format --check .
+  gleam run -m glinter
   gleam check
   gleam build --warnings-as-errors
   gleam test
-  @just verify-examples
-  @just verify-readme
+  trap 'rm -f src/yabase/example_*.gleam' EXIT
+  for f in examples/*.gleam; do
+    mod=$(basename "$f" .gleam)
+    cp "$f" "src/yabase/example_${mod}.gleam"
+  done
+  gleam build
+  bash scripts/verify-readme.sh
 
 verify-examples:
   #!/usr/bin/env bash

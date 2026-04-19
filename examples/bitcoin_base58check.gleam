@@ -9,7 +9,7 @@ import gleam/int
 import gleam/io
 import yabase/base58check
 
-pub fn main() {
+pub fn main() -> Nil {
   // Encode a short payload with version byte 0
   let payload = <<0xab, 0xcd, 0xef, 0x01, 0x23>>
   let assert Ok(encoded) = base58check.encode(0, payload)

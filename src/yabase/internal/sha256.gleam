@@ -1,6 +1,7 @@
 /// Pure Gleam SHA-256 implementation.
 /// Used only for checksum computation in Base58Check.
 import gleam/bit_array
+import gleam/bool
 
 /// Compute SHA-256 hash of data. Returns a 32-byte BitArray.
 pub fn hash(data: BitArray) -> BitArray {
@@ -96,10 +97,10 @@ fn k(i: Int) -> Int {
 }
 
 fn mask32(n: Int) -> Int {
-  let m = 0xFFFFFFFF
+  let mask = 0xFFFFFFFF
   case n >= 0 {
-    True -> int_and(n, m)
-    False -> int_and(n + m + 1, m)
+    True -> int_and(n, mask)
+    False -> int_and(n + mask + 1, mask)
   }
 }
 
@@ -108,16 +109,12 @@ fn int_and(a: Int, b: Int) -> Int {
 }
 
 fn do_int_and(a: Int, b: Int, result: Int, bit: Int) -> Int {
-  case bit > 0xFFFFFFFF {
-    True -> result
-    False -> {
-      let bit_set = case { a / bit } % 2 == 1 && { b / bit } % 2 == 1 {
-        True -> bit
-        False -> 0
-      }
-      do_int_and(a, b, result + bit_set, bit * 2)
-    }
+  use <- bool.guard(when: bit > 0xFFFFFFFF, return: result)
+  let bit_set = case { a / bit } % 2 == 1 && { b / bit } % 2 == 1 {
+    True -> bit
+    False -> 0
   }
+  do_int_and(a, b, result + bit_set, bit * 2)
 }
 
 fn int_or(a: Int, b: Int) -> Int {
@@ -125,16 +122,12 @@ fn int_or(a: Int, b: Int) -> Int {
 }
 
 fn do_int_or(a: Int, b: Int, result: Int, bit: Int) -> Int {
-  case bit > 0xFFFFFFFF {
-    True -> result
-    False -> {
-      let bit_set = case { a / bit } % 2 == 1 || { b / bit } % 2 == 1 {
-        True -> bit
-        False -> 0
-      }
-      do_int_or(a, b, result + bit_set, bit * 2)
-    }
+  use <- bool.guard(when: bit > 0xFFFFFFFF, return: result)
+  let bit_set = case { a / bit } % 2 == 1 || { b / bit } % 2 == 1 {
+    True -> bit
+    False -> 0
   }
+  do_int_or(a, b, result + bit_set, bit * 2)
 }
 
 fn int_xor(a: Int, b: Int) -> Int {
@@ -142,18 +135,14 @@ fn int_xor(a: Int, b: Int) -> Int {
 }
 
 fn do_int_xor(a: Int, b: Int, result: Int, bit: Int) -> Int {
-  case bit > 0xFFFFFFFF {
-    True -> result
-    False -> {
-      let a_bit = { a / bit } % 2
-      let b_bit = { b / bit } % 2
-      let bit_set = case a_bit != b_bit {
-        True -> bit
-        False -> 0
-      }
-      do_int_xor(a, b, result + bit_set, bit * 2)
-    }
+  use <- bool.guard(when: bit > 0xFFFFFFFF, return: result)
+  let a_bit = { a / bit } % 2
+  let b_bit = { b / bit } % 2
+  let bit_set = case a_bit != b_bit {
+    True -> bit
+    False -> 0
   }
+  do_int_xor(a, b, result + bit_set, bit * 2)
 }
 
 fn int_not(a: Int) -> Int {
@@ -243,8 +232,8 @@ fn process_blocks(
 ) -> #(Int, Int, Int, Int, Int, Int, Int, Int) {
   case data {
     <<block:bytes-size(64), rest:bits>> -> {
-      let w = parse_block(block)
-      let new_state = compress(state, w)
+      let schedule = parse_block(block)
+      let new_state = compress(state, schedule)
       process_blocks(rest, new_state)
     }
     _ -> state
@@ -265,18 +254,13 @@ fn parse_words(data: BitArray, acc: List(Int)) -> List(Int) {
 }
 
 fn expand_schedule(w: List(Int), i: Int) -> List(Int) {
-  case i >= 64 {
-    True -> w
-    False -> {
-      let w2 = list_at(w, i - 2)
-      let w7 = list_at(w, i - 7)
-      let w15 = list_at(w, i - 15)
-      let w16 = list_at(w, i - 16)
-      let new_w =
-        add32(add32(small_sigma1(w2), w7), add32(small_sigma0(w15), w16))
-      expand_schedule(list_append(w, [new_w]), i + 1)
-    }
-  }
+  use <- bool.guard(when: i >= 64, return: w)
+  let w2 = list_at(w, i - 2)
+  let w7 = list_at(w, i - 7)
+  let w15 = list_at(w, i - 15)
+  let w16 = list_at(w, i - 16)
+  let new_w = add32(add32(small_sigma1(w2), w7), add32(small_sigma0(w15), w16))
+  expand_schedule(list_append(w, [new_w]), i + 1)
 }
 
 // 64-round compression function
@@ -304,23 +288,15 @@ fn compress_rounds(
   w: List(Int),
   i: Int,
 ) -> #(Int, Int, Int, Int, Int, Int, Int, Int) {
-  case i >= 64 {
-    True -> vars
-    False -> {
-      let #(a, b, c, d, e, f, g, h) = vars
-      let t1 =
-        add32(
-          add32(h, big_sigma1(e)),
-          add32(ch(e, f, g), add32(k(i), list_at(w, i))),
-        )
-      let t2 = add32(big_sigma0(a), maj(a, b, c))
-      compress_rounds(
-        #(add32(t1, t2), a, b, c, add32(d, t1), e, f, g),
-        w,
-        i + 1,
-      )
-    }
-  }
+  use <- bool.guard(when: i >= 64, return: vars)
+  let #(a, b, c, d, e, f, g, h) = vars
+  let t1 =
+    add32(
+      add32(h, big_sigma1(e)),
+      add32(ch(e, f, g), add32(k(i), list_at(w, i))),
+    )
+  let t2 = add32(big_sigma0(a), maj(a, b, c))
+  compress_rounds(#(add32(t1, t2), a, b, c, add32(d, t1), e, f, g), w, i + 1)
 }
 
 fn state_to_bytes(state: #(Int, Int, Int, Int, Int, Int, Int, Int)) -> BitArray {

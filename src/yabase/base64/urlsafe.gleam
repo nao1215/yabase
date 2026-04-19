@@ -61,8 +61,8 @@ fn decode_chars(
                   case value_of(c1), value_of(c2) {
                     Ok(v1), Ok(v2) ->
                       Ok(bit_array.append(acc, <<{ v1 * 4 + v2 / 16 }:int>>))
-                    Error(_), _ -> Error(InvalidCharacter(c1, pos))
-                    _, Error(_) -> Error(InvalidCharacter(c2, pos + 1))
+                    Error(Nil), _ -> Error(InvalidCharacter(c1, pos))
+                    _, Error(Nil) -> Error(InvalidCharacter(c2, pos + 1))
                   }
                 _ -> Error(InvalidLength(string.length(rest) + pos + 4))
               }
@@ -77,9 +77,9 @@ fn decode_chars(
                           let b2 = { v2 % 16 } * 16 + v3 / 4
                           Ok(bit_array.append(acc, <<b1:int, b2:int>>))
                         }
-                        Error(_), _, _ -> Error(InvalidCharacter(c1, pos))
-                        _, Error(_), _ -> Error(InvalidCharacter(c2, pos + 1))
-                        _, _, Error(_) -> Error(InvalidCharacter(c3, pos + 2))
+                        Error(Nil), _, _ -> Error(InvalidCharacter(c1, pos))
+                        _, Error(Nil), _ -> Error(InvalidCharacter(c2, pos + 1))
+                        _, _, Error(Nil) -> Error(InvalidCharacter(c3, pos + 2))
                       }
                     _ -> Error(InvalidLength(string.length(rest) + pos + 4))
                   }
@@ -95,10 +95,10 @@ fn decode_chars(
                         pos + 4,
                       )
                     }
-                    Error(_), _, _, _ -> Error(InvalidCharacter(c1, pos))
-                    _, Error(_), _, _ -> Error(InvalidCharacter(c2, pos + 1))
-                    _, _, Error(_), _ -> Error(InvalidCharacter(c3, pos + 2))
-                    _, _, _, Error(_) -> Error(InvalidCharacter(c4, pos + 3))
+                    Error(Nil), _, _, _ -> Error(InvalidCharacter(c1, pos))
+                    _, Error(Nil), _, _ -> Error(InvalidCharacter(c2, pos + 1))
+                    _, _, Error(Nil), _ -> Error(InvalidCharacter(c3, pos + 2))
+                    _, _, _, Error(Nil) -> Error(InvalidCharacter(c4, pos + 3))
                   }
               }
           }
@@ -130,7 +130,10 @@ fn take_4(
 fn char_at(index: Int) -> String {
   case string.drop_start(alphabet, index) |> string.pop_grapheme {
     Ok(#(c, _)) -> c
-    Error(_) -> ""
+    Error(error) -> {
+      let _nil_error = error
+      ""
+    }
   }
 }
 

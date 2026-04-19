@@ -2,7 +2,7 @@
 import gleam/string
 import yabase/internal/sha256
 
-pub fn sha256_empty_test() {
+pub fn sha256_empty_test() -> Nil {
   // SHA-256("") = e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
   let hash = sha256.hash(<<>>)
   assert hash
@@ -13,7 +13,7 @@ pub fn sha256_empty_test() {
     >>
 }
 
-pub fn sha256_abc_test() {
+pub fn sha256_abc_test() -> Nil {
   // SHA-256("abc") = ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad
   let hash = sha256.hash(<<"abc":utf8>>)
   assert hash
@@ -24,7 +24,7 @@ pub fn sha256_abc_test() {
     >>
 }
 
-pub fn sha256_448bit_test() {
+pub fn sha256_448bit_test() -> Nil {
   // NIST FIPS 180-4 one-block message: "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"
   // This is exactly 448 bits (56 bytes), which exercises the padding boundary.
   let hash =
@@ -39,7 +39,7 @@ pub fn sha256_448bit_test() {
     >>
 }
 
-pub fn sha256_896bit_test() {
+pub fn sha256_896bit_test() -> Nil {
   // NIST two-block message (112 bytes):
   // "abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu"
   let hash =
@@ -54,7 +54,7 @@ pub fn sha256_896bit_test() {
     >>
 }
 
-pub fn sha256_55byte_test() {
+pub fn sha256_55byte_test() -> Nil {
   // 55 bytes: fills one block with data exactly up to padding boundary - 1
   let input = string.repeat("a", 55)
   let hash = sha256.hash(<<input:utf8>>)
@@ -66,7 +66,7 @@ pub fn sha256_55byte_test() {
     >>
 }
 
-pub fn sha256_56byte_test() {
+pub fn sha256_56byte_test() -> Nil {
   // 56 bytes: exactly at the padding boundary, requires two blocks
   let input = string.repeat("a", 56)
   let hash = sha256.hash(<<input:utf8>>)
@@ -78,7 +78,7 @@ pub fn sha256_56byte_test() {
     >>
 }
 
-pub fn sha256_64byte_test() {
+pub fn sha256_64byte_test() -> Nil {
   // 64 bytes: exactly one full block, padding goes into second block
   let input = string.repeat("a", 64)
   let hash = sha256.hash(<<input:utf8>>)

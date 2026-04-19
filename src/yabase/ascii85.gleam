@@ -3,6 +3,7 @@
 /// Special case: all-zero groups encode as 'z'.
 /// Special case: all-space groups (0x20202020) encode as 'y'.
 import gleam/bit_array
+import gleam/bool
 import gleam/list
 import gleam/string
 import yabase/core/encoding.{
@@ -21,8 +22,8 @@ fn encode_groups(data: BitArray, acc: List(String)) -> List(String) {
     <<0:32, rest:bits>> -> encode_groups(rest, ["z", ..acc])
     <<0x20, 0x20, 0x20, 0x20, rest:bits>> -> encode_groups(rest, ["y", ..acc])
     <<a:8, b:8, c:8, d:8, rest:bits>> -> {
-      let n = a * 16_777_216 + b * 65_536 + c * 256 + d
-      let encoded = encode_u32(n, 5, [])
+      let value = a * 16_777_216 + b * 65_536 + c * 256 + d
+      let encoded = encode_u32(value, 5, [])
       encode_groups(rest, [chars_to_string(encoded), ..acc])
     }
     <<>> -> acc
@@ -30,8 +31,8 @@ fn encode_groups(data: BitArray, acc: List(String)) -> List(String) {
       let #(padded, original_len) = pad_to_4(remaining, 0)
       case padded {
         <<a:8, b:8, c:8, d:8>> -> {
-          let n = a * 16_777_216 + b * 65_536 + c * 256 + d
-          let encoded = encode_u32(n, 5, [])
+          let value = a * 16_777_216 + b * 65_536 + c * 256 + d
+          let encoded = encode_u32(value, 5, [])
           [chars_to_string(list_take(encoded, original_len + 1)), ..acc]
         }
         _ -> acc
@@ -41,14 +42,11 @@ fn encode_groups(data: BitArray, acc: List(String)) -> List(String) {
 }
 
 fn pad_to_4(data: BitArray, len: Int) -> #(BitArray, Int) {
-  case bit_array.byte_size(data) >= 4 {
-    True -> #(data, len)
-    False ->
-      pad_to_4(bit_array.append(data, <<0:8>>), case len {
-        0 -> bit_array.byte_size(data)
-        _ -> len
-      })
-  }
+  use <- bool.guard(when: bit_array.byte_size(data) >= 4, return: #(data, len))
+  pad_to_4(bit_array.append(data, <<0:8>>), case len {
+    0 -> bit_array.byte_size(data)
+    _ -> len
+  })
 }
 
 fn encode_u32(n: Int, count: Int, acc: List(Int)) -> List(Int) {
@@ -62,8 +60,13 @@ fn chars_to_string(chars: List(Int)) -> String {
   case chars {
     [] -> ""
     [c, ..rest] -> {
-      let assert Ok(s) = bit_array.to_string(<<c:int>>)
-      s <> chars_to_string(rest)
+      case bit_array.to_string(<<c:int>>) {
+        Ok(chunk) -> chunk <> chars_to_string(rest)
+        Error(error) -> {
+          let _nil_error = error
+          chars_to_string(rest)
+        }
+      }
     }
   }
 }
@@ -135,7 +138,7 @@ fn take_ascii85_group(
   pos: Int,
 ) -> Result(#(List(Int), Int, String), CodecError) {
   case char_to_ascii85_value(first) {
-    Error(_) -> Error(InvalidCharacter(first, pos))
+    Error(Nil) -> Error(InvalidCharacter(first, pos))
     Ok(v) -> collect_group(input, [v], 1, pos + 1)
   }
 }
@@ -146,49 +149,50 @@ fn collect_group(
   count: Int,
   pos: Int,
 ) -> Result(#(List(Int), Int, String), CodecError) {
-  case count >= 5 {
-    True -> Ok(#(list.reverse(acc), count, input))
-    False ->
-      case string.pop_grapheme(input) {
-        Error(Nil) -> Ok(#(list.reverse(acc), count, ""))
-        Ok(#(c, rest)) ->
-          case char_to_ascii85_value(c) {
-            Error(_) -> Error(InvalidCharacter(c, pos))
-            Ok(v) -> collect_group(rest, [v, ..acc], count + 1, pos + 1)
-          }
+  use <- bool.guard(
+    when: count >= 5,
+    return: Ok(#(list.reverse(acc), count, input)),
+  )
+  case string.pop_grapheme(input) {
+    Error(Nil) -> Ok(#(list.reverse(acc), count, ""))
+    Ok(#(c, rest)) ->
+      case char_to_ascii85_value(c) {
+        Error(Nil) -> Error(InvalidCharacter(c, pos))
+        Ok(v) -> collect_group(rest, [v, ..acc], count + 1, pos + 1)
       }
   }
 }
 
 fn pad_ascii85_chars(chars: List(Int), target: Int) -> List(Int) {
-  case list.length(chars) >= target {
-    True -> chars
-    False -> pad_ascii85_chars(list.append(chars, [84]), target)
-  }
+  use <- bool.guard(when: list.length(chars) >= target, return: chars)
+  pad_ascii85_chars(list.append(chars, [84]), target)
 }
 
 fn decode_5_chars(chars: List(Int)) -> Result(Int, CodecError) {
   case chars {
     [a, b, c, d, e] -> {
-      let n = a * 52_200_625 + b * 614_125 + c * 7225 + d * 85 + e
-      Ok(n)
+      let value = a * 52_200_625 + b * 614_125 + c * 7225 + d * 85 + e
+      Ok(value)
     }
     _ -> Error(InvalidLength(list.length(chars)))
   }
 }
 
-fn u32_to_bytes(n: Int) -> List(Int) {
-  [n / 16_777_216 % 256, n / 65_536 % 256, n / 256 % 256, n % 256]
+fn u32_to_bytes(value: Int) -> List(Int) {
+  [
+    value / 16_777_216 % 256,
+    value / 65_536 % 256,
+    value / 256 % 256,
+    value % 256,
+  ]
 }
 
 fn char_to_ascii85_value(c: String) -> Result(Int, Nil) {
   case string.to_utf_codepoints(c) {
     [cp] -> {
       let code = string.utf_codepoint_to_int(cp)
-      case code >= 33 && code <= 117 {
-        True -> Ok(code - 33)
-        False -> Error(Nil)
-      }
+      use <- bool.guard(when: code >= 33 && code <= 117, return: Ok(code - 33))
+      Error(Nil)
     }
     _ -> Error(Nil)
   }

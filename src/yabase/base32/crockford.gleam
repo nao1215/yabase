@@ -102,6 +102,8 @@ fn char_to_value(c: String) -> Result(Int, Nil) {
 }
 
 fn string_char_at(s: String, index: Int) -> String {
-  let assert Ok(#(c, _)) = string.drop_start(s, index) |> string.pop_grapheme
-  c
+  case string.drop_start(s, index) |> string.pop_grapheme {
+    Ok(#(char, _)) -> char
+    Error(Nil) -> ""
+  }
 }
