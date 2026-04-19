@@ -3,6 +3,7 @@
 /// Checksum = first 4 bytes of SHA-256(SHA-256(version + payload)).
 /// This is a separate API from the Encoding ADT because it carries metadata.
 import gleam/bit_array
+import gleam/bool
 import gleam/string
 import yabase/core/encoding.{
   type Base58CheckDecoded, type CodecError, Base58CheckDecoded, InvalidChecksum,
@@ -16,15 +17,11 @@ const alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 /// Encode a version byte (0..255) and payload to Base58Check.
 /// Returns Error(Overflow) if version is outside 0..255.
 pub fn encode(version: Int, payload: BitArray) -> Result(String, CodecError) {
-  case version >= 0 && version <= 255 {
-    False -> Error(Overflow)
-    True -> {
-      let versioned = bit_array.append(<<version:int>>, payload)
-      let checksum = compute_checksum(versioned)
-      let full = bit_array.append(versioned, checksum)
-      Ok(bignum.encode(full, 58, alphabet))
-    }
-  }
+  use <- bool.guard(when: version < 0 || version > 255, return: Error(Overflow))
+  let versioned = bit_array.append(<<version:int>>, payload)
+  let checksum = compute_checksum(versioned)
+  let full = bit_array.append(versioned, checksum)
+  Ok(bignum.encode(full, 58, alphabet))
 }
 
 /// Decode a Base58Check string, verifying the checksum.

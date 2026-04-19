@@ -49,7 +49,7 @@ fn decode_chars(
     Error(Nil) -> extract_bytes(acc, <<>>)
     Ok(#(c, rest)) ->
       case char_to_value(c) {
-        Error(_) -> Error(InvalidCharacter(c, pos))
+        Error(Nil) -> Error(InvalidCharacter(c, pos))
         Ok(val) -> decode_chars(rest, bit_array.append(acc, <<val:5>>), pos + 1)
       }
   }
@@ -81,6 +81,6 @@ fn find_index(haystack: String, needle: String, idx: Int) -> Result(Int, Nil) {
 fn string_char_at(s: String, index: Int) -> String {
   case string.drop_start(s, index) |> string.pop_grapheme {
     Ok(#(c, _)) -> c
-    Error(_) -> ""
+    Error(Nil) -> ""
   }
 }

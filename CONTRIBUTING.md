@@ -66,7 +66,8 @@ Tests are organized by encoding module, mirroring the source structure.
 
 ```bash
 just test     # run all tests
-just check    # format check, typecheck, build, test
+just lint     # run glinter
+just check    # format check, lint, typecheck, build, test
 ```
 
 ### Adding a New Encoding
@@ -128,7 +129,7 @@ We actively encourage the use of AI coding assistants to improve productivity an
 GitHub Actions automatically checks the following items:
 
 - **Format check**: `gleam format --check`
-- **Lint**: `gleam build --warnings-as-errors`
+- **Lint**: `gleam run -m glinter`
 - **Build**: `gleam build`
 - **Test**: `gleam test`
 

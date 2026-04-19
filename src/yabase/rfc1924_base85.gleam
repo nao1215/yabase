@@ -31,8 +31,8 @@ pub fn encode(data: BitArray) -> Result(String, CodecError) {
 fn encode_groups(data: BitArray, acc: List(String)) -> List(String) {
   case data {
     <<a:8, b:8, c:8, d:8, rest:bits>> -> {
-      let n = a * 16_777_216 + b * 65_536 + c * 256 + d
-      let encoded = encode_u32(n, 5, [])
+      let value = a * 16_777_216 + b * 65_536 + c * 256 + d
+      let encoded = encode_u32(value, 5, [])
       encode_groups(rest, [list_to_string(encoded), ..acc])
     }
     _ -> acc
@@ -138,7 +138,7 @@ fn decode_5_acc(
     [] -> Ok(acc)
     [c, ..rest] ->
       case char_value(c) {
-        Error(_) -> Error(InvalidCharacter(c, pos))
+        Error(Nil) -> Error(InvalidCharacter(c, pos))
         Ok(v) -> decode_5_acc(rest, acc * 85 + v, pos + 1)
       }
   }
@@ -166,7 +166,10 @@ fn find_index(haystack: String, needle: String, idx: Int) -> Result(Int, Nil) {
 fn string_char_at(s: String, index: Int) -> String {
   case string.drop_start(s, index) |> string.pop_grapheme {
     Ok(#(c, _)) -> c
-    Error(_) -> ""
+    Error(error) -> {
+      let _nil_error = error
+      ""
+    }
   }
 }
 

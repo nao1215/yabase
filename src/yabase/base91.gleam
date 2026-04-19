@@ -6,6 +6,7 @@
 /// Uses Erlang bitwise operations via BitArray patterns to match
 /// the C reference implementation's unsigned integer semantics.
 import gleam/bit_array
+import gleam/bool
 import gleam/list
 import gleam/string
 import yabase/core/encoding.{type CodecError, InvalidCharacter}
@@ -97,7 +98,7 @@ fn decode_loop(
     }
     [c, ..rest] ->
       case char_index(c) {
-        Error(_) -> Error(InvalidCharacter(c, pos))
+        Error(Nil) -> Error(InvalidCharacter(c, pos))
         Ok(d) ->
           case val == -1 {
             True -> decode_loop(rest, d, queue, nbits, acc, pos + 1)
@@ -127,14 +128,8 @@ fn decode_loop(
 }
 
 fn extract_bytes_from_queue(queue: Int, nbits: Int, acc: List(Int)) -> List(Int) {
-  case nbits >= 8 {
-    True ->
-      extract_bytes_from_queue(bsr(queue, 8), nbits - 8, [
-        band(queue, 255),
-        ..acc
-      ])
-    False -> acc
-  }
+  use <- bool.guard(when: nbits < 8, return: acc)
+  extract_bytes_from_queue(bsr(queue, 8), nbits - 8, [band(queue, 255), ..acc])
 }
 
 // Erlang bitwise operations (exact unsigned semantics)
@@ -153,7 +148,7 @@ fn bsr(a: Int, b: Int) -> Int
 fn char_at(index: Int) -> String {
   case string.drop_start(alphabet, index) |> string.pop_grapheme {
     Ok(#(c, _)) -> c
-    Error(_) -> ""
+    Error(Nil) -> ""
   }
 }
 

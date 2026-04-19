@@ -17,6 +17,7 @@
 /// This is a separate API from the Encoding ADT because it carries
 /// HRP metadata and a checksum.
 import gleam/bit_array
+import gleam/bool
 import gleam/list
 import gleam/string
 import yabase/core/encoding.{
@@ -148,16 +149,12 @@ fn find_separator(input: String) -> Result(#(String, String), Nil) {
 }
 
 fn find_last_one(input: String, pos: Int) -> Result(#(String, String), Nil) {
-  case pos < 0 {
-    True -> Error(Nil)
-    False -> {
-      let before = string.slice(input, 0, pos)
-      let at_and_after = string.drop_start(input, pos)
-      case string.pop_grapheme(at_and_after) {
-        Ok(#("1", after)) -> Ok(#(before, after))
-        _ -> find_last_one(input, pos - 1)
-      }
-    }
+  use <- bool.guard(when: pos < 0, return: Error(Nil))
+  let before = string.slice(input, 0, pos)
+  let at_and_after = string.drop_start(input, pos)
+  case string.pop_grapheme(at_and_after) {
+    Ok(#("1", after)) -> Ok(#(before, after))
+    _ -> find_last_one(input, pos - 1)
   }
 }
 
@@ -215,7 +212,7 @@ fn chars_to_values(
     Error(Nil) -> Ok(list.reverse(acc))
     Ok(#(c, rest)) ->
       case char_to_value(c) {
-        Error(_) -> Error(InvalidCharacter(c, pos))
+        Error(Nil) -> Error(InvalidCharacter(c, pos))
         Ok(v) -> chars_to_values(rest, [v, ..acc], pos + 1)
       }
   }
@@ -238,22 +235,22 @@ fn polymod_loop(values: List(Int), chk: Int) -> Int {
     [] -> chk
     [v, ..rest] -> {
       // b = chk >> 25
-      let b = shr(chk, 25)
+      let checksum_head = shr(chk, 25)
       // chk = ((chk & 0x1ffffff) << 5) ^ v
       let chk1 = xor({ chk % 33_554_432 } * 32, v)
-      let chk2 = xor_if(chk1, b, 0, 0x3b6a57b2)
-      let chk3 = xor_if(chk2, b, 1, 0x26508e6d)
-      let chk4 = xor_if(chk3, b, 2, 0x1ea119fa)
-      let chk5 = xor_if(chk4, b, 3, 0x3d4233dd)
-      let chk6 = xor_if(chk5, b, 4, 0x2a1462b3)
+      let chk2 = xor_if(chk1, checksum_head, 0, 0x3b6a57b2)
+      let chk3 = xor_if(chk2, checksum_head, 1, 0x26508e6d)
+      let chk4 = xor_if(chk3, checksum_head, 2, 0x1ea119fa)
+      let chk5 = xor_if(chk4, checksum_head, 3, 0x3d4233dd)
+      let chk6 = xor_if(chk5, checksum_head, 4, 0x2a1462b3)
       polymod_loop(rest, chk6)
     }
   }
 }
 
 fn xor_if(chk: Int, b: Int, bit: Int, gen: Int) -> Int {
-  let shifted = shr(b, bit)
-  case shifted % 2 == 1 {
+  let upper_bits = shr(b, bit)
+  case upper_bits % 2 == 1 {
     True -> xor(chk, gen)
     False -> chk
   }
@@ -281,14 +278,14 @@ fn verify_checksum(hrp: String, data: List(Int), constant: Int) -> Bool {
 fn create_checksum(hrp: String, data: List(Int), constant: Int) -> List(Int) {
   let values =
     list_append(hrp_expand(hrp), list_append(data, [0, 0, 0, 0, 0, 0]))
-  let p = xor(polymod(values), constant)
+  let polymod_value = xor(polymod(values), constant)
   [
-    shr(p, 25) % 32,
-    shr(p, 20) % 32,
-    shr(p, 15) % 32,
-    shr(p, 10) % 32,
-    shr(p, 5) % 32,
-    p % 32,
+    shr(polymod_value, 25) % 32,
+    shr(polymod_value, 20) % 32,
+    shr(polymod_value, 15) % 32,
+    shr(polymod_value, 10) % 32,
+    shr(polymod_value, 5) % 32,
+    polymod_value % 32,
   ]
 }
 
@@ -391,18 +388,14 @@ fn xor(a: Int, b: Int) -> Int {
 }
 
 fn do_xor(a: Int, b: Int, result: Int, bit: Int) -> Int {
-  case a == 0 && b == 0 {
-    True -> result
-    False -> {
-      let a_bit = a % 2
-      let b_bit = b % 2
-      let bit_set = case a_bit != b_bit {
-        True -> bit
-        False -> 0
-      }
-      do_xor(a / 2, b / 2, result + bit_set, bit * 2)
-    }
+  use <- bool.guard(when: a == 0 && b == 0, return: result)
+  let a_bit = a % 2
+  let b_bit = b % 2
+  let bit_set = case a_bit != b_bit {
+    True -> bit
+    False -> 0
   }
+  do_xor(a / 2, b / 2, result + bit_set, bit * 2)
 }
 
 fn shr(n: Int, amount: Int) -> Int {
@@ -415,7 +408,10 @@ fn shr(n: Int, amount: Int) -> Int {
 fn string_char_at(s: String, index: Int) -> String {
   case string.drop_start(s, index) |> string.pop_grapheme {
     Ok(#(c, _)) -> c
-    Error(_) -> ""
+    Error(error) -> {
+      let _nil_error = error
+      ""
+    }
   }
 }
 

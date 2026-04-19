@@ -20,3 +20,58 @@ gleam_stdlib = ">= 0.44.0 and < 2.0.0"
 
 [dev_dependencies]
 gleeunit = ">= 1.0.0 and < 2.0.0"
+glinter = ">= 2.14.0 and < 3.0.0"
+
+[tools.glinter]
+warnings_as_errors = true
+include = ["src/", "test/", "examples/"]
+
+[tools.glinter.rules]
+assert_ok_pattern = "error"
+avoid_panic = "error"
+avoid_todo = "error"
+deep_nesting = "error"
+discarded_result = "error"
+division_by_zero = "error"
+duplicate_import = "error"
+echo = "error"
+error_context_lost = "error"
+ffi_usage = "error"
+function_complexity = "error"
+label_possible = "error"
+missing_labels = "error"
+missing_type_annotation = "error"
+module_complexity = "error"
+panic_without_message = "error"
+prefer_guard_clause = "error"
+redundant_case = "error"
+short_variable_name = "error"
+string_inspect = "error"
+stringly_typed_error = "error"
+thrown_away_error = "error"
+todo_without_message = "error"
+trailing_underscore = "error"
+unnecessary_string_concatenation = "error"
+unnecessary_variable = "error"
+unqualified_import = "error"
+unused_exports = "error"
+unwrap_used = "error"
+
+[tools.glinter.ignore]
+"test/**/*.gleam" = ["assert_ok_pattern", "unused_exports"]
+"src/yabase.gleam" = ["label_possible"]
+"src/yabase/adobe_ascii85.gleam" = ["deep_nesting", "label_possible"]
+"src/yabase/ascii85.gleam" = ["deep_nesting", "label_possible"]
+"src/yabase/base16.gleam" = ["label_possible"]
+"src/yabase/base2.gleam" = ["label_possible"]
+"src/yabase/base32/*.gleam" = ["deep_nesting", "label_possible"]
+"src/yabase/base45.gleam" = ["deep_nesting", "label_possible"]
+"src/yabase/base58check.gleam" = ["deep_nesting", "label_possible"]
+"src/yabase/base62.gleam" = ["label_possible"]
+"src/yabase/base64/*.gleam" = ["deep_nesting", "function_complexity", "label_possible"]
+"src/yabase/base91.gleam" = ["deep_nesting", "function_complexity", "label_possible"]
+"src/yabase/bech32.gleam" = ["deep_nesting", "label_possible"]
+"src/yabase/core/*.gleam" = ["label_possible"]
+"src/yabase/internal/*.gleam" = ["label_possible"]
+"src/yabase/rfc1924_base85.gleam" = ["deep_nesting", "label_possible"]
+"src/yabase/z85.gleam" = ["deep_nesting", "label_possible"]

@@ -28,6 +28,7 @@ jobs:
           otp-version: "27"
           gleam-version: "1.15"
       - run: gleam deps download
+      - run: gleam run -m glinter
       - run: gleam build --warnings-as-errors
       - name: Verify examples compile
         run: |

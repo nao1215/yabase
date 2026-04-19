@@ -9,7 +9,7 @@ import gleam/io
 import yabase/bech32
 import yabase/core/encoding.{Bech32 as Bech32V, Bech32m as Bech32mV}
 
-pub fn main() {
+pub fn main() -> Nil {
   // Bech32 encode with HRP "bc" (arbitrary payload, not a SegWit address)
   let data = <<0, 14, 20, 15, 7, 28, 0, 15, 7, 4>>
   let assert Ok(encoded) = bech32.encode(Bech32V, "bc", data)

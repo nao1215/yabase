@@ -6,7 +6,7 @@ import gleam/bit_array
 import gleam/io
 import yabase/base64/urlsafe_nopadding
 
-pub fn main() {
+pub fn main() -> Nil {
   // A typical JWT header: {"alg":"HS256","typ":"JWT"}
   let header = <<"{\"alg\":\"HS256\",\"typ\":\"JWT\"}":utf8>>
   let encoded = urlsafe_nopadding.encode(header)

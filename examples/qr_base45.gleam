@@ -7,7 +7,7 @@ import gleam/bit_array
 import gleam/io
 import yabase/base45
 
-pub fn main() {
+pub fn main() -> Nil {
   let payload = <<"Hello, QR world!":utf8>>
   let encoded = base45.encode(payload)
   io.println("Base45: " <> encoded)

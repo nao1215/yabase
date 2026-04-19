@@ -5,11 +5,13 @@
 /// information. Useful for content-addressed systems (IPFS, CID).
 import gleam/bit_array
 import gleam/io
-import gleam/string
 import yabase
-import yabase/core/encoding.{Base16, Base58, Base64, Bitcoin, Decoded, Standard}
+import yabase/core/encoding.{
+  type Base58Variant, type Base64Variant, type Encoding, Base16, Base58, Base64,
+  Bitcoin, Decoded, Standard,
+}
 
-pub fn main() {
+pub fn main() -> Nil {
   let data = <<"Hello, multibase!":utf8>>
 
   // Encode the same data with different encodings
@@ -27,7 +29,7 @@ pub fn main() {
     let assert Ok(Decoded(encoding: enc, data: decoded)) =
       yabase.decode_multibase(encoded)
     let assert Ok(text) = bit_array.to_string(decoded)
-    io.println("Detected " <> string.inspect(enc) <> " -> " <> text)
+    io.println("Detected " <> encoding_name(enc) <> " -> " <> text)
   })
 }
 
@@ -38,5 +40,28 @@ fn list_each(items: List(a), f: fn(a) -> b) -> Nil {
       f(first)
       list_each(rest, f)
     }
+  }
+}
+
+fn encoding_name(encoding: Encoding) -> String {
+  case encoding {
+    Base16 -> "Base16"
+    Base58(variant) -> "Base58(" <> base58_variant_name(variant) <> ")"
+    Base64(variant) -> "Base64(" <> base64_variant_name(variant) <> ")"
+    _ -> "Unknown"
+  }
+}
+
+fn base58_variant_name(variant: Base58Variant) -> String {
+  case variant {
+    Bitcoin -> "Bitcoin"
+    _ -> "Unknown"
+  }
+}
+
+fn base64_variant_name(variant: Base64Variant) -> String {
+  case variant {
+    Standard -> "Standard"
+    _ -> "Unknown"
   }
 }

@@ -1,5 +1,6 @@
 /// Base2 encoding (binary string representation).
 /// Each byte is represented as 8 characters of "0" and "1".
+import gleam/bool
 import gleam/list
 import gleam/string
 import yabase/core/encoding.{type CodecError, InvalidCharacter, InvalidLength}
@@ -25,16 +26,12 @@ fn encode_bytes(data: BitArray, acc: List(String)) -> List(String) {
 }
 
 fn encode_byte(byte: Int, bit: Int, acc: String) -> String {
-  case bit < 0 {
-    True -> acc
-    False -> {
-      let c = case byte / pow2(bit) % 2 {
-        1 -> "1"
-        _ -> "0"
-      }
-      encode_byte(byte, bit - 1, acc <> c)
-    }
+  use <- bool.guard(when: bit < 0, return: acc)
+  let digit = case byte / pow2(bit) % 2 {
+    1 -> "1"
+    _ -> "0"
   }
+  encode_byte(byte, bit - 1, acc <> digit)
 }
 
 fn pow2(n: Int) -> Int {

@@ -19,7 +19,7 @@ pub fn bytes_to_int(data: BitArray, acc: Int) -> Int {
 }
 
 /// Convert a big integer to a list of bytes (MSB first).
-pub fn int_to_bytes(num: Int, acc: List(Int)) -> List(Int) {
+fn int_to_bytes(num: Int, acc: List(Int)) -> List(Int) {
   case num {
     0 -> acc
     _ -> int_to_bytes(num / 256, [num % 256, ..acc])
@@ -27,7 +27,7 @@ pub fn int_to_bytes(num: Int, acc: List(Int)) -> List(Int) {
 }
 
 /// Count leading zero bytes in a BitArray.
-pub fn count_leading_zeros(data: BitArray, count: Int) -> Int {
+fn count_leading_zeros(data: BitArray, count: Int) -> Int {
   case data {
     <<0:8, rest:bits>> -> count_leading_zeros(rest, count + 1)
     _ -> count
@@ -37,7 +37,7 @@ pub fn count_leading_zeros(data: BitArray, count: Int) -> Int {
 /// Count leading zero-valued characters in a string.
 /// Uses the provided char_value function to check if a character maps to 0,
 /// so zero aliases (e.g. Crockford O->0) are correctly counted.
-pub fn count_leading_zeros_str(
+fn count_leading_zeros_str(
   input: String,
   char_value: fn(String) -> Result(Int, Nil),
   count: Int,
@@ -53,7 +53,7 @@ pub fn count_leading_zeros_str(
 }
 
 /// Convert a list of byte values to a BitArray.
-pub fn list_to_bit_array(bytes: List(Int), acc: BitArray) -> BitArray {
+fn list_to_bit_array(bytes: List(Int), acc: BitArray) -> BitArray {
   case bytes {
     [] -> acc
     [b, ..rest] -> list_to_bit_array(rest, bit_array.append(acc, <<b:int>>))
@@ -61,7 +61,7 @@ pub fn list_to_bit_array(bytes: List(Int), acc: BitArray) -> BitArray {
 }
 
 /// Encode a big integer in the given radix using the given alphabet string.
-pub fn encode_int(
+fn encode_int(
   num: Int,
   radix: Int,
   alphabet: String,
@@ -78,7 +78,7 @@ pub fn encode_int(
 }
 
 /// Decode a string of digits in the given radix, using a char_value function.
-pub fn string_to_int(
+fn string_to_int(
   input: String,
   radix: Int,
   char_value: fn(String) -> Result(Int, Nil),
@@ -89,7 +89,7 @@ pub fn string_to_int(
     Error(Nil) -> Ok(acc)
     Ok(#(c, rest)) ->
       case char_value(c) {
-        Error(_) -> Error(InvalidCharacter(c, pos))
+        Error(Nil) -> Error(InvalidCharacter(c, pos))
         Ok(val) ->
           string_to_int(rest, radix, char_value, acc * radix + val, pos + 1)
       }
@@ -159,6 +159,9 @@ pub fn find_index(
 fn string_char_at(s: String, index: Int) -> String {
   case string.drop_start(s, index) |> string.pop_grapheme {
     Ok(#(c, _)) -> c
-    Error(_) -> ""
+    Error(error) -> {
+      let _nil_error = error
+      ""
+    }
   }
 }

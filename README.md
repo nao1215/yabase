@@ -271,7 +271,8 @@ This project uses [mise](https://mise.jdx.dev/) to manage Gleam and Erlang versi
 
 ```sh
 mise install    # install Gleam and Erlang
-just ci         # format check, typecheck, build, test
+just ci         # download deps and run all checks, including glinter
+just lint       # run glinter with the repo config
 just test       # gleam test
 just format     # gleam format
 just check      # all checks without deps download
