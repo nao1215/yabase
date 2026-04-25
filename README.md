@@ -25,19 +25,34 @@ gleam add yabase
 
 ## Quick start
 
+The simplest entry point is the facade module: one function per
+encoding. `encode_*` returns a plain `String` because the encodings
+covered here cannot fail on a valid `BitArray`; `decode_*` returns
+`Result` because a malformed input is a real error.
+
 ```gleam
-import yabase
-import yabase/core/encoding.{Base64, Standard}
+import yabase/facade
 
 pub fn main() {
-  // Unified API
-  let assert Ok(encoded) = yabase.encode(Base64(Standard), <<"Hello":utf8>>)
+  let encoded = facade.encode_base64(<<"Hello":utf8>>)
   // encoded == "SGVsbG8="
 
-  let assert Ok(_decoded) = yabase.decode(Base64(Standard), encoded)
+  let assert Ok(_decoded) = facade.decode_base64(encoded)
   // _decoded == <<"Hello":utf8>>
 }
 ```
+
+> **Why not `let assert` on encode?** yabase's own `gleam.toml`
+> enables glinter's `assert_ok_pattern = "error"` rule, so the
+> recommended shape in production code is to avoid `let assert
+> Ok(_)` for cases that cannot meaningfully fail. The facade
+> returns plain `String` for infallible encodings and only the
+> decode side is `Result`-shaped — there `let assert` is fine in a
+> README snippet but real code should propagate the error. If you
+> need to pick an encoding at runtime, see the unified API in
+> [API layers](#api-layers); `yabase.encode` is `Result`-shaped
+> for every variant because the `Encoding` ADT erases per-variant
+> error possibilities.
 
 ## Supported encodings
 

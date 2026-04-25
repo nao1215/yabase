@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Documentation
+
+- README "Quick start" rewritten to use the `yabase/facade`
+  module so the headline example no longer trips the project's own
+  `assert_ok_pattern = "error"` glinter rule on the encode side.
+  A short note explains the encode/decode asymmetry and points
+  readers at the unified API for the runtime-encoding-selection
+  case. (#6)
+
 ## [0.2.1] - 2026-04-07
 
 ### Changed
