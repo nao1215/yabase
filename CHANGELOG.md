@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- `decode` for Base64 (Standard, URL-safe, NoPadding, DQ) and
+  Base32 (RFC 4648, Hex, Clockwork, z-base-32) now reports
+  `InvalidCharacter` with the offending byte and its position when
+  the input contains whitespace or other non-alphabet bytes,
+  instead of a misleading `InvalidLength` triggered by the
+  whitespace shifting the total length off the expected modulus.
+  The alphabet check runs before the length check across all of
+  these codecs. The behaviour for inputs that genuinely have a
+  bad length but only alphabet bytes is unchanged. URL-safe
+  no-padding already followed this contract and is unchanged.
+  (#7)
+
 ### Documentation
 
 - README "Quick start" rewritten to use the `yabase/facade`

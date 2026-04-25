@@ -31,12 +31,35 @@ fn encode_bits(data: BitArray, acc: List(String)) -> List(String) {
 }
 
 /// Decode a z-base-32 string to a BitArray.
+///
+/// Non-alphabet characters (whitespace, CR/LF, punctuation outside
+/// z-base-32's accepted set) are rejected with `InvalidCharacter`
+/// carrying the offending byte and its position. The alphabet check
+/// runs before the length check so the caller does not see a
+/// misleading `InvalidLength` when the real fault is an
+/// out-of-alphabet byte.
 pub fn decode(input: String) -> Result(BitArray, CodecError) {
   let lower = string.lowercase(input)
-  let len = string.length(lower)
-  case len % 8 {
-    1 | 3 | 6 -> Error(InvalidLength(len))
-    _ -> decode_chars(lower, <<>>, 0)
+  case validate_alphabet(lower, 0) {
+    Error(e) -> Error(e)
+    Ok(Nil) -> {
+      let len = string.length(lower)
+      case len % 8 {
+        1 | 3 | 6 -> Error(InvalidLength(len))
+        _ -> decode_chars(lower, <<>>, 0)
+      }
+    }
+  }
+}
+
+fn validate_alphabet(input: String, pos: Int) -> Result(Nil, CodecError) {
+  case string.pop_grapheme(input) {
+    Error(Nil) -> Ok(Nil)
+    Ok(#(c, rest)) ->
+      case char_to_value(c) {
+        Ok(_) -> validate_alphabet(rest, pos + 1)
+        Error(Nil) -> Error(InvalidCharacter(c, pos))
+      }
   }
 }
 

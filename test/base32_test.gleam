@@ -84,6 +84,21 @@ pub fn rfc4648_decode_pure_padding_test() -> Nil {
   }
 }
 
+// --- Whitespace and other non-alphabet bytes (#7) ---
+//
+// Whitespace surfaces as InvalidCharacter with its position; the
+// alphabet check runs before the length check so the diagnostic
+// points at the real fault rather than at a misleading length
+// mismatch.
+
+pub fn rfc4648_decode_rejects_lf_test() -> Nil {
+  assert rfc4648.decode("MZXW6\n===") == Error(InvalidCharacter("\n", 5))
+}
+
+pub fn rfc4648_decode_rejects_space_test() -> Nil {
+  assert rfc4648.decode("MZXW 6===") == Error(InvalidCharacter(" ", 4))
+}
+
 // --- Unpadded decode ---
 
 pub fn rfc4648_decode_unpadded_f_test() -> Nil {
