@@ -1,5 +1,6 @@
 /// Standard Base64 encoding per RFC 4648.
 import gleam/bit_array
+import gleam/bool
 import gleam/list
 import gleam/string
 import yabase/core/encoding.{type CodecError, InvalidCharacter, InvalidLength}
@@ -31,13 +32,41 @@ fn encode_chunks(data: BitArray, acc: List(String)) -> List(String) {
 }
 
 /// Decode a standard Base64 string to a BitArray.
-/// Per RFC 4648 section 3.3, non-alphabet characters (including CR/LF)
-/// are rejected.
+/// Per RFC 4648 section 3.3, non-alphabet characters (including
+/// whitespace, CR/LF, and other punctuation) are rejected. The
+/// alphabet check runs before the length check so the caller sees
+/// `InvalidCharacter` (with the offending byte and its position)
+/// rather than a misleading `InvalidLength` whenever the real fault
+/// is an out-of-alphabet byte.
 pub fn decode(input: String) -> Result(BitArray, CodecError) {
-  let len = string.length(input)
-  case len % 4 {
-    0 -> decode_chars(input, <<>>, 0)
-    _ -> Error(InvalidLength(len))
+  case validate_alphabet(input, 0) {
+    Error(e) -> Error(e)
+    Ok(Nil) -> {
+      let len = string.length(input)
+      case len % 4 {
+        0 -> decode_chars(input, <<>>, 0)
+        _ -> Error(InvalidLength(len))
+      }
+    }
+  }
+}
+
+fn validate_alphabet(input: String, pos: Int) -> Result(Nil, CodecError) {
+  case string.pop_grapheme(input) {
+    Error(Nil) -> Ok(Nil)
+    Ok(#(c, rest)) ->
+      case is_alphabet(c) {
+        True -> validate_alphabet(rest, pos + 1)
+        False -> Error(InvalidCharacter(c, pos))
+      }
+  }
+}
+
+fn is_alphabet(c: String) -> Bool {
+  use <- bool.guard(when: c == pad, return: True)
+  case value_of(c) {
+    Ok(_) -> True
+    Error(Nil) -> False
   }
 }
 

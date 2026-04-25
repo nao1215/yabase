@@ -1,9 +1,10 @@
 /// Base64 encoding without padding.
 /// Same as standard Base64 but padding characters are stripped.
-import gleam/bool
 import gleam/string
 import yabase/base64/standard
 import yabase/core/encoding.{type CodecError, InvalidCharacter, InvalidLength}
+
+const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 
 /// Encode a BitArray to Base64 without padding.
 pub fn encode(data: BitArray) -> String {
@@ -13,33 +14,35 @@ pub fn encode(data: BitArray) -> String {
 
 /// Decode a Base64 string (without padding) to a BitArray.
 /// Length % 4 must be 0, 2, or 3 (never 1).
-/// Padding characters (=) are rejected.
+/// Padding characters (=) and any non-alphabet byte (whitespace,
+/// CR/LF, punctuation) are rejected with `InvalidCharacter` carrying
+/// the offending byte and its position. The alphabet check runs
+/// before the length check so a whitespace byte does not surface as
+/// a misleading `InvalidLength`.
 pub fn decode(input: String) -> Result(BitArray, CodecError) {
-  use <- bool.guard(
-    when: string.contains(input, "="),
-    return: Error(InvalidCharacter("=", find_char_pos(input, "=", 0))),
-  )
-  let len = string.length(input)
-  case len % 4 {
-    1 -> Error(InvalidLength(len))
-    _ -> {
-      let padded = add_padding(input)
-      standard.decode(padded)
+  case validate_alphabet(input, 0) {
+    Error(e) -> Error(e)
+    Ok(Nil) -> {
+      let len = string.length(input)
+      case len % 4 {
+        1 -> Error(InvalidLength(len))
+        _ -> {
+          let padded = add_padding(input)
+          standard.decode(padded)
+        }
+      }
     }
   }
 }
 
-fn find_char_pos(input: String, target: String, pos: Int) -> Int {
+fn validate_alphabet(input: String, pos: Int) -> Result(Nil, CodecError) {
   case string.pop_grapheme(input) {
-    Ok(#(char, rest)) ->
-      case char == target {
-        True -> pos
-        False -> find_char_pos(rest, target, pos + 1)
+    Error(Nil) -> Ok(Nil)
+    Ok(#(c, rest)) ->
+      case string.contains(alphabet, c) {
+        True -> validate_alphabet(rest, pos + 1)
+        False -> Error(InvalidCharacter(c, pos))
       }
-    Error(error) -> {
-      let _nil_error = error
-      pos
-    }
   }
 }
 

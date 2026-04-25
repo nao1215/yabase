@@ -1,5 +1,6 @@
 /// Base32 Hex encoding (RFC 4648, extended hex alphabet).
 import gleam/bit_array
+import gleam/bool
 import gleam/list
 import gleam/string
 import yabase/core/encoding.{type CodecError, InvalidCharacter, InvalidLength}
@@ -39,8 +40,22 @@ fn add_padding(encoded: String) -> String {
 }
 
 /// Decode a Base32 Hex string to a BitArray.
+///
+/// Non-alphabet characters (whitespace, CR/LF, punctuation outside
+/// `0-9`, `A-V`, and `=`) are rejected with `InvalidCharacter`
+/// carrying the offending byte and its position. The alphabet check
+/// runs before the length check so the caller does not see a
+/// misleading `InvalidLength` when the real fault is an
+/// out-of-alphabet byte.
 pub fn decode(input: String) -> Result(BitArray, CodecError) {
   let upper = string.uppercase(input)
+  case validate_alphabet(upper, 0) {
+    Error(e) -> Error(e)
+    Ok(Nil) -> decode_validated(upper)
+  }
+}
+
+fn decode_validated(upper: String) -> Result(BitArray, CodecError) {
   let input_len = string.length(upper)
   let has_padding = string.contains(upper, pad)
   case has_padding && input_len % 8 != 0 {
@@ -60,6 +75,25 @@ pub fn decode(input: String) -> Result(BitArray, CodecError) {
           }
         }
       }
+  }
+}
+
+fn validate_alphabet(input: String, pos: Int) -> Result(Nil, CodecError) {
+  case string.pop_grapheme(input) {
+    Error(Nil) -> Ok(Nil)
+    Ok(#(c, rest)) ->
+      case is_alphabet(c) {
+        True -> validate_alphabet(rest, pos + 1)
+        False -> Error(InvalidCharacter(c, pos))
+      }
+  }
+}
+
+fn is_alphabet(c: String) -> Bool {
+  use <- bool.guard(when: c == pad, return: True)
+  case char_to_value(c) {
+    Ok(_) -> True
+    Error(Nil) -> False
   }
 }
 

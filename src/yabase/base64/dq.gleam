@@ -2,6 +2,7 @@
 /// Uses Japanese hiragana as the 64-symbol alphabet.
 /// Padding character: ・ (middle dot).
 import gleam/bit_array
+import gleam/bool
 import gleam/list
 import gleam/string
 import yabase/core/encoding.{type CodecError, InvalidCharacter, InvalidLength}
@@ -45,12 +46,46 @@ fn encode_chunks(data: BitArray, acc: List(String)) -> List(String) {
 }
 
 /// Decode a Base64 DQ (hiragana) string to a BitArray.
+///
+/// Non-alphabet graphemes (whitespace, ASCII, mismatched kana, etc.)
+/// are rejected with `InvalidCharacter` carrying the offending
+/// grapheme and its position. The alphabet check runs before the
+/// length check so the caller does not see a misleading
+/// `InvalidLength` when the real fault is an out-of-alphabet
+/// grapheme.
 pub fn decode(input: String) -> Result(BitArray, CodecError) {
   let graphemes = string.to_graphemes(input)
-  let len = list.length(graphemes)
-  case len % 4 {
-    0 -> decode_graphemes(graphemes, <<>>, 0)
-    _ -> Error(InvalidLength(len))
+  case validate_alphabet(graphemes, 0) {
+    Error(e) -> Error(e)
+    Ok(Nil) -> {
+      let len = list.length(graphemes)
+      case len % 4 {
+        0 -> decode_graphemes(graphemes, <<>>, 0)
+        _ -> Error(InvalidLength(len))
+      }
+    }
+  }
+}
+
+fn validate_alphabet(
+  graphemes: List(String),
+  pos: Int,
+) -> Result(Nil, CodecError) {
+  case graphemes {
+    [] -> Ok(Nil)
+    [c, ..rest] ->
+      case is_alphabet(c) {
+        True -> validate_alphabet(rest, pos + 1)
+        False -> Error(InvalidCharacter(c, pos))
+      }
+  }
+}
+
+fn is_alphabet(c: String) -> Bool {
+  use <- bool.guard(when: c == dq_pad, return: True)
+  case dq_value_of(c) {
+    Ok(_) -> True
+    Error(Nil) -> False
   }
 }
 

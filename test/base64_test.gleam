@@ -116,15 +116,26 @@ pub fn scure_bad_double_eq_test() -> Nil {
 }
 
 // --- CRLF rejection (RFC 4648 section 3.3) ---
+//
+// Whitespace is rejected with `InvalidCharacter` carrying the
+// offending byte and its position; the alphabet check runs before
+// the length check so the diagnostic points at the real fault
+// rather than at a misleading length mismatch (#7).
 
 pub fn standard_decode_rejects_lf_test() -> Nil {
-  // "Zm9v\n" is 5 chars -> 5 % 4 != 0 -> InvalidLength
-  assert standard.decode("Zm9v\n") == Error(InvalidLength(5))
+  assert standard.decode("Zm9v\n") == Error(InvalidCharacter("\n", 4))
 }
 
 pub fn standard_decode_rejects_crlf_in_middle_test() -> Nil {
-  // "Zg==\r\n" - \r\n is one grapheme cluster in Unicode -> 5 graphemes
-  assert standard.decode("Zg==\r\n") == Error(InvalidLength(5))
+  // "Zg==\r\n" - \r\n is one grapheme cluster in Unicode at position 4.
+  assert standard.decode("Zg==\r\n") == Error(InvalidCharacter("\r\n", 4))
+}
+
+pub fn standard_decode_rejects_space_in_middle_test() -> Nil {
+  // The headline #7 reproduction: a space inside an otherwise
+  // 4-aligned input must surface as InvalidCharacter, not
+  // InvalidLength.
+  assert standard.decode("SGk =") == Error(InvalidCharacter(" ", 3))
 }
 
 // --- Padding-then-trailing-data regression ---
@@ -192,8 +203,9 @@ pub fn urlsafe_decode_truncated_test() -> Nil {
 }
 
 pub fn urlsafe_decode_rejects_lf_test() -> Nil {
-  // "Zm9v\n" is 5 chars -> 5 % 4 != 0 -> InvalidLength
-  assert urlsafe.decode("Zm9v\n") == Error(InvalidLength(5))
+  // Whitespace surfaces as InvalidCharacter with its position (#7),
+  // not as a misleading InvalidLength.
+  assert urlsafe.decode("Zm9v\n") == Error(InvalidCharacter("\n", 4))
 }
 
 pub fn urlsafe_decode_data_after_double_pad_test() -> Nil {
