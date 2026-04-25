@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-04-25
+
 ### Fixed
 
 - `decode` for Base64 (Standard, URL-safe, NoPadding, DQ) and
