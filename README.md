@@ -54,6 +54,26 @@ pub fn main() {
 > for every variant because the `Encoding` ADT erases per-variant
 > error possibilities.
 
+## Integer IDs
+
+Short URL-safe identifiers — DB autoincrement ids, sequence numbers, hash truncations — usually want `Int -> compact string` rather than `BitArray -> String`. The `yabase/intid` module provides this directly so callers do not have to write the `Int -> big-endian bytes -> trim-leading-zero` shim themselves.
+
+```gleam
+import yabase/intid
+
+pub fn main() {
+  let token = intid.encode_int_base58(42)
+  // token == "j"
+
+  let assert Ok(_n) = intid.decode_int_base58(token)
+  // _n == 42
+}
+```
+
+Available: `encode_int_base32_rfc4648`, `encode_int_base32_crockford`, `encode_int_base36`, `encode_int_base58`, `encode_int_base58_flickr`, `encode_int_base62` and their matching `decode_int_*` (returning `Result(Int, CodecError)`).
+
+`encode_int_*` emits canonical form. `decode_int_*` is tolerant of leading zero characters (`decode_int_base58("0042")` and `decode_int_base58("42")` return the same `Int`). Negative inputs are normalized via `int.absolute_value` before encoding.
+
 ## Supported encodings
 
 ### Core
@@ -231,6 +251,7 @@ let assert Ok(_decoded) = base58check.decode(encoded)
 | `yabase/base58/bitcoin` | Base58 (Bitcoin alphabet) |
 | `yabase/base58/flickr` | Base58 (Flickr alphabet) |
 | `yabase/base62` | Base62 |
+| `yabase/intid` | `Int <-> short string` helpers for IDs (Base32 / Base36 / Base58 / Base62) |
 | `yabase/base91` | Base91 |
 | `yabase/ascii85` | Ascii85 (btoa) |
 | `yabase/adobe_ascii85` | Adobe Ascii85 (PDF/PostScript, `<~` `~>` delimiters) |

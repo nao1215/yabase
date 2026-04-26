@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- New `yabase/intid` module with `encode_int_*` / `decode_int_*`
+  helpers for short URL-safe identifier use cases (DB autoincrement
+  ids, sequence numbers, hash truncations). Covers Base32 (RFC 4648,
+  Crockford), Base36, Base58 (Bitcoin, Flickr), and Base62. Without
+  these helpers every caller had to re-implement the same
+  `Int -> big-endian bytes -> trim-leading-zero` shim plus the inverse
+  for decode (~40 lines per project). `encode_int_*` emits canonical
+  form (no leading zero characters); `decode_int_*` is tolerant of
+  leading zero characters so externally zero-padded input round-trips
+  to the same `Int`. Negative inputs are normalized via
+  `int.absolute_value` before encoding. Decode returns
+  `Result(Int, CodecError)` to match the rest of the library. (#11)
+
 ## [0.3.0] - 2026-04-25
 
 ### Fixed
