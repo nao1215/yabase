@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-04-26
+
 ### Added
 
 - New `yabase/intid` module with `encode_int_*` / `decode_int_*`
