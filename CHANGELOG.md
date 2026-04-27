@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-04-27
+
 ### Changed
 
 - `bech32.encode` now rejects uppercase or mixed-case HRPs with
