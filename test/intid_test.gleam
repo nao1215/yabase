@@ -1,4 +1,4 @@
-import yabase/core/encoding.{InvalidCharacter}
+import yabase/core/encoding.{InvalidCharacter, InvalidLength}
 import yabase/intid
 
 // === Base32 (RFC 4648) ===
@@ -16,7 +16,7 @@ pub fn encode_int_base32_rfc4648_max_byte_test() -> Nil {
 }
 
 pub fn decode_int_base32_rfc4648_empty_test() -> Nil {
-  assert intid.decode_int_base32_rfc4648("") == Ok(0)
+  assert intid.decode_int_base32_rfc4648("") == Error(InvalidLength(0))
 }
 
 pub fn decode_int_base32_rfc4648_roundtrip_test() -> Nil {
@@ -48,7 +48,7 @@ pub fn encode_int_base32_crockford_two_digit_max_test() -> Nil {
 }
 
 pub fn decode_int_base32_crockford_empty_test() -> Nil {
-  assert intid.decode_int_base32_crockford("") == Ok(0)
+  assert intid.decode_int_base32_crockford("") == Error(InvalidLength(0))
 }
 
 pub fn decode_int_base32_crockford_leading_zero_tolerant_test() -> Nil {
@@ -80,7 +80,7 @@ pub fn encode_int_base36_two_digit_max_test() -> Nil {
 }
 
 pub fn decode_int_base36_empty_test() -> Nil {
-  assert intid.decode_int_base36("") == Ok(0)
+  assert intid.decode_int_base36("") == Error(InvalidLength(0))
 }
 
 pub fn decode_int_base36_leading_zero_tolerant_test() -> Nil {
@@ -119,7 +119,7 @@ pub fn encode_int_base58_two_digit_test() -> Nil {
 }
 
 pub fn decode_int_base58_empty_test() -> Nil {
-  assert intid.decode_int_base58("") == Ok(0)
+  assert intid.decode_int_base58("") == Error(InvalidLength(0))
 }
 
 pub fn decode_int_base58_leading_zero_tolerant_test() -> Nil {
@@ -151,7 +151,7 @@ pub fn decode_int_base58_flickr_roundtrip_test() -> Nil {
 }
 
 pub fn decode_int_base58_flickr_empty_test() -> Nil {
-  assert intid.decode_int_base58_flickr("") == Ok(0)
+  assert intid.decode_int_base58_flickr("") == Error(InvalidLength(0))
 }
 
 // === Base62 ===
@@ -173,7 +173,7 @@ pub fn encode_int_base62_large_test() -> Nil {
 }
 
 pub fn decode_int_base62_empty_test() -> Nil {
-  assert intid.decode_int_base62("") == Ok(0)
+  assert intid.decode_int_base62("") == Error(InvalidLength(0))
 }
 
 pub fn decode_int_base62_roundtrip_test() -> Nil {
