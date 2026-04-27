@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- `bech32.encode` now rejects uppercase or mixed-case HRPs with
+  `Error(InvalidHrp("HRP must be lowercase"))` instead of silently
+  lowercasing the input. BIP 173 mandates a lowercase HRP, and the
+  previous silent normalization could mask bugs where the HRP was used
+  as a key or identifier elsewhere (the caller passed `"BC"` but the
+  emitted address — and the round-tripped HRP after decode — was
+  `"bc"`). **Breaking change** for callers that passed uppercase or
+  mixed-case input; lowercase the HRP at the call site if you start from
+  a mixed-case identifier. The decoder still accepts an all-uppercase
+  Bech32 string as before. (#15)
+
 ### Fixed
 
 - `intid.decode_int_*` now reject the empty string with

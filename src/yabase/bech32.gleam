@@ -34,7 +34,11 @@ const bech32m_const = 0x2bc830a3
 
 /// Encode byte data with Bech32 or Bech32m.
 /// variant: Bech32 (BIP 173) or Bech32m (BIP 350).
-/// hrp: human-readable part (e.g. "bc" for Bitcoin mainnet).
+/// hrp: human-readable part (e.g. `"bc"` for Bitcoin mainnet). Must be
+///   all lowercase per BIP 173 — uppercase characters are rejected with
+///   `Error(InvalidHrp("HRP must be lowercase"))` rather than silently
+///   normalized, so the input is never quietly mutated. Lowercase the
+///   value at the call site if you started from a mixed-case identifier.
 /// data: raw bytes (8-to-5 bit conversion is done internally).
 pub fn encode(
   variant: Bech32Variant,
@@ -87,15 +91,22 @@ fn encode_variant(
   hrp: String,
   data: BitArray,
 ) -> Result(String, CodecError) {
-  let lower_hrp = string.lowercase(hrp)
-  let hrp_len = string.length(lower_hrp)
+  // BIP 173: encoders MUST emit a lowercase HRP. Reject uppercase input
+  // explicitly instead of silently lowercasing it, so the caller never
+  // sees their HRP quietly mutated (which previously masked bugs where
+  // the HRP was used as a key/identifier elsewhere in the application).
+  use <- bool.guard(
+    when: hrp != string.lowercase(hrp),
+    return: Error(InvalidHrp("HRP must be lowercase")),
+  )
+  let hrp_len = string.length(hrp)
   case hrp_len < 1 {
     True -> Error(InvalidHrp("empty HRP"))
     False ->
       case hrp_len > 83 {
         True -> Error(InvalidHrp("HRP too long"))
         False ->
-          case validate_hrp(lower_hrp, 0) {
+          case validate_hrp(hrp, 0) {
             Error(e) -> Error(e)
             Ok(Nil) -> {
               let data_values = bytes_to_5bit_groups(data)
@@ -103,14 +114,13 @@ fn encode_variant(
                 Bech32V -> bech32_const
                 Bech32mV -> bech32m_const
               }
-              let checksum =
-                create_checksum(lower_hrp, data_values, checksum_const)
+              let checksum = create_checksum(hrp, data_values, checksum_const)
               let all_values = list_append(data_values, checksum)
               let encoded_data =
                 values_to_chars(all_values, [])
                 |> list.reverse
                 |> string.join("")
-              let result = lower_hrp <> "1" <> encoded_data
+              let result = hrp <> "1" <> encoded_data
               // BIP 173: total length must not exceed 90
               case string.length(result) > 90 {
                 True -> Error(InvalidLength(string.length(result)))
