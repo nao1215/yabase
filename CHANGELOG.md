@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- `intid.decode_int_*` now reject the empty string with
+  `Error(InvalidLength(0))` instead of returning `Ok(0)`. Treating an empty
+  input as zero made it impossible for callers to distinguish "no ID was
+  supplied" from "the ID is the integer zero", which matters for URL
+  routing, form parsing, and database lookups. The byte-oriented decoders
+  in `yabase/facade` (e.g. `base62.decode("")`) keep their `Ok(<<>>)`
+  round-trip semantics. **Breaking change** for callers that relied on the
+  previous `Ok(0)` for empty input — guard the empty case before calling
+  `decode_int_*`. (#14)
+
 ## [0.4.0] - 2026-04-26
 
 ### Added

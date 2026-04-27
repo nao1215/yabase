@@ -17,19 +17,28 @@
 //// return the same `Int`), so input from external sources that
 //// zero-pads is accepted without ceremony.
 ////
+//// `decode_int_*` rejects the empty string with
+//// `Error(InvalidLength(0))` rather than treating it as zero. Callers
+//// can therefore distinguish "no ID was supplied" from "the ID is
+//// zero" — important for URL routing, form parsing, and database
+//// lookups. The byte-oriented decoders in `yabase/facade` retain the
+//// `Ok(<<>>)` round-trip behavior for empty input.
+////
 //// Negative inputs are normalized to `int.absolute_value` before
 //// encoding — the magnitude is what gets stored. The decode side
 //// always returns a non-negative `Int`.
 
+import gleam/bool
 import gleam/int
 import gleam/result
+import gleam/string
 import yabase/base32/crockford as base32_crockford
 import yabase/base32/rfc4648 as base32_rfc4648
 import yabase/base36
 import yabase/base58/bitcoin as base58_bitcoin
 import yabase/base58/flickr as base58_flickr
 import yabase/base62
-import yabase/core/encoding.{type CodecError}
+import yabase/core/encoding.{type CodecError, InvalidLength}
 import yabase/internal/bignum
 
 /// Encode a non-negative `Int` as a Base32 (RFC 4648) string.
@@ -39,6 +48,7 @@ pub fn encode_int_base32_rfc4648(value: Int) -> String {
 
 /// Decode a Base32 (RFC 4648) string back to an `Int`.
 pub fn decode_int_base32_rfc4648(input: String) -> Result(Int, CodecError) {
+  use input <- result.try(reject_empty(input))
   base32_rfc4648.decode(input)
   |> result.map(bytes_to_int)
 }
@@ -50,6 +60,7 @@ pub fn encode_int_base32_crockford(value: Int) -> String {
 
 /// Decode a Crockford Base32 string back to an `Int`.
 pub fn decode_int_base32_crockford(input: String) -> Result(Int, CodecError) {
+  use input <- result.try(reject_empty(input))
   base32_crockford.decode(input)
   |> result.map(bytes_to_int)
 }
@@ -61,6 +72,7 @@ pub fn encode_int_base36(value: Int) -> String {
 
 /// Decode a Base36 string back to an `Int`.
 pub fn decode_int_base36(input: String) -> Result(Int, CodecError) {
+  use input <- result.try(reject_empty(input))
   base36.decode(input)
   |> result.map(bytes_to_int)
 }
@@ -72,6 +84,7 @@ pub fn encode_int_base58(value: Int) -> String {
 
 /// Decode a Base58 (Bitcoin alphabet) string back to an `Int`.
 pub fn decode_int_base58(input: String) -> Result(Int, CodecError) {
+  use input <- result.try(reject_empty(input))
   base58_bitcoin.decode(input)
   |> result.map(bytes_to_int)
 }
@@ -83,6 +96,7 @@ pub fn encode_int_base58_flickr(value: Int) -> String {
 
 /// Decode a Base58 (Flickr alphabet) string back to an `Int`.
 pub fn decode_int_base58_flickr(input: String) -> Result(Int, CodecError) {
+  use input <- result.try(reject_empty(input))
   base58_flickr.decode(input)
   |> result.map(bytes_to_int)
 }
@@ -94,8 +108,20 @@ pub fn encode_int_base62(value: Int) -> String {
 
 /// Decode a Base62 string back to an `Int`.
 pub fn decode_int_base62(input: String) -> Result(Int, CodecError) {
+  use input <- result.try(reject_empty(input))
   base62.decode(input)
   |> result.map(bytes_to_int)
+}
+
+// `decode_int_*` rejects the empty string so callers can distinguish
+// "no input" from a zero-valued ID. The byte-oriented decoders keep
+// their `Ok(<<>>)` semantics for round-tripping empty inputs.
+fn reject_empty(input: String) -> Result(String, CodecError) {
+  use <- bool.guard(
+    when: string.is_empty(input),
+    return: Error(InvalidLength(0)),
+  )
+  Ok(input)
 }
 
 fn int_to_bytes_be(value: Int) -> BitArray {
