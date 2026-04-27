@@ -114,6 +114,33 @@ pub fn encode_empty_hrp_test() -> Nil {
   }
 }
 
+pub fn encode_uppercase_hrp_rejected_test() -> Nil {
+  // BIP 173 mandates a lowercase HRP. Issue #15 — `encode` previously
+  // silently lowercased uppercase input, which mutated the caller's HRP
+  // identifier without any signal. The expected behavior is to reject.
+  assert case bech32.encode(Bech32V, "BC", <<1, 2, 3>>) {
+    Error(InvalidHrp("HRP must be lowercase")) -> True
+    _ -> False
+  }
+}
+
+pub fn encode_mixed_case_hrp_rejected_test() -> Nil {
+  // Mixed case is also rejected — any deviation from all-lowercase falls
+  // under the same BIP 173 rule.
+  assert case bech32.encode(Bech32V, "Bc", <<1, 2, 3>>) {
+    Error(InvalidHrp("HRP must be lowercase")) -> True
+    _ -> False
+  }
+}
+
+pub fn encode_uppercase_hrp_rejected_for_bech32m_test() -> Nil {
+  // Same rule applies to the Bech32m variant.
+  assert case bech32.encode(Bech32mV, "BC", <<1, 2, 3>>) {
+    Error(InvalidHrp("HRP must be lowercase")) -> True
+    _ -> False
+  }
+}
+
 pub fn encode_result_overlength_test() -> Nil {
   let big_data = <<
     1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
