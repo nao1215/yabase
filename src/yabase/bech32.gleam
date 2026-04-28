@@ -48,6 +48,27 @@ pub fn encode(
   encode_variant(variant, hrp, data)
 }
 
+/// Encode byte data with the recommended default variant (Bech32m,
+/// BIP 350) for callers that don't need to distinguish BIP 173 from
+/// BIP 350.
+///
+/// Issue #21: Bitcoin / SegWit tooling has a load-bearing reason to
+/// pick `Bech32` (BIP 173) over `Bech32m` (BIP 350) — witness version
+/// 0 must use BIP 173, witness version 1+ must use BIP 350. Outside
+/// that one use case, every other `bech32`-shaped use (short
+/// human-readable IDs with a custom HRP, copy-pasteable application
+/// tokens, etc.) is better served by the strict-checksum BIP 350
+/// variant. This helper picks `Bech32m` so application authors who
+/// just want "give me a short, error-resistant ID with my HRP"
+/// don't have to decide which BIP they're targeting.
+///
+/// Use the variant-explicit `encode/3` if you actually need
+/// `Bech32` (BIP 173) — for example when implementing SegWit v0
+/// witness-program addresses.
+pub fn encode_default(hrp: String, data: BitArray) -> Result(String, CodecError) {
+  encode_variant(Bech32mV, hrp, data)
+}
+
 /// Decode a Bech32 or Bech32m string, auto-detecting the variant.
 /// Per BIP 173: total length <= 90, HRP length 1..83.
 pub fn decode(input: String) -> Result(Bech32Decoded, CodecError) {

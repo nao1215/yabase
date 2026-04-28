@@ -42,6 +42,40 @@ pub fn bech32m_empty_data_test() -> Nil {
   assert decoded.variant == Bech32mV
 }
 
+// ===== Default-variant convenience (issue #21) =====
+
+/// `encode_default` lets app authors emit a Bech32-shaped ID with
+/// just an HRP and a payload — no variant choice. The default is
+/// `Bech32m` (BIP 350), the strict-checksum variant recommended for
+/// every non-SegWit-v0 use.
+pub fn encode_default_picks_bech32m_test() -> Nil {
+  let data = <<10, 20, 30, 40>>
+  let assert Ok(encoded) = bech32.encode_default("post", data)
+  let assert Ok(decoded) = bech32.decode(encoded)
+  assert decoded.hrp == "post"
+  assert decoded.variant == Bech32mV
+  assert decoded.data == data
+}
+
+/// `encode_default` matches `encode(Bech32mV, ..)` byte-for-byte —
+/// it's a thin alias, not a different algorithm.
+pub fn encode_default_matches_explicit_bech32m_test() -> Nil {
+  let data = <<1, 2, 3, 4, 5>>
+  let assert Ok(via_default) = bech32.encode_default("test", data)
+  let assert Ok(via_explicit) = bech32.encode(Bech32mV, "test", data)
+  assert via_default == via_explicit
+}
+
+/// `encode_default` still applies HRP validation — uppercase HRPs
+/// are rejected exactly like `encode(...)` would, so the convenience
+/// helper doesn't bypass any safety check.
+pub fn encode_default_rejects_uppercase_hrp_test() -> Nil {
+  assert case bech32.encode_default("BC", <<0>>) {
+    Error(InvalidHrp(_)) -> True
+    _ -> False
+  }
+}
+
 // ===== Variant auto-detection =====
 
 pub fn auto_detect_bech32_test() -> Nil {
