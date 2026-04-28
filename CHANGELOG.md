@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-04-28
+
 ### Added
 
 - JavaScript target compilation. `gleam.toml` no longer pins
