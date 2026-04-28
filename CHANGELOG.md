@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `bech32.encode_default(hrp, data)` is a convenience wrapper around
+  `bech32.encode(Bech32m, hrp, data)` for application authors who want
+  a short, copy-pasteable, error-resistant ID with a custom HRP and
+  don't need to choose between BIP 173 and BIP 350. The default is
+  `Bech32m` (BIP 350) — the strict-checksum variant that every
+  non-SegWit-v0 use case should prefer. The variant-explicit
+  `encode/3` remains the only correct entry point for SegWit
+  witness-program addresses where the caller must distinguish the
+  two BIPs. (#21)
+
 ## [0.5.0] - 2026-04-27
 
 ### Changed
