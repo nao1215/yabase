@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Documentation
+
+- `yabase/base32/crockford` makes the bignum-shape semantics loud at
+  the module level and on `encode/1`. The encoder treats input as a
+  big-endian unsigned integer and emits the base-32 representation
+  with leading zeros stripped, so output length varies with the
+  numeric magnitude of the input rather than its byte length — 5
+  random bytes whose top byte is `0x00` round-trip to a 7-character
+  string, not 8. Callers who want fixed-length, byte-aligned Base32
+  framing (ULID / NanoID / Stripe-style IDs) should use
+  `yabase/base32/rfc4648` instead. The pointer is now in both
+  docstrings so a reader scanning either surface sees the choice
+  immediately. (#22)
+
 ### Added
 
 - `bech32.encode_default(hrp, data)` is a convenience wrapper around
