@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **internal/sha256**: drop the JavaScript-target compile warning
+  ("Truncated bit array segment ... 64-bit long int, but on the
+  JavaScript target numbers have at most 52 bits") that fired on
+  every clean compile of any project depending on this package
+  from the JS target. The previous `<<block:bytes-size(64),
+  rest:bits>>` segment pattern was misinterpreted by the compiler
+  as a 64-bit integer segment; switch `process_blocks` to use
+  `bit_array.slice` so the split is expressed in stdlib terms with
+  no segment-pattern parsing. Runtime behaviour is unchanged on
+  both targets — `process_blocks` still consumes 64-byte blocks
+  in source order and feeds the same SHA-256 compression rounds.
+  New regression tests pin the SHA-256 output for 65-byte and
+  200-byte inputs (the 65-byte case crosses the block boundary
+  exactly once, which is where the warning would have masked any
+  real corruption). `Base58Check` and `Bech32` round-trips that
+  rely on this SHA-256 inner loop are unaffected. (#20)
+
 ### Changed
 
 - **base16 (BREAKING)**: `base16.encode` and `facade.encode_base16`

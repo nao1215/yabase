@@ -89,3 +89,40 @@ pub fn sha256_64byte_test() -> Nil {
       0x99, 0x73, 0x37, 0xdf, 0x15, 0x46, 0x68, 0xeb,
     >>
 }
+
+/// Issue #20: 65-byte input forces `process_blocks` to consume one
+/// full 64-byte block and a remainder of one byte before padding.
+/// The previous `<<block:bytes-size(64), rest:bits>>` pattern made
+/// the Gleam compiler warn about a 64-bit int truncation on the JS
+/// target — if the warning was correct, the second block iteration
+/// would have been silently corrupted on JS and this hash would
+/// not match. The fix routes `process_blocks` through
+/// `bit_array.slice` instead of the segment-pattern split; this
+/// test pins the result so any future regression of either mechanism
+/// is caught.
+pub fn sha256_65byte_crosses_block_boundary_test() -> Nil {
+  let input = string.repeat("a", 65)
+  let hash = sha256.hash(<<input:utf8>>)
+  assert hash
+    == <<
+      0x63, 0x53, 0x61, 0xc4, 0x8b, 0xb9, 0xea, 0xb1, 0x41, 0x98, 0xe7, 0x6e,
+      0xa8, 0xab, 0x7f, 0x1a, 0x41, 0x68, 0x5d, 0x6a, 0xd6, 0x2a, 0xa9, 0x14,
+      0x6d, 0x30, 0x1d, 0x4f, 0x17, 0xeb, 0x0a, 0xe0,
+    >>
+}
+
+/// Issue #20 (extended): a 200-byte input requires three full block
+/// iterations of `process_blocks` plus padding into a fourth. With
+/// the segment-pattern split corrupted, the trailing iterations
+/// would compound the error, so a long input pins the loop's
+/// correctness across multiple block-boundary crossings.
+pub fn sha256_200byte_test() -> Nil {
+  let input = string.repeat("a", 200)
+  let hash = sha256.hash(<<input:utf8>>)
+  assert hash
+    == <<
+      0xc2, 0xa9, 0x08, 0xd9, 0x8f, 0x5d, 0xf9, 0x87, 0xad, 0xe4, 0x1b, 0x5f,
+      0xce, 0x21, 0x30, 0x67, 0xef, 0xbc, 0xc2, 0x1e, 0xf2, 0x24, 0x02, 0x12,
+      0xa4, 0x1e, 0x54, 0xb5, 0xe7, 0xc2, 0x8a, 0xe5,
+    >>
+}

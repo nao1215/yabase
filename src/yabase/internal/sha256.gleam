@@ -225,18 +225,37 @@ fn pad_zeros(data: BitArray) -> BitArray {
   }
 }
 
-// Process 512-bit (64-byte) blocks
+// Process 512-bit (64-byte) blocks.
+//
+// Issue #20: the previous `<<block:bytes-size(64), rest:bits>>`
+// pattern triggered a JavaScript-target compile warning
+// ("Truncated bit array segment ... 64-bit long int, but on the
+// JavaScript target numbers have at most 52 bits"). Whether or
+// not that was a Gleam-compiler false positive, the warning fired
+// on every clean compile of any project depending on this package
+// from the JS target. Switch to `bit_array.slice` so the split is
+// expressed in stdlib terms — no segment-pattern parsing, no
+// warning, identical runtime behaviour on both targets. The
+// double `case` on slice results never falls through to the `_, _`
+// arm because the surrounding `total >= 64` guard guarantees both
+// slices succeed; the arm exists only to keep the function total
+// without resorting to `let assert`.
 fn process_blocks(
   data: BitArray,
   state: #(Int, Int, Int, Int, Int, Int, Int, Int),
 ) -> #(Int, Int, Int, Int, Int, Int, Int, Int) {
-  case data {
-    <<block:bytes-size(64), rest:bits>> -> {
-      let schedule = parse_block(block)
-      let new_state = compress(state, schedule)
-      process_blocks(rest, new_state)
-    }
-    _ -> state
+  let total = bit_array.byte_size(data)
+  case total >= 64 {
+    False -> state
+    True ->
+      case bit_array.slice(data, 0, 64), bit_array.slice(data, 64, total - 64) {
+        Ok(block), Ok(rest) -> {
+          let schedule = parse_block(block)
+          let new_state = compress(state, schedule)
+          process_blocks(rest, new_state)
+        }
+        _, _ -> state
+      }
   }
 }
 
