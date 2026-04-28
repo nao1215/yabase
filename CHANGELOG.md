@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `yabase/intid` now exposes a bounded decode family:
+  `decode_int_base32_rfc4648_bounded`,
+  `decode_int_base32_crockford_bounded`,
+  `decode_int_base36_bounded`, `decode_int_base58_bounded`,
+  `decode_int_base58_flickr_bounded`, and `decode_int_base62_bounded`.
+  Each takes `input:` and `max:` labels and returns
+  `Error(Overflow)` when the decoded value exceeds `max`. Two cap
+  constants are exported alongside: `intid.int64_max` (`2^63 - 1`,
+  the signed 64-bit ceiling that SQLite `INTEGER`, Postgres
+  `bigserial`, and MySQL `BIGINT` all share) and
+  `intid.int53_max` (`2^53 - 1`, `Number.MAX_SAFE_INTEGER` for the
+  JavaScript-target boundary). The existing unbounded `decode_int_*`
+  family is unchanged: it still accepts strings of any length and
+  returns Erlang's bignum, which is the right behaviour when the
+  decoded value stays inside the BEAM. The bounded variants exist
+  for the case where the value flows into a fixed-width sink — a
+  database integer column or a JS `number` — where an unbounded
+  bignum surfaces as a driver crash or a silent precision loss
+  rather than as a clear `CodecError`. The error contract is
+  otherwise identical: `InvalidLength(0)` for empty input,
+  `InvalidCharacter` for alphabet violations, then `Overflow` last
+  if the value parsed cleanly but exceeds the cap. (#28)
+
 ## [0.6.0] - 2026-04-28
 
 ### Fixed
