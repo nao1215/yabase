@@ -2,11 +2,12 @@
 /// Uses 91 printable ASCII characters for efficient binary-to-text encoding.
 /// More space-efficient than Base64 (roughly 23% overhead vs 33%).
 ///
-/// Based on the algorithm by Joachim Henke.
-/// Uses Erlang bitwise operations via BitArray patterns to match
-/// the C reference implementation's unsigned integer semantics.
+/// Based on the algorithm by Joachim Henke. The bitwise queue arithmetic
+/// uses `gleam/int.bitwise_*` so the implementation runs identically on
+/// Erlang and JavaScript targets.
 import gleam/bit_array
 import gleam/bool
+import gleam/int
 import gleam/list
 import gleam/string
 import yabase/core/encoding.{type CodecError, InvalidCharacter}
@@ -132,18 +133,22 @@ fn extract_bytes_from_queue(queue: Int, nbits: Int, acc: List(Int)) -> List(Int)
   extract_bytes_from_queue(bsr(queue, 8), nbits - 8, [band(queue, 255), ..acc])
 }
 
-// Erlang bitwise operations (exact unsigned semantics)
-@external(erlang, "erlang", "bor")
-fn bor(a: Int, b: Int) -> Int
+// Cross-target bitwise wrappers around gleam/int.
+fn bor(a: Int, b: Int) -> Int {
+  int.bitwise_or(a, b)
+}
 
-@external(erlang, "erlang", "band")
-fn band(a: Int, b: Int) -> Int
+fn band(a: Int, b: Int) -> Int {
+  int.bitwise_and(a, b)
+}
 
-@external(erlang, "erlang", "bsl")
-fn bsl(a: Int, b: Int) -> Int
+fn bsl(a: Int, b: Int) -> Int {
+  int.bitwise_shift_left(a, b)
+}
 
-@external(erlang, "erlang", "bsr")
-fn bsr(a: Int, b: Int) -> Int
+fn bsr(a: Int, b: Int) -> Int {
+  int.bitwise_shift_right(a, b)
+}
 
 fn char_at(index: Int) -> String {
   case string.drop_start(alphabet, index) |> string.pop_grapheme {
