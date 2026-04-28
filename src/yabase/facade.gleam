@@ -68,9 +68,20 @@ pub fn decode_base10(input: String) -> Result(BitArray, CodecError) {
 
 // --- Base16 ---
 
-/// Encode a BitArray to a lowercase hexadecimal string.
+/// Encode a BitArray to an uppercase hexadecimal string per RFC 4648
+/// §8 (canonical Base 16). Use `encode_base16_lowercase` for the
+/// non-canonical lowercase variant. The decoder remains
+/// case-insensitive — see `decode_base16`. (Issue #19)
 pub fn encode_base16(data: BitArray) -> String {
   base16.encode(data)
+}
+
+/// Encode a BitArray to a lowercase hexadecimal string. Use when
+/// interoperating with `sha256sum`-style tools or the IPFS multibase
+/// prefix `f`; the canonical RFC 4648 §8 form is uppercase, served
+/// by `encode_base16`.
+pub fn encode_base16_lowercase(data: BitArray) -> String {
+  base16.encode_lowercase(data)
 }
 
 /// Decode a hexadecimal string to a BitArray. Case-insensitive.

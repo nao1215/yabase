@@ -26,6 +26,20 @@ pub fn base16_roundtrip_test() -> Nil {
   assert facade.decode_base16(facade.encode_base16(data)) == Ok(data)
 }
 
+// Issue #19: `encode_base16` emits canonical uppercase per RFC 4648
+// §8; `encode_base16_lowercase` is the opt-in lowercase variant. The
+// decoder is case-insensitive so both round-trip cleanly.
+pub fn base16_uppercase_canonical_test() -> Nil {
+  assert facade.encode_base16(<<0xde, 0xad, 0xbe, 0xef>>) == "DEADBEEF"
+}
+
+pub fn base16_lowercase_round_trip_test() -> Nil {
+  let data = <<"Hello":utf8>>
+  let lowercase = facade.encode_base16_lowercase(data)
+  assert lowercase == "48656c6c6f"
+  assert facade.decode_base16(lowercase) == Ok(data)
+}
+
 pub fn base32_roundtrip_test() -> Nil {
   let data = <<"Hello":utf8>>
   assert facade.decode_base32(facade.encode_base32(data)) == Ok(data)

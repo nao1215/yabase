@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- **base16 (BREAKING)**: `base16.encode` and `facade.encode_base16`
+  now emit canonical uppercase hex (`0-9 A-F`) per RFC 4648 §8.
+  The previous lowercase output (`"deadbeef"` for `<<0xde, 0xad,
+  0xbe, 0xef>>`) departed from the spec's canonical form and broke
+  string-equality comparisons against systems that follow it (HTTP
+  Signature, Erlang `crypto:hash`'s default uppercase output, IPFS
+  multibase prefix `F`, etc.). Callers who specifically need the
+  lowercase variant — `sha256sum` shell output, IPFS multibase
+  prefix `f`, JWT implementations that emit lowercase digests —
+  should switch to `base16.encode_lowercase` /
+  `facade.encode_base16_lowercase`. The decoder remains
+  case-insensitive, so round-trips work in both directions. The
+  multibase encoder still emits the registry-canonical lowercase
+  form under prefix `f` (and would emit uppercase under prefix
+  `F`, currently unused on the encode side); only the
+  unprefixed `base16.encode` path is affected. (#19)
+
 ### Documentation
 
 - `yabase/base32/crockford` makes the bignum-shape semantics loud at
