@@ -74,6 +74,21 @@ Available: `encode_int_base32_rfc4648`, `encode_int_base32_crockford`, `encode_i
 
 `encode_int_*` emits canonical form. `decode_int_*` is tolerant of leading zero characters (`decode_int_base58("0042")` and `decode_int_base58("42")` return the same `Int`). Negative inputs are normalized via `int.absolute_value` before encoding.
 
+`decode_int_*` accepts inputs of any length, so the decoded `Int` is an unbounded Erlang bignum. If the value flows into a fixed-width sink (SQLite `INTEGER`, Postgres `bigserial`, MySQL `BIGINT`, or a JS `number`), use the matching `decode_int_*_bounded(input:, max:)` to get `Error(Overflow)` instead of a downstream crash. Common caps are exported as `intid.int64_max` (signed 64-bit, `2^63 - 1`) and `intid.int53_max` (`Number.MAX_SAFE_INTEGER`).
+
+```gleam
+import yabase/intid
+
+pub fn lookup(public_id: String) -> Bool {
+  case intid.decode_int_base58_bounded(input: public_id, max: intid.int64_max) {
+    // Bind `_internal_id` to `sqlight.int(_)` etc.; the value fits BIGINT.
+    Ok(_internal_id) -> True
+    // Respond 404/400; input was malformed or numerically out of range.
+    Error(_) -> False
+  }
+}
+```
+
 ## Supported encodings
 
 ### Core
