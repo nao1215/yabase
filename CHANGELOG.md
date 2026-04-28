@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-04-28
+
 ### Fixed
 
 - **internal/sha256**: drop the JavaScript-target compile warning
