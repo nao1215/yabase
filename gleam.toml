@@ -1,5 +1,5 @@
 name = "yabase"
-version = "0.7.0"
+version = "0.8.0"
 description = "Unified binary-to-text encoding: base2, base8, base10, base16, base32, base36, base45, base58, base58check, base62, base64, base85, base91, ascii85, z85, bech32, bech32m, multibase"
 licences = ["MIT"]
 repository = { type = "github", user = "nao1215", repo = "yabase" }
