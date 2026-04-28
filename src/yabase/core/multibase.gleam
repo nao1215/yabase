@@ -31,7 +31,20 @@ pub fn encode_with_prefix(
     Error(Nil) -> Error(UnsupportedMultibaseEncoding(encoding_name(enc)))
     Ok(prefix) ->
       dispatcher.encode(enc, data)
-      |> result.map(fn(encoded) { prefix <> encoded })
+      |> result.map(fn(encoded) { prefix <> normalise_for_prefix(enc, encoded) })
+  }
+}
+
+/// Issue #19: `base16.encode` now emits the canonical RFC 4648 §8
+/// uppercase form, but the multibase registry pins prefix `f` to
+/// lowercase Base16 (uppercase Base16 carries the distinct prefix
+/// `F`, currently unused in this module's encode-side mapping).
+/// Lowercase the dispatcher's Base16 output so multibase strings
+/// stay registry-conformant; other encodings round-trip unchanged.
+fn normalise_for_prefix(enc: Encoding, encoded: String) -> String {
+  case enc {
+    Base16Encoding -> string.lowercase(encoded)
+    _ -> encoded
   }
 }
 

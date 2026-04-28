@@ -1,23 +1,48 @@
 /// Base16 (hexadecimal) encoding and decoding.
+///
+/// Issue #19: `encode/1` now emits the canonical uppercase form
+/// (`0-9 A-F`) per RFC 4648 §8. Use `encode_lowercase/1` for the
+/// opt-in lowercase variant. The decoder remains case-insensitive,
+/// so round-trips with both encoders work.
 import gleam/bit_array
 import gleam/int
 import gleam/list
 import gleam/string
 import yabase/core/encoding.{type CodecError, InvalidCharacter, InvalidLength}
 
-/// Encode a BitArray to a lowercase hexadecimal string.
+/// Encode a BitArray to an uppercase hexadecimal string per
+/// RFC 4648 §8 (the canonical Base 16 encoding).
+///
+/// Use `encode_lowercase/1` when interoperating with tools that
+/// emit lowercase hex (e.g. `sha256sum`, IPFS multibase prefix `f`,
+/// many JSON Web Token implementations); the decoder accepts either
+/// case, so round-trips work in both directions.
 pub fn encode(data: BitArray) -> String {
-  encode_bytes(data, [])
+  encode_bytes(data, [], string.uppercase)
   |> list.reverse
   |> string.join("")
 }
 
-fn encode_bytes(data: BitArray, acc: List(String)) -> List(String) {
+/// Encode a BitArray to a lowercase hexadecimal string. Use this
+/// when interoperating with tools that expect the lowercase variant
+/// (`sha256sum` shell output, IPFS multibase prefix `f`, etc.). The
+/// canonical RFC 4648 §8 form is uppercase — see `encode/1`.
+pub fn encode_lowercase(data: BitArray) -> String {
+  encode_bytes(data, [], string.lowercase)
+  |> list.reverse
+  |> string.join("")
+}
+
+fn encode_bytes(
+  data: BitArray,
+  acc: List(String),
+  case_fn: fn(String) -> String,
+) -> List(String) {
   case data {
     <<byte:int, rest:bits>> -> {
       let high = int.to_base16(byte / 16)
       let low = int.to_base16(byte % 16)
-      encode_bytes(rest, [string.lowercase(high <> low), ..acc])
+      encode_bytes(rest, [case_fn(high <> low), ..acc], case_fn)
     }
     _ -> acc
   }
