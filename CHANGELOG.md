@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- JavaScript target compilation. `gleam.toml` no longer pins
+  `target = "erlang"`, so the package compiles for both Erlang and
+  JavaScript. The four `@external(erlang, "erlang", ...)` calls in
+  `base91.gleam` were replaced with the cross-target `gleam/int`
+  bitwise helpers (no FFI remains in `src/`). CI now runs a
+  `Build (JavaScript)` job that verifies the package compiles
+  cleanly under `gleam build --target javascript`. (#31)
+
+### Notes
+
+- The Erlang test suite (647 tests) is unaffected. A subset of the
+  encodings (base32 Crockford, base58, base36 — anything that uses
+  arbitrary-precision integer arithmetic for the bignum-style codecs)
+  rely on BEAM bignum semantics and produce wrong values when run
+  on JavaScript past `Number.MAX_SAFE_INTEGER`. Those modules still
+  compile on JavaScript but their tests are not yet wired into a
+  cross-target test run; partitioning the test suite (or porting the
+  bignum codecs to a JS-safe representation) is a separate piece of
+  follow-up work. base16, base64, base91, base32 RFC4648 and ascii85
+  remain JavaScript-safe.
+
 ## [0.7.0] - 2026-04-28
 
 ### Added

@@ -16,6 +16,18 @@ Yet Another Base -- a unified, type-safe interface for multiple binary-to-text e
 
 - Gleam 1.15 or later
 - Erlang/OTP 26 or later (CI tests OTP 26, 27, 28)
+- Node.js 18 or later (when targeting JavaScript)
+
+## Supported targets
+
+- Erlang (BEAM) — full encoding catalogue.
+- JavaScript — the package compiles for the JavaScript target with
+  no FFI. Encodings whose internals rely on arbitrary-precision
+  integer arithmetic (base32 Crockford, base58, base36 — used in
+  multibase too) inherit JavaScript's `Number.MAX_SAFE_INTEGER`
+  ceiling and may produce incorrect output for inputs that overflow
+  53-bit integers. base16, base64, base91, base32 RFC4648 and
+  ascii85 are JavaScript-safe.
 
 ## Install
 
