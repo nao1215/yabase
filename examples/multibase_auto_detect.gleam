@@ -13,10 +13,8 @@ pub fn main() -> Nil {
 
   // Encode the same data with different encodings
   let assert Ok(hex) = yabase.encode_multibase(encoding.base16(), data)
-  let assert Ok(b58) =
-    yabase.encode_multibase(encoding.base58_bitcoin(), data)
-  let assert Ok(b64) =
-    yabase.encode_multibase(encoding.base64_standard(), data)
+  let assert Ok(b58) = yabase.encode_multibase(encoding.base58_bitcoin(), data)
+  let assert Ok(b64) = yabase.encode_multibase(encoding.base64_standard(), data)
 
   io.println("Base16:  " <> hex)
   io.println("Base58:  " <> b58)
