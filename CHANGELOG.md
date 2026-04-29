@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-04-28
+
 ### Added
 
 - 25 smart constructors on `yabase/core/encoding` — one per existing
