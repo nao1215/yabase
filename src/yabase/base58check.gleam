@@ -5,7 +5,7 @@
 import gleam/bit_array
 import gleam/bool
 import gleam/string
-import yabase/core/encoding.{
+import yabase/core/error.{
   type Base58CheckDecoded, type CodecError, Base58CheckDecoded, InvalidChecksum,
   InvalidLength, Overflow,
 }

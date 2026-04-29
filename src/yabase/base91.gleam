@@ -10,7 +10,7 @@ import gleam/bool
 import gleam/int
 import gleam/list
 import gleam/string
-import yabase/core/encoding.{type CodecError, InvalidCharacter}
+import yabase/core/error.{type CodecError, InvalidCharacter}
 
 const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#$%&()*+,./:;<=>?@[]^_`{|}~\""
 

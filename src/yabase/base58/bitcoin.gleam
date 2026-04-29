@@ -1,6 +1,6 @@
 /// Base58 encoding (Bitcoin alphabet).
 /// Alphabet: 123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz
-import yabase/core/encoding.{type CodecError}
+import yabase/core/error.{type CodecError}
 import yabase/internal/bignum
 
 const alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"

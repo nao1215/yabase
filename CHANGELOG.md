@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- **`Encoding` and variant ADTs are now `pub opaque type` (BREAKING)**.
+  `Encoding`, `Base32Variant`, `Base58Variant`, `Base64Variant`, and
+  `Base85Variant` no longer expose their constructors to package-
+  external callers. Code that previously wrote `Base32(RFC4648)` or
+  pattern-matched `case enc { Base64(_) -> ... }` will not compile;
+  switch construction sites to the smart constructors added in
+  v0.9.0 (`encoding.base32_rfc4648()`, `encoding.base64_standard()`,
+  …) and replace pattern matches with field access on `Decoded`
+  (the `encoding` and `data` fields stay public). Adding a new
+  alphabet is now a non-breaking minor instead of a SemVer-major.
+  (#32)
+- **`yabase/core/dispatcher` removed**. Its `encode/2` and
+  `decode_as/2` move into `yabase/core/encoding` (and stay reachable
+  via the existing top-level `yabase.encode/2` / `yabase.decode/2`
+  facade). External callers using the top-level facade are
+  unaffected; callers that imported `yabase/core/dispatcher` directly
+  switch to `yabase/core/encoding`. (#32)
+- **`CodecError` and Bech32 / Base58Check result types moved to
+  `yabase/core/error`**. `import yabase/core/encoding.{type CodecError}`
+  keeps working through a type alias, but the constructor
+  short-imports (`InvalidCharacter`, `InvalidLength`, `Overflow`,
+  `Bech32Decoded`, …) only resolve from `yabase/core/error` now.
+  Update import lines accordingly. (#32)
+
 ## [0.9.0] - 2026-04-28
 
 ### Added

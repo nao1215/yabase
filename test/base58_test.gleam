@@ -1,6 +1,6 @@
 import yabase/base58/bitcoin
 import yabase/base58/flickr
-import yabase/core/encoding.{InvalidCharacter}
+import yabase/core/error.{InvalidCharacter}
 
 // === Bitcoin alphabet ===
 

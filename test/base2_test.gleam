@@ -1,5 +1,5 @@
 import yabase/base2
-import yabase/core/encoding.{InvalidCharacter, InvalidLength}
+import yabase/core/error.{InvalidCharacter, InvalidLength}
 
 pub fn encode_empty_test() -> Nil {
   assert base2.encode(<<>>) == ""

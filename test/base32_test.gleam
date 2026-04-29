@@ -3,7 +3,7 @@ import yabase/base32/clockwork
 import yabase/base32/crockford
 import yabase/base32/hex as base32_hex
 import yabase/base32/rfc4648
-import yabase/core/encoding.{InvalidCharacter, InvalidChecksum, InvalidLength}
+import yabase/core/error.{InvalidCharacter, InvalidChecksum, InvalidLength}
 
 // ===== RFC4648 =====
 

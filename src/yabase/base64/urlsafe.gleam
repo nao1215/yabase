@@ -4,7 +4,7 @@ import gleam/bit_array
 import gleam/bool
 import gleam/list
 import gleam/string
-import yabase/core/encoding.{type CodecError, InvalidCharacter, InvalidLength}
+import yabase/core/error.{type CodecError, InvalidCharacter, InvalidLength}
 
 const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
 

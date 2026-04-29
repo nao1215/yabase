@@ -1,5 +1,5 @@
 import yabase/base58check
-import yabase/core/encoding.{
+import yabase/core/error.{
   InvalidCharacter, InvalidChecksum, InvalidLength, Overflow,
 }
 

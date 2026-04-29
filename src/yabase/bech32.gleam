@@ -20,7 +20,7 @@ import gleam/bit_array
 import gleam/bool
 import gleam/list
 import gleam/string
-import yabase/core/encoding.{
+import yabase/core/error.{
   type Bech32Decoded, type Bech32Variant, type CodecError, Bech32 as Bech32V,
   Bech32Decoded, Bech32m as Bech32mV, InvalidCharacter, InvalidChecksum,
   InvalidHrp, InvalidLength,

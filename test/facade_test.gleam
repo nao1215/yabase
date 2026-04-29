@@ -1,4 +1,4 @@
-import yabase/core/encoding.{InvalidLength}
+import yabase/core/error.{InvalidLength}
 import yabase/facade
 
 // Thin wiring tests: verify each facade function delegates correctly.

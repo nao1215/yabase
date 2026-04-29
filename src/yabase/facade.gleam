@@ -26,7 +26,7 @@ import yabase/base64/urlsafe
 import yabase/base64/urlsafe_nopadding
 import yabase/base8
 import yabase/base91
-import yabase/core/encoding.{type CodecError}
+import yabase/core/error.{type CodecError}
 import yabase/rfc1924_base85
 import yabase/z85
 

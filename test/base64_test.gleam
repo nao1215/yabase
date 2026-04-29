@@ -3,7 +3,7 @@ import yabase/base64/nopadding
 import yabase/base64/standard
 import yabase/base64/urlsafe
 import yabase/base64/urlsafe_nopadding
-import yabase/core/encoding.{InvalidCharacter, InvalidLength}
+import yabase/core/error.{InvalidCharacter, InvalidLength}
 
 // ===== Standard =====
 

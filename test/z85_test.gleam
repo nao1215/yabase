@@ -1,4 +1,4 @@
-import yabase/core/encoding.{InvalidLength, Overflow}
+import yabase/core/error.{InvalidLength, Overflow}
 import yabase/z85
 
 pub fn encode_empty_test() -> Nil {

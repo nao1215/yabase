@@ -1,56 +1,86 @@
-/// Core encoding types for yabase.
+/// Core encoding type for yabase.
+///
+/// `Encoding` and the per-base variant ADTs (`Base32Variant`,
+/// `Base58Variant`, `Base64Variant`, `Base85Variant`) are
+/// `pub opaque type`. Package-external callers cannot construct them
+/// directly or pattern-match on the constructor list. The supported
+/// way to obtain an `Encoding` value is the smart constructors at the
+/// bottom of this module (`base32_rfc4648/0`, `base64_standard/0`, …);
+/// the supported way to use one is `encode/2` / `decode_as/2`, the
+/// per-base helpers in `yabase/facade`, or the multibase helpers in
+/// `yabase/core/multibase`. Hiding the constructors lets the variant
+/// list grow on a non-breaking minor instead of forcing a SemVer-major
+/// every time a new alphabet is added.
+import gleam/string
+import yabase/adobe_ascii85
+import yabase/ascii85
+import yabase/base10
+import yabase/base16
+import yabase/base2
+import yabase/base32/clockwork
+import yabase/base32/crockford
+import yabase/base32/hex as base32_hex_module
+import yabase/base32/rfc4648 as base32_rfc4648_module
+import yabase/base32/zbase32
+import yabase/base36 as base36_module
+import yabase/base45 as base45_module
+import yabase/base58/bitcoin as base58_bitcoin_module
+import yabase/base58/flickr as base58_flickr_module
+import yabase/base62 as base62_module
+import yabase/base64/dq as base64_dq_module
+import yabase/base64/nopadding as base64_nopadding_module
+import yabase/base64/standard as base64_standard_module
+import yabase/base64/urlsafe as base64_urlsafe_module
+import yabase/base64/urlsafe_nopadding as base64_urlsafe_nopadding_module
+import yabase/base8
+import yabase/base91 as base91_module
+import yabase/core/error.{type CodecError as CodecErrorAlias}
+import yabase/rfc1924_base85
+import yabase/z85 as z85_module
+
+/// Re-export of `error.CodecError` so the historical
+/// `import yabase/core/encoding.{type CodecError}` shape keeps working.
+/// Other error types (`Bech32Variant`, `Bech32Decoded`,
+/// `Base58CheckDecoded`) are no longer re-exported — import them
+/// directly from `yabase/core/error`.
+pub type CodecError =
+  CodecErrorAlias
+
 /// Variants for Base32 encoding.
-pub type Base32Variant {
-  /// RFC 4648 standard Base32
+pub opaque type Base32Variant {
   RFC4648
-  /// RFC 4648 Base32 with extended hex alphabet
   Hex
-  /// Crockford's Base32
   Crockford
-  /// Crockford's Base32 with mod-37 check symbol
   CrockfordCheck
-  /// Clockwork Base32 (human-friendly, no padding)
   Clockwork
-  /// z-base-32 (human-oriented, no padding)
   ZBase32
 }
 
 /// Variants for Base64 encoding.
-pub type Base64Variant {
-  /// RFC 4648 standard Base64 (with padding)
+pub opaque type Base64Variant {
   Standard
-  /// URL-safe Base64 with padding (RFC 4648 section 5)
   UrlSafe
-  /// Standard Base64 without padding
   NoPadding
-  /// URL-safe Base64 without padding
   UrlSafeNoPadding
-  /// Dragon Quest revival password style Base64 (hiragana)
   DQ
 }
 
 /// Variants for Base58 encoding.
-pub type Base58Variant {
-  /// Bitcoin alphabet (uppercase before lowercase)
+pub opaque type Base58Variant {
   Bitcoin
-  /// Flickr alphabet (lowercase before uppercase)
   Flickr
 }
 
 /// Variants for Base85 encoding.
-pub type Base85Variant {
-  /// btoa-style Ascii85 (z for all-zero, y for all-space)
+pub opaque type Base85Variant {
   Btoa
-  /// Adobe Ascii85 with <~ ~> delimiters
   Adobe
-  /// RFC 1924 alphabet (input must be 4-byte aligned)
   Rfc1924
-  /// ZeroMQ Z85 (input must be 4-byte aligned)
   Z85
 }
 
 /// Represents a supported encoding scheme.
-pub type Encoding {
+pub opaque type Encoding {
   Base2
   Base8
   Base10
@@ -70,176 +100,271 @@ pub type Decoded {
   Decoded(encoding: Encoding, data: BitArray)
 }
 
-/// Bech32 encoding variant.
-pub type Bech32Variant {
-  /// BIP 173 original Bech32
-  Bech32
-  /// BIP 350 improved Bech32m
-  Bech32m
-}
-
-/// Result of decoding a Bech32/Bech32m string.
-pub type Bech32Decoded {
-  Bech32Decoded(hrp: String, data: BitArray, variant: Bech32Variant)
-}
-
-/// Result of decoding a Base58Check string.
-pub type Base58CheckDecoded {
-  Base58CheckDecoded(version: Int, payload: BitArray)
-}
-
-/// Errors that can occur during encoding or decoding.
-pub type CodecError {
-  /// Input contains a character not in the encoding's alphabet.
-  InvalidCharacter(character: String, position: Int)
-  /// Input length is not valid for the encoding.
-  InvalidLength(length: Int)
-  /// Decoded value overflows the expected range.
-  Overflow
-  /// An unknown multibase prefix was encountered during decode.
-  UnsupportedPrefix(prefix: String)
-  /// An encoding has no assigned multibase prefix (e.g. Base64 DQ).
-  UnsupportedMultibaseEncoding(encoding_name: String)
-  /// Checksum verification failed (Base58Check, Bech32).
-  InvalidChecksum
-  /// Invalid human-readable part in Bech32/Bech32m.
-  InvalidHrp(reason: String)
-}
-
 // ---------------------------------------------------------------------------
-// Smart constructors.
-//
-// These are the recommended way to construct `Encoding` values. They
-// mirror the existing variants — `base32_rfc4648/0` for
-// `Base32(RFC4648)`, `base64_standard/0` for `Base64(Standard)`, etc. —
-// and stay stable across releases even when the variant ADTs change
-// shape. The constructor list is still public for now (so existing
-// `Base32(RFC4648)` call sites keep working unchanged); promoting the
-// types to `pub opaque type` for full constructor hiding is tracked
-// as a separate larger refactor (see #32 follow-up notes).
+// Smart constructors. The only supported way to build an `Encoding`.
 // ---------------------------------------------------------------------------
 
-/// Binary (base-2) encoding.
 pub fn base2() -> Encoding {
   Base2
 }
 
-/// Octal (base-8) encoding.
 pub fn base8() -> Encoding {
   Base8
 }
 
-/// Decimal (base-10) encoding.
 pub fn base10() -> Encoding {
   Base10
 }
 
-/// Hexadecimal (base-16) encoding.
 pub fn base16() -> Encoding {
   Base16
 }
 
-/// RFC 4648 standard Base32.
 pub fn base32_rfc4648() -> Encoding {
   Base32(RFC4648)
 }
 
-/// RFC 4648 Base32 with extended hex alphabet.
 pub fn base32_hex() -> Encoding {
   Base32(Hex)
 }
 
-/// Crockford's Base32.
 pub fn base32_crockford() -> Encoding {
   Base32(Crockford)
 }
 
-/// Crockford's Base32 with mod-37 check symbol.
 pub fn base32_crockford_check() -> Encoding {
   Base32(CrockfordCheck)
 }
 
-/// Clockwork Base32 (human-friendly, no padding).
 pub fn base32_clockwork() -> Encoding {
   Base32(Clockwork)
 }
 
-/// z-base-32 (human-oriented, no padding).
 pub fn base32_z_base32() -> Encoding {
   Base32(ZBase32)
 }
 
-/// Base36 encoding.
 pub fn base36() -> Encoding {
   Base36
 }
 
-/// Base45 encoding (RFC 9285).
 pub fn base45() -> Encoding {
   Base45
 }
 
-/// Base58 with the Bitcoin alphabet.
 pub fn base58_bitcoin() -> Encoding {
   Base58(Bitcoin)
 }
 
-/// Base58 with the Flickr alphabet.
 pub fn base58_flickr() -> Encoding {
   Base58(Flickr)
 }
 
-/// Base62 encoding.
 pub fn base62() -> Encoding {
   Base62
 }
 
-/// RFC 4648 standard Base64 (with padding).
 pub fn base64_standard() -> Encoding {
   Base64(Standard)
 }
 
-/// URL-safe Base64 with padding (RFC 4648 section 5).
 pub fn base64_url_safe() -> Encoding {
   Base64(UrlSafe)
 }
 
-/// Standard Base64 without padding.
 pub fn base64_no_padding() -> Encoding {
   Base64(NoPadding)
 }
 
-/// URL-safe Base64 without padding.
 pub fn base64_url_safe_no_padding() -> Encoding {
   Base64(UrlSafeNoPadding)
 }
 
-/// Dragon Quest revival password style Base64 (hiragana).
 pub fn base64_dq() -> Encoding {
   Base64(DQ)
 }
 
-/// btoa-style Ascii85.
 pub fn base85_btoa() -> Encoding {
   Base85(Btoa)
 }
 
-/// Adobe Ascii85 with `<~` `~>` delimiters.
 pub fn base85_adobe() -> Encoding {
   Base85(Adobe)
 }
 
-/// RFC 1924 Base85.
 pub fn base85_rfc1924() -> Encoding {
   Base85(Rfc1924)
 }
 
-/// ZeroMQ Z85 Base85.
 pub fn base85_z85() -> Encoding {
   Base85(Z85)
 }
 
-/// Base91 encoding.
 pub fn base91() -> Encoding {
   Base91
+}
+
+// ---------------------------------------------------------------------------
+// Dispatch.
+// ---------------------------------------------------------------------------
+
+/// Encode data using the specified encoding.
+pub fn encode(enc: Encoding, data: BitArray) -> Result(String, CodecError) {
+  case enc {
+    Base2 -> Ok(base2.encode(data))
+    Base8 -> Ok(base8.encode(data))
+    Base10 -> Ok(base10.encode(data))
+    Base16 -> Ok(base16.encode(data))
+    Base32(RFC4648) -> Ok(base32_rfc4648_module.encode(data))
+    Base32(Hex) -> Ok(base32_hex_module.encode(data))
+    Base32(Crockford) -> Ok(crockford.encode(data))
+    Base32(CrockfordCheck) -> Ok(crockford.encode_check(data))
+    Base32(Clockwork) -> Ok(clockwork.encode(data))
+    Base32(ZBase32) -> Ok(zbase32.encode(data))
+    Base36 -> Ok(base36_module.encode(data))
+    Base45 -> Ok(base45_module.encode(data))
+    Base58(Bitcoin) -> Ok(base58_bitcoin_module.encode(data))
+    Base58(Flickr) -> Ok(base58_flickr_module.encode(data))
+    Base62 -> Ok(base62_module.encode(data))
+    Base64(Standard) -> Ok(base64_standard_module.encode(data))
+    Base64(UrlSafe) -> Ok(base64_urlsafe_module.encode(data))
+    Base64(NoPadding) -> Ok(base64_nopadding_module.encode(data))
+    Base64(UrlSafeNoPadding) -> Ok(base64_urlsafe_nopadding_module.encode(data))
+    Base64(DQ) -> Ok(base64_dq_module.encode(data))
+    Base85(Btoa) -> Ok(ascii85.encode(data))
+    Base85(Adobe) -> Ok(adobe_ascii85.encode(data))
+    Base85(Rfc1924) -> rfc1924_base85.encode(data)
+    Base85(Z85) -> z85_module.encode(data)
+    Base91 -> Ok(base91_module.encode(data))
+  }
+}
+
+/// Decode a string using the specified encoding.
+pub fn decode_as(enc: Encoding, value: String) -> Result(BitArray, CodecError) {
+  case enc {
+    Base2 -> base2.decode(value)
+    Base8 -> base8.decode(value)
+    Base10 -> base10.decode(value)
+    Base16 -> base16.decode(value)
+    Base32(RFC4648) -> base32_rfc4648_module.decode(value)
+    Base32(Hex) -> base32_hex_module.decode(value)
+    Base32(Crockford) -> crockford.decode(value)
+    Base32(CrockfordCheck) -> crockford.decode_check(value)
+    Base32(Clockwork) -> clockwork.decode(value)
+    Base32(ZBase32) -> zbase32.decode(value)
+    Base36 -> base36_module.decode(value)
+    Base45 -> base45_module.decode(value)
+    Base58(Bitcoin) -> base58_bitcoin_module.decode(value)
+    Base58(Flickr) -> base58_flickr_module.decode(value)
+    Base62 -> base62_module.decode(value)
+    Base64(Standard) -> base64_standard_module.decode(value)
+    Base64(UrlSafe) -> base64_urlsafe_module.decode(value)
+    Base64(NoPadding) -> base64_nopadding_module.decode(value)
+    Base64(UrlSafeNoPadding) -> base64_urlsafe_nopadding_module.decode(value)
+    Base64(DQ) -> base64_dq_module.decode(value)
+    Base85(Btoa) -> ascii85.decode(value)
+    Base85(Adobe) -> adobe_ascii85.decode(value)
+    Base85(Rfc1924) -> rfc1924_base85.decode(value)
+    Base85(Z85) -> z85_module.decode(value)
+    Base91 -> base91_module.decode(value)
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Multibase metadata.
+// ---------------------------------------------------------------------------
+
+/// Map an `Encoding` to its official multibase prefix character.
+pub fn multibase_prefix(enc: Encoding) -> Result(String, Nil) {
+  case enc {
+    Base2 -> Ok("0")
+    Base8 -> Ok("7")
+    Base10 -> Ok("9")
+    Base16 -> Ok("f")
+    Base32(RFC4648) -> Ok("c")
+    Base32(Hex) -> Ok("t")
+    Base32(Crockford) -> Error(Nil)
+    Base32(CrockfordCheck) -> Error(Nil)
+    Base32(Clockwork) -> Error(Nil)
+    Base32(ZBase32) -> Ok("h")
+    Base36 -> Ok("k")
+    Base45 -> Ok("R")
+    Base58(Bitcoin) -> Ok("z")
+    Base58(Flickr) -> Ok("Z")
+    Base62 -> Error(Nil)
+    Base64(Standard) -> Ok("M")
+    Base64(UrlSafe) -> Ok("U")
+    Base64(NoPadding) -> Ok("m")
+    Base64(UrlSafeNoPadding) -> Ok("u")
+    Base64(DQ) -> Error(Nil)
+    Base85(Btoa) -> Error(Nil)
+    Base85(Adobe) -> Error(Nil)
+    Base85(Rfc1924) -> Error(Nil)
+    Base85(Z85) -> Error(Nil)
+    Base91 -> Error(Nil)
+  }
+}
+
+/// Map a multibase prefix character to its `Encoding`.
+pub fn from_multibase_prefix(prefix: String) -> Result(Encoding, Nil) {
+  case prefix {
+    "0" -> Ok(Base2)
+    "7" -> Ok(Base8)
+    "9" -> Ok(Base10)
+    "f" | "F" -> Ok(Base16)
+    "c" | "C" -> Ok(Base32(RFC4648))
+    "b" | "B" -> Ok(Base32(RFC4648))
+    "t" | "T" -> Ok(Base32(Hex))
+    "v" | "V" -> Ok(Base32(Hex))
+    "k" | "K" -> Ok(Base36)
+    "R" -> Ok(Base45)
+    "z" -> Ok(Base58(Bitcoin))
+    "Z" -> Ok(Base58(Flickr))
+    "h" -> Ok(Base32(ZBase32))
+    "M" -> Ok(Base64(Standard))
+    "m" -> Ok(Base64(NoPadding))
+    "U" -> Ok(Base64(UrlSafe))
+    "u" -> Ok(Base64(UrlSafeNoPadding))
+    _ -> Error(Nil)
+  }
+}
+
+/// Human-readable name for an `Encoding`.
+pub fn multibase_name(enc: Encoding) -> String {
+  case enc {
+    Base2 -> "base2"
+    Base8 -> "base8"
+    Base10 -> "base10"
+    Base16 -> "base16"
+    Base32(RFC4648) -> "base32pad"
+    Base32(Hex) -> "base32hexpad"
+    Base32(Crockford) -> "base32crockford"
+    Base32(CrockfordCheck) -> "base32crockford-check"
+    Base32(Clockwork) -> "base32clockwork"
+    Base32(ZBase32) -> "base32z"
+    Base36 -> "base36"
+    Base45 -> "base45"
+    Base58(Bitcoin) -> "base58btc"
+    Base58(Flickr) -> "base58flickr"
+    Base62 -> "base62"
+    Base64(Standard) -> "base64pad"
+    Base64(UrlSafe) -> "base64urlpad"
+    Base64(NoPadding) -> "base64"
+    Base64(UrlSafeNoPadding) -> "base64url"
+    Base64(DQ) -> "base64dq"
+    Base85(Btoa) -> "ascii85"
+    Base85(Adobe) -> "adobe-ascii85"
+    Base85(Rfc1924) -> "rfc1924-base85"
+    Base85(Z85) -> "z85"
+    Base91 -> "base91"
+  }
+}
+
+/// Lowercase the dispatcher's output for encodings whose multibase
+/// prefix pins lowercase output (currently `Base16` under prefix `f`).
+pub fn normalise_for_multibase_prefix(enc: Encoding, encoded: String) -> String {
+  case enc {
+    Base16 -> string.lowercase(encoded)
+    _ -> encoded
+  }
 }
