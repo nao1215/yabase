@@ -3,7 +3,7 @@ import yabase/base64/nopadding
 import yabase/base64/standard
 import yabase/base64/urlsafe
 import yabase/base64/urlsafe_nopadding
-import yabase/core/error.{InvalidCharacter, InvalidLength}
+import yabase/core/error.{InvalidCharacter, InvalidLength, NonCanonical}
 
 // ===== Standard =====
 
@@ -461,6 +461,50 @@ pub fn dq_decode_stray_char_in_middle_test() -> Nil {
   // 4-char aligned input with invalid first char
   assert case dq.decode("Xいうえ") {
     Error(InvalidCharacter("X", 0)) -> True
+    _ -> False
+  }
+}
+
+// ===== decode_strict (RFC 4648 §3.5 canonical-encoding check) =====
+
+pub fn standard_decode_strict_canonical_passes_test() -> Nil {
+  // Canonical encoding of "f" — pad bits in 'g' are zero.
+  assert standard.decode_strict("Zg==") == Ok(<<"f":utf8>>)
+}
+
+pub fn standard_decode_strict_non_canonical_rejected_test() -> Nil {
+  // Non-canonical: "Zh==" decodes to <<0x66>> too, but the pad bits
+  // in 'h' are non-zero (canonical form is "Zg==").
+  assert standard.decode_strict("Zh==") == Error(NonCanonical)
+}
+
+pub fn standard_decode_strict_one_pad_non_canonical_rejected_test() -> Nil {
+  // Non-canonical 2-byte input with 1 pad char: "Zm9=" decodes to
+  // "fo" the same as the canonical "Zm8=", but the trailing 2 bits
+  // of '9' (value 61 = 111101) are non-zero. The canonical form
+  // ends in '8' (value 60 = 111100).
+  assert standard.decode_strict("Zm9=") == Error(NonCanonical)
+}
+
+pub fn standard_decode_strict_full_block_passes_test() -> Nil {
+  // Full-block encodings (no padding) cannot be non-canonical —
+  // every bit is data, no pad bits exist.
+  assert standard.decode_strict("Zm9v") == Ok(<<"foo":utf8>>)
+}
+
+pub fn standard_decode_strict_propagates_invalid_character_test() -> Nil {
+  // Strict mode should still surface alphabet-validation errors
+  // unchanged.
+  assert case standard.decode_strict("Z!==") {
+    Error(InvalidCharacter("!", 1)) -> True
+    _ -> False
+  }
+}
+
+pub fn standard_decode_strict_propagates_invalid_length_test() -> Nil {
+  // Strict mode should still surface length errors unchanged.
+  assert case standard.decode_strict("Zg=") {
+    Error(InvalidLength(_)) -> True
     _ -> False
   }
 }

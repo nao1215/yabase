@@ -21,6 +21,14 @@ pub type CodecError {
   InvalidChecksum
   /// Invalid human-readable part in Bech32/Bech32m.
   InvalidHrp(reason: String)
+  /// The decoded bytes are valid but the wire encoding is not the
+  /// canonical form. Per RFC 4648 §3.5, the pad bits in base32 /
+  /// base64 must be zero on the encoder side; decoders MAY reject
+  /// non-canonical input. The strict-variant decoders surface this
+  /// rejection so callers that need wire-form uniqueness (signature
+  /// verification, content-addressable storage, audit comparisons)
+  /// can opt into it.
+  NonCanonical
 }
 
 /// Bech32 encoding variant.

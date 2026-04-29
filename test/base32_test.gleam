@@ -3,7 +3,9 @@ import yabase/base32/clockwork
 import yabase/base32/crockford
 import yabase/base32/hex as base32_hex
 import yabase/base32/rfc4648
-import yabase/core/error.{InvalidCharacter, InvalidChecksum, InvalidLength}
+import yabase/core/error.{
+  InvalidCharacter, InvalidChecksum, InvalidLength, NonCanonical,
+}
 
 // ===== RFC4648 =====
 
@@ -393,4 +395,31 @@ pub fn clockwork_decode_i_l_as_one_test() -> Nil {
   let encoded = clockwork.encode(data)
   let with_l = string.replace(encoded, "1", "L")
   assert clockwork.decode(with_l) == Ok(data)
+}
+
+// ===== rfc4648.decode_strict (RFC 4648 §3.5 canonical-encoding) =====
+
+pub fn rfc4648_decode_strict_canonical_passes_test() -> Nil {
+  // Canonical encoding of "f" is "MY======" — pad bits zero.
+  assert rfc4648.decode_strict("MY======") == Ok(<<"f":utf8>>)
+}
+
+pub fn rfc4648_decode_strict_non_canonical_rejected_test() -> Nil {
+  // Non-canonical: "MB======" decodes to a one-byte value but the
+  // last alphabet character ('B') has non-zero bits in the
+  // pad-bit positions. Canonical for one byte uses only A/I/Q/Y as
+  // the second character (depending on first), making the trailing
+  // 2 bits zero.
+  assert rfc4648.decode_strict("MB======") == Error(NonCanonical)
+}
+
+pub fn rfc4648_decode_strict_full_block_passes_test() -> Nil {
+  // Full-block encodings have no pad bits to non-canonicalise.
+  assert rfc4648.decode_strict("MZXW6YTBOI======") == Ok(<<"foobar":utf8>>)
+}
+
+pub fn rfc4648_decode_strict_lowercase_canonical_passes_test() -> Nil {
+  // Strict accepts case-insensitive input but compares against the
+  // uppercase canonical form.
+  assert rfc4648.decode_strict("my======") == Ok(<<"f":utf8>>)
 }
