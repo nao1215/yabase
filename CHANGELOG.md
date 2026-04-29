@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-04-28
+
 ### Changed
 
 - **`Encoding` and variant ADTs are now `pub opaque type` (BREAKING)**.
