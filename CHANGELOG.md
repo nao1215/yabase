@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-04-30
+
 ### Added
 
 - **Strict-canonical decoders for base64 and base32**, opting into the
