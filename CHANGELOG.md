@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- 25 smart constructors on `yabase/core/encoding` — one per existing
+  `Encoding` variant: `base2/0`, `base8/0`, `base10/0`, `base16/0`,
+  `base32_rfc4648/0`, `base32_hex/0`, `base32_crockford/0`,
+  `base32_crockford_check/0`, `base32_clockwork/0`,
+  `base32_z_base32/0`, `base36/0`, `base45/0`, `base58_bitcoin/0`,
+  `base58_flickr/0`, `base62/0`, `base64_standard/0`,
+  `base64_url_safe/0`, `base64_no_padding/0`,
+  `base64_url_safe_no_padding/0`, `base64_dq/0`, `base85_btoa/0`,
+  `base85_adobe/0`, `base85_rfc1924/0`, `base85_z85/0`, `base91/0`.
+  Each returns the same `Encoding` value as the matching ADT
+  constructor (`encoding.base32_rfc4648() == Base32(RFC4648)`), but
+  the smart-constructor signature stays stable across releases even
+  if the underlying variant ADT changes shape. New 25-test smoke
+  module pins that equivalence so a future opaque migration can
+  refactor the ADT freely. (#32, partial)
+
+### Notes
+
+- This is the non-breaking first half of #32. The full plan is to
+  promote `Encoding` (and `Base32Variant` / `Base58Variant` /
+  `Base64Variant` / `Base85Variant`) to `pub opaque type` so external
+  callers cannot pattern-match on the constructor list at all. That
+  step is BREAKING for any caller that today writes
+  `case enc { Base64(_) -> ... }` outside the package, and it
+  requires moving the dispatcher and multibase-prefix tables out of
+  the `core/dispatcher` and `core/multibase` modules into the type's
+  defining module (so the pattern match stays inside the opaque
+  boundary). Tracked as a follow-up — landing the smart constructors
+  first lets external callers migrate their construction sites
+  (`Base32(RFC4648)` → `encoding.base32_rfc4648()`) on the current
+  release without waiting for the bigger refactor.
+
 ## [0.8.0] - 2026-04-28
 
 ### Added
