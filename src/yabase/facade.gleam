@@ -101,6 +101,15 @@ pub fn decode_base32(input: String) -> Result(BitArray, CodecError) {
   rfc4648.decode(input)
 }
 
+/// Decode a Base32 (RFC 4648) string and additionally reject
+/// non-canonical encodings per §3.5 — the trailing pad bits in a
+/// final block of fewer than 5 bytes must be zero. Returns
+/// `Error(NonCanonical)` for inputs whose pad bits are set. See
+/// `yabase/base32/rfc4648.decode_strict` for the full contract.
+pub fn decode_base32_strict(input: String) -> Result(BitArray, CodecError) {
+  rfc4648.decode_strict(input)
+}
+
 /// Encode a BitArray to Base32 Hex (extended hex alphabet, RFC 4648) with padding.
 pub fn encode_base32_hex(data: BitArray) -> String {
   base32_hex.encode(data)
@@ -221,6 +230,15 @@ pub fn encode_base64(data: BitArray) -> String {
 /// Decode a standard Base64 string to a BitArray.
 pub fn decode_base64(input: String) -> Result(BitArray, CodecError) {
   standard.decode(input)
+}
+
+/// Decode a standard Base64 string and additionally reject
+/// non-canonical encodings per RFC 4648 §3.5 — the trailing pad
+/// bits in a 1- or 2-byte final block must be zero. Returns
+/// `Error(NonCanonical)` for inputs whose pad bits are set. See
+/// `yabase/base64/standard.decode_strict` for the full contract.
+pub fn decode_base64_strict(input: String) -> Result(BitArray, CodecError) {
+  standard.decode_strict(input)
 }
 
 /// Encode a BitArray to URL-safe Base64 (- instead of +, _ instead of /) with padding.

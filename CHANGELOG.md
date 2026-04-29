@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **Strict-canonical decoders for base64 and base32**, opting into the
+  RFC 4648 §3.5 rejection of non-canonical encodings (where pad bits
+  in a final partial block are non-zero). New surface:
+  - `yabase/base64/standard.decode_strict/1` — same shape as `decode/1`
+    but returns `Error(NonCanonical)` when the trailing pad bits are
+    set
+  - `yabase/base32/rfc4648.decode_strict/1` — same shape, with the
+    canonical re-encoding compared case-insensitively
+  - `yabase/facade.decode_base64_strict/1` and `decode_base32_strict/1`
+    re-export the above on the high-level API
+  - new `NonCanonical` variant on `CodecError` (minor API
+    addition — exhaustive case statements over `CodecError` need a new
+    arm)
+  Useful for signature verification, content-addressable storage, and
+  any audit-style use case where the wire encoding's uniqueness is
+  part of the contract. The lenient `decode/1` paths are unchanged
+  for backwards compatibility. (#39)
+
 ## [0.10.0] - 2026-04-28
 
 ### Changed

@@ -3,7 +3,9 @@ import gleam/bit_array
 import gleam/bool
 import gleam/list
 import gleam/string
-import yabase/core/error.{type CodecError, InvalidCharacter, InvalidLength}
+import yabase/core/error.{
+  type CodecError, InvalidCharacter, InvalidLength, NonCanonical,
+}
 
 const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 
@@ -48,6 +50,27 @@ pub fn decode(input: String) -> Result(BitArray, CodecError) {
         _ -> Error(InvalidLength(len))
       }
     }
+  }
+}
+
+/// Decode `input` and additionally reject non-canonical encodings
+/// per RFC 4648 §3.5: the trailing pad bits in a 1- or 2-byte final
+/// block must be zero. Useful for signature verification and
+/// content-addressable storage, where the wire encoding's uniqueness
+/// is part of the contract.
+///
+/// Returns `Error(NonCanonical)` when the input decodes to bytes
+/// whose canonical re-encoding differs from the original input.
+/// Other failure modes (`InvalidCharacter`, `InvalidLength`) are
+/// surfaced unchanged from `decode/1`.
+pub fn decode_strict(input: String) -> Result(BitArray, CodecError) {
+  case decode(input) {
+    Error(e) -> Error(e)
+    Ok(bytes) ->
+      case encode(bytes) == input {
+        True -> Ok(bytes)
+        False -> Error(NonCanonical)
+      }
   }
 }
 

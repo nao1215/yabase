@@ -1,4 +1,4 @@
-import yabase/core/error.{InvalidLength}
+import yabase/core/error.{InvalidLength, NonCanonical}
 import yabase/facade
 
 // Thin wiring tests: verify each facade function delegates correctly.
@@ -161,4 +161,24 @@ pub fn rfc1924_base85_roundtrip_test() -> Nil {
   let data = <<1, 2, 3, 4>>
   let assert Ok(encoded) = facade.encode_rfc1924_base85(data)
   assert facade.decode_rfc1924_base85(encoded) == Ok(data)
+}
+
+// --- decode_strict facade wiring ---
+
+pub fn decode_base64_strict_canonical_test() -> Nil {
+  // Canonical encoding of "f" — passes strict.
+  assert facade.decode_base64_strict("Zg==") == Ok(<<"f":utf8>>)
+}
+
+pub fn decode_base64_strict_non_canonical_test() -> Nil {
+  // Non-canonical (pad bits non-zero) — rejected by strict.
+  assert facade.decode_base64_strict("Zh==") == Error(NonCanonical)
+}
+
+pub fn decode_base32_strict_canonical_test() -> Nil {
+  assert facade.decode_base32_strict("MY======") == Ok(<<"f":utf8>>)
+}
+
+pub fn decode_base32_strict_non_canonical_test() -> Nil {
+  assert facade.decode_base32_strict("MB======") == Error(NonCanonical)
 }
