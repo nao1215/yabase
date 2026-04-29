@@ -55,7 +55,7 @@ import yabase/base36
 import yabase/base58/bitcoin as base58_bitcoin
 import yabase/base58/flickr as base58_flickr
 import yabase/base62
-import yabase/core/encoding.{type CodecError, InvalidLength, Overflow}
+import yabase/core/error.{type CodecError, InvalidLength, Overflow}
 import yabase/internal/bignum
 
 /// Largest value that fits in a signed 64-bit integer (`2^63 - 1`).

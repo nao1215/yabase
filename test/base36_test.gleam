@@ -1,6 +1,6 @@
 import gleam/string
 import yabase/base36
-import yabase/core/encoding.{InvalidCharacter}
+import yabase/core/error.{InvalidCharacter}
 
 pub fn encode_empty_test() -> Nil {
   assert base36.encode(<<>>) == ""

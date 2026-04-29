@@ -5,7 +5,7 @@ import gleam/bit_array
 import gleam/bool
 import gleam/list
 import gleam/string
-import yabase/core/encoding.{type CodecError, InvalidCharacter, InvalidLength}
+import yabase/core/error.{type CodecError, InvalidCharacter, InvalidLength}
 
 const dq_alphabet = [
   "あ", "い", "う", "え", "お", "か", "き", "く", "け", "こ", "さ", "し", "す", "せ", "そ", "た",

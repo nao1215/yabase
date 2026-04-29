@@ -3,7 +3,7 @@
 import gleam/bool
 import gleam/list
 import gleam/string
-import yabase/core/encoding.{type CodecError, InvalidCharacter, InvalidLength}
+import yabase/core/error.{type CodecError, InvalidCharacter, InvalidLength}
 
 /// Encode a BitArray to a binary string (e.g. <<0x41>> -> "01000001").
 pub fn encode(data: BitArray) -> String {

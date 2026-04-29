@@ -1,7 +1,7 @@
 /// Base58 encoding (Flickr alphabet).
 /// Alphabet: 123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ
 /// Same as Bitcoin but with swapped upper/lower case.
-import yabase/core/encoding.{type CodecError}
+import yabase/core/error.{type CodecError}
 import yabase/internal/bignum
 
 const alphabet = "123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ"

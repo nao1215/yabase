@@ -1,5 +1,5 @@
 import yabase/base16
-import yabase/core/encoding.{InvalidCharacter, InvalidLength}
+import yabase/core/error.{InvalidCharacter, InvalidLength}
 
 // --- Fixed vectors ---
 

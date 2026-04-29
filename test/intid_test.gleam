@@ -1,4 +1,4 @@
-import yabase/core/encoding.{InvalidCharacter, InvalidLength, Overflow}
+import yabase/core/error.{InvalidCharacter, InvalidLength, Overflow}
 import yabase/intid
 
 // === Base32 (RFC 4648) ===
@@ -61,7 +61,7 @@ pub fn decode_int_base32_crockford_roundtrip_test() -> Nil {
   assert intid.decode_int_base32_crockford(encoded) == Ok(987_654)
 }
 
-// === Base36 ===
+// === encoding.base36() ===
 
 pub fn encode_int_base36_zero_test() -> Nil {
   assert intid.encode_int_base36(0) == "0"
@@ -154,7 +154,7 @@ pub fn decode_int_base58_flickr_empty_test() -> Nil {
   assert intid.decode_int_base58_flickr("") == Error(InvalidLength(0))
 }
 
-// === Base62 ===
+// === encoding.base62() ===
 
 pub fn encode_int_base62_zero_test() -> Nil {
   assert intid.encode_int_base62(0) == "0"
@@ -279,7 +279,7 @@ pub fn decode_int_base58_flickr_bounded_above_cap_test() -> Nil {
     == Error(Overflow)
 }
 
-// === Bounded decode: Base62 ===
+// === Bounded decode: encoding.base62() ===
 
 pub fn decode_int_base62_bounded_within_test() -> Nil {
   let encoded = intid.encode_int_base62(2_147_483_647)
@@ -299,7 +299,7 @@ pub fn decode_int_base62_bounded_int53_within_test() -> Nil {
     == Ok(intid.int53_max)
 }
 
-// === Bounded decode: Base36 ===
+// === Bounded decode: encoding.base36() ===
 
 pub fn decode_int_base36_bounded_within_test() -> Nil {
   let encoded = intid.encode_int_base36(8_675_309)

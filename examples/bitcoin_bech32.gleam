@@ -7,7 +7,7 @@
 /// version/program semantics are applied).
 import gleam/io
 import yabase/bech32
-import yabase/core/encoding.{Bech32 as Bech32V, Bech32m as Bech32mV}
+import yabase/core/error.{Bech32 as Bech32V, Bech32m as Bech32mV}
 
 pub fn main() -> Nil {
   // Bech32 encode with HRP "bc" (arbitrary payload, not a SegWit address)

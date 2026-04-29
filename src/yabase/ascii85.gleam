@@ -6,7 +6,7 @@ import gleam/bit_array
 import gleam/bool
 import gleam/list
 import gleam/string
-import yabase/core/encoding.{
+import yabase/core/error.{
   type CodecError, InvalidCharacter, InvalidLength, Overflow,
 }
 

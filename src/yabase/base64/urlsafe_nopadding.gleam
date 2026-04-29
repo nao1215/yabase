@@ -2,7 +2,7 @@
 /// Same as URL-safe Base64 but padding characters are stripped.
 import gleam/string
 import yabase/base64/urlsafe
-import yabase/core/encoding.{type CodecError, InvalidCharacter, InvalidLength}
+import yabase/core/error.{type CodecError, InvalidCharacter, InvalidLength}
 
 /// Encode a BitArray to URL-safe Base64 without padding.
 pub fn encode(data: BitArray) -> String {

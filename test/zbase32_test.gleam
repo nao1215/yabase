@@ -1,5 +1,5 @@
 import yabase/base32/zbase32
-import yabase/core/encoding.{InvalidCharacter}
+import yabase/core/error.{InvalidCharacter}
 
 pub fn encode_empty_test() -> Nil {
   assert zbase32.encode(<<>>) == ""

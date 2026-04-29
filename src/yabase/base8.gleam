@@ -1,7 +1,7 @@
 /// Base8 (octal) encoding.
 /// Treats the input as a big integer and encodes in base 8 (0-7).
 /// Leading 0x00 bytes round-trip as leading "0" characters.
-import yabase/core/encoding.{type CodecError}
+import yabase/core/error.{type CodecError}
 import yabase/internal/bignum
 
 const alphabet = "01234567"

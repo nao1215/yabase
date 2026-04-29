@@ -28,7 +28,7 @@
 /// when encoding a numeric ID that already fits the base-32
 /// integer model.
 import gleam/string
-import yabase/core/encoding.{type CodecError, InvalidChecksum, InvalidLength}
+import yabase/core/error.{type CodecError, InvalidChecksum, InvalidLength}
 import yabase/internal/bignum
 
 const alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"

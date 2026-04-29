@@ -8,7 +8,7 @@
 import gleam/bit_array
 import gleam/list
 import gleam/string
-import yabase/core/encoding.{type CodecError, InvalidCharacter}
+import yabase/core/error.{type CodecError, InvalidCharacter}
 
 /// Convert a BitArray to a big integer (MSB first).
 pub fn bytes_to_int(data: BitArray, acc: Int) -> Int {

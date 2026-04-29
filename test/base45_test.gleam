@@ -1,5 +1,5 @@
 import yabase/base45
-import yabase/core/encoding.{InvalidCharacter, InvalidLength, Overflow}
+import yabase/core/error.{InvalidCharacter, InvalidLength, Overflow}
 
 pub fn encode_empty_test() -> Nil {
   assert base45.encode(<<>>) == ""

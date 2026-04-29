@@ -8,7 +8,7 @@ import gleam/bit_array
 import gleam/int
 import gleam/list
 import gleam/string
-import yabase/core/encoding.{type CodecError, InvalidCharacter, InvalidLength}
+import yabase/core/error.{type CodecError, InvalidCharacter, InvalidLength}
 
 /// Encode a BitArray to an uppercase hexadecimal string per
 /// RFC 4648 §8 (the canonical Base 16 encoding).

@@ -2,7 +2,7 @@
 /// Same as standard Base64 but padding characters are stripped.
 import gleam/string
 import yabase/base64/standard
-import yabase/core/encoding.{type CodecError, InvalidCharacter, InvalidLength}
+import yabase/core/error.{type CodecError, InvalidCharacter, InvalidLength}
 
 const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 

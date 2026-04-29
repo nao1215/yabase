@@ -1,7 +1,7 @@
 /// Base36 encoding (0-9, a-z). Case-insensitive decode.
 /// Leading 0x00 bytes round-trip as leading "0" characters.
 import gleam/string
-import yabase/core/encoding.{type CodecError}
+import yabase/core/error.{type CodecError}
 import yabase/internal/bignum
 
 const alphabet = "0123456789abcdefghijklmnopqrstuvwxyz"

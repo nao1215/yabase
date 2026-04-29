@@ -4,7 +4,7 @@
 /// Can also encode arbitrary data in 4-byte groups like Z85.
 import gleam/bit_array
 import gleam/string
-import yabase/core/encoding.{
+import yabase/core/error.{
   type CodecError, InvalidCharacter, InvalidLength, Overflow,
 }
 

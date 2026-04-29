@@ -166,10 +166,12 @@ let assert Ok(_data) = clockwork.decode("91JPRV3F41BPYWKCCGGG")
 
 ```gleam
 import yabase
-import yabase/core/encoding.{Base32, Clockwork}
+import yabase/core/encoding
 
-let assert Ok(encoded) = yabase.encode(Base32(Clockwork), <<"Hello":utf8>>)
-let assert Ok(_decoded) = yabase.decode(Base32(Clockwork), encoded)
+let assert Ok(encoded) =
+  yabase.encode(encoding.base32_clockwork(), <<"Hello":utf8>>)
+let assert Ok(_decoded) =
+  yabase.decode(encoding.base32_clockwork(), encoded)
 ```
 
 ### 3. Facade (developer-friendly shortcuts)
@@ -187,15 +189,19 @@ Prefix-based encoding and auto-detection:
 
 ```gleam
 import yabase
-import yabase/core/encoding.{Base16, Decoded}
+import yabase/core/encoding.{Decoded}
 
 // Encode with multibase prefix
-let assert Ok(prefixed) = yabase.encode_multibase(Base16, <<"Hello":utf8>>)
+let assert Ok(prefixed) =
+  yabase.encode_multibase(encoding.base16(), <<"Hello":utf8>>)
 // "f48656c6c6f"
 
-// Decode with auto-detection
-let assert Ok(Decoded(encoding: Base16, data: _data)) =
+// Decode with auto-detection. The opaque `Encoding` value is bound
+// directly; compare against a smart constructor or use
+// `encoding.multibase_name/1` if you need to label it.
+let assert Ok(Decoded(encoding: enc, data: _data)) =
   yabase.decode_multibase(prefixed)
+let assert True = enc == encoding.base16()
 ```
 
 ### Multibase prefix coverage
@@ -234,7 +240,7 @@ Byte-payload convenience API. Takes raw bytes, handles 8-to-5-bit conversion int
 
 ```gleam
 import yabase/bech32
-import yabase/core/encoding.{Bech32}
+import yabase/core/error.{Bech32}
 
 // Bech32 encode
 let assert Ok(encoded) = bech32.encode(Bech32, "bc", <<0, 14, 20, 15>>)
