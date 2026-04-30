@@ -36,6 +36,16 @@ that exercise the bignum-backed codecs above are isolated with
 covered on BEAM, but are intentionally skipped on JS rather than
 silently passing or failing.
 
+The JavaScript lane runs on two Node versions:
+
+- **Node 18** — the documented minimum supported version. This is
+  the support floor: the package is required to work here, and
+  regressions on this lane block release.
+- **Node 22** — latest-LTS coverage for general confidence.
+
+The release workflow runs the same matrix; both lanes must pass
+before `gleam publish` runs.
+
 ## Install
 
 ```sh
