@@ -5,6 +5,7 @@ import yabase/core/error.{
 
 // --- Roundtrip ---
 
+@target(erlang)
 pub fn roundtrip_version0_test() -> Nil {
   let payload = <<1, 2, 3, 4, 5>>
   let assert Ok(encoded) = base58check.encode(0, payload)
@@ -13,6 +14,7 @@ pub fn roundtrip_version0_test() -> Nil {
   assert decoded.payload == payload
 }
 
+@target(erlang)
 pub fn roundtrip_version5_test() -> Nil {
   let payload = <<0xde, 0xad, 0xbe, 0xef>>
   let assert Ok(encoded) = base58check.encode(5, payload)
@@ -72,6 +74,7 @@ pub fn encode_version_256_same_as_0_prevented_test() -> Nil {
 //   payload = 0x010966776006953D5567439E5E39F86A0D273BEE
 // This verifies SHA-256 double-hash correctness against an external reference.
 
+@target(erlang)
 pub fn bitcoin_wiki_vector_decode_test() -> Nil {
   let assert Ok(decoded) =
     base58check.decode("16UwLL9Risc3QfPqBUvKofHmBQ7wMtjvM")
@@ -135,6 +138,7 @@ pub fn decode_invalid_char_middle_test() -> Nil {
 // === Cross-reference: bitcoinjs/bs58check fixtures ===
 // Source: https://github.com/bitcoinjs/bs58check
 
+@target(erlang)
 pub fn bs58check_vector_1agn_test() -> Nil {
   let assert Ok(decoded) =
     base58check.decode("1AGNa15ZQXAZUgFiqJ2i7Z2DPU2J6hW62i")
@@ -164,6 +168,7 @@ pub fn bs58check_vector_1agn_test() -> Nil {
     >>
 }
 
+@target(erlang)
 pub fn bs58check_vector_3cmn_test() -> Nil {
   let assert Ok(decoded) =
     base58check.decode("3CMNFxN1oHBc4R1EpboAL5yzHGgE611Xou")
@@ -193,12 +198,14 @@ pub fn bs58check_vector_3cmn_test() -> Nil {
     >>
 }
 
+@target(erlang)
 pub fn bs58check_vector_mo9n_test() -> Nil {
   let assert Ok(decoded) =
     base58check.decode("mo9ncXisMeAoXwqcV5EWuyncbmCcQN4rVs")
   assert decoded.version == 0x6f
 }
 
+@target(erlang)
 pub fn bs58check_vector_1ax4_test() -> Nil {
   let assert Ok(decoded) =
     base58check.decode("1Ax4gZtb7gAit2TivwejZHYtNNLT18PUXJ")

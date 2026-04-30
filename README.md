@@ -29,6 +29,13 @@ Yet Another Base -- a unified, type-safe interface for multiple binary-to-text e
   53-bit integers. base16, base64, base91, base32 RFC4648 and
   ascii85 are JavaScript-safe.
 
+CI runs `gleam test --target javascript` against Node.js to catch
+JavaScript-target regressions on the public codec surface. Tests
+that exercise the bignum-backed codecs above are isolated with
+`@target(erlang)` so they do not run on JavaScript — they remain
+covered on BEAM, but are intentionally skipped on JS rather than
+silently passing or failing.
+
 ## Install
 
 ```sh

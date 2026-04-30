@@ -63,9 +63,14 @@ jobs:
       - run: gleam deps download
       - run: gleam test
 
-  build-javascript:
-    name: Build (JavaScript)
+  test-javascript:
+    name: Test (JavaScript / Node ${{ matrix.node }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node:
+          - "22"
     steps:
       - uses: actions/checkout@v6
       - uses: erlef/setup-beam@v1
@@ -74,6 +79,7 @@ jobs:
           gleam-version: "1.15"
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: ${{ matrix.node }}
       - run: gleam deps download
       - run: gleam build --target javascript
+      - run: gleam test --target javascript

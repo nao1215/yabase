@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **JavaScript-target test lane in CI.** CI now runs `gleam test
+  --target javascript` against Node.js, exercising the public codec
+  surface on JS instead of merely confirming it compiles. The release
+  workflow runs the same JS test step before publishing to Hex so the
+  release matrix matches CI. (#42)
+
+### Changed
+
+- **JS-target-limited tests are explicitly isolated**, not silently
+  skipped. Tests that exercise codecs whose internals rely on
+  arbitrary-precision integer arithmetic (base32 Crockford, base58,
+  base58check, base36, and the matching multibase prefixes) and
+  the `intid` `*_above_cap_test` variants on `int64_max + 1` are
+  marked `@target(erlang)`. They remain covered on BEAM and are
+  intentionally excluded on JavaScript, where 53-bit `Number`
+  precision cannot represent the inputs. The README "Supported
+  targets" section documents this policy. (#42)
+
 ## [0.11.0] - 2026-04-30
 
 ### Added
