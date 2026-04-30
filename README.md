@@ -221,6 +221,48 @@ let assert Ok(Decoded(encoding: enc, data: _data)) =
 let assert True = enc == encoding.base16()
 ```
 
+### Selecting codecs by target
+
+`yabase/core/encoding` exposes machine-readable target capability
+helpers so callers that pick an encoding at runtime — multibase
+auto-detection, user-configurable codec choice, or any list-of-options
+UI — can branch on JavaScript safety without scraping the README.
+
+```gleam
+import yabase/core/encoding.{type Decoded, Decoded}
+import yabase/core/multibase
+
+pub fn safe_decode_for_javascript(
+  prefixed: String,
+) -> Result(Decoded, Nil) {
+  let js = encoding.target_javascript()
+  case multibase.decode(prefixed) {
+    Ok(Decoded(encoding: enc, data: _) as decoded) ->
+      case encoding.supports_target(enc, js) {
+        True -> Ok(decoded)
+        // Auto-detected codec (e.g. base58btc, base36) is bignum-backed
+        // and may produce wrong output past Number.MAX_SAFE_INTEGER on
+        // the JavaScript target — reject rather than return a silently
+        // corrupt payload.
+        False -> Error(Nil)
+      }
+    Error(_) -> Error(Nil)
+  }
+}
+```
+
+On the BEAM target every encoding is supported, so
+`encoding.supports_target(_, encoding.target_erlang())` is always
+`True`. The boolean only narrows on `target_javascript()`. The
+matching `encoding.is_javascript_safe/1` is the same check as a
+direct `Bool` if you do not need a `Target` value.
+
+For `intid` callers who decode an `Int` rather than a `BitArray`,
+use `intid.decode_int_*_bounded(..., max: intid.int53_max)` when the
+value is going to flow into a JavaScript `number`. The unbounded
+decoders return Erlang bignums, which silently lose precision once
+serialized for a JavaScript consumer.
+
 ### Multibase prefix coverage
 
 yabase supports the following [multibase](https://github.com/multiformats/multibase) prefixes.
