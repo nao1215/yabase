@@ -30,7 +30,7 @@ pub const multibase_prefix_table_end: String = "<!-- END: multibase-prefix-table
 /// Adding a new prefix to `from_multibase_prefix` requires adding it
 /// here too — the drift test will catch the mismatch in CI, since a
 /// new prefix would also need a row in the README table.
-pub fn known_prefixes() -> List(#(String, Encoding)) {
+fn known_prefixes() -> List(#(String, Encoding)) {
   [
     #("0", encoding.base2()),
     #("7", encoding.base8()),
