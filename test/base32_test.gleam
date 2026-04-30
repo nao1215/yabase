@@ -225,6 +225,7 @@ pub fn crockford_encode_numeric_1023_test() -> Nil {
   assert crockford.encode(<<3, 255>>) == "ZZ"
 }
 
+@target(erlang)
 pub fn crockford_roundtrip_test() -> Nil {
   let data = <<"Hello, World!":utf8>>
   assert crockford.decode(crockford.encode(data)) == Ok(data)

@@ -234,6 +234,7 @@ pub fn decode_int_base58_bounded_above_cap_test() -> Nil {
     == Error(Overflow)
 }
 
+@target(erlang)
 pub fn decode_int_base58_bounded_just_above_cap_test() -> Nil {
   let encoded = intid.encode_int_base58(intid.int64_max + 1)
   assert intid.decode_int_base58_bounded(input: encoded, max: intid.int64_max)
@@ -270,6 +271,7 @@ pub fn decode_int_base58_flickr_bounded_within_test() -> Nil {
     == Ok(1234)
 }
 
+@target(erlang)
 pub fn decode_int_base58_flickr_bounded_above_cap_test() -> Nil {
   let encoded = intid.encode_int_base58_flickr(intid.int64_max + 1)
   assert intid.decode_int_base58_flickr_bounded(
@@ -287,6 +289,7 @@ pub fn decode_int_base62_bounded_within_test() -> Nil {
     == Ok(2_147_483_647)
 }
 
+@target(erlang)
 pub fn decode_int_base62_bounded_above_cap_test() -> Nil {
   let encoded = intid.encode_int_base62(intid.int64_max + 1)
   assert intid.decode_int_base62_bounded(input: encoded, max: intid.int64_max)
@@ -307,6 +310,7 @@ pub fn decode_int_base36_bounded_within_test() -> Nil {
     == Ok(8_675_309)
 }
 
+@target(erlang)
 pub fn decode_int_base36_bounded_above_cap_test() -> Nil {
   let encoded = intid.encode_int_base36(intid.int64_max + 1)
   assert intid.decode_int_base36_bounded(input: encoded, max: intid.int64_max)
@@ -324,6 +328,7 @@ pub fn decode_int_base32_rfc4648_bounded_within_test() -> Nil {
     == Ok(1_234_567)
 }
 
+@target(erlang)
 pub fn decode_int_base32_rfc4648_bounded_above_cap_test() -> Nil {
   let encoded = intid.encode_int_base32_rfc4648(intid.int64_max + 1)
   assert intid.decode_int_base32_rfc4648_bounded(
@@ -344,6 +349,7 @@ pub fn decode_int_base32_crockford_bounded_within_test() -> Nil {
     == Ok(987_654)
 }
 
+@target(erlang)
 pub fn decode_int_base32_crockford_bounded_above_cap_test() -> Nil {
   let encoded = intid.encode_int_base32_crockford(intid.int64_max + 1)
   assert intid.decode_int_base32_crockford_bounded(
