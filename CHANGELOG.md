@@ -19,6 +19,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   floor documented in the README — in addition to the latest-LTS
   lane on Node 22. The two lanes are commented as "support floor"
   and "convenience coverage" so future bumps are intentional. (#47)
+- **Target capability helpers on `yabase/core/encoding`.** New public
+  surface lets callers branch on JavaScript safety programmatically
+  instead of scraping README caveats:
+  - `Target` opaque type with `target_erlang/0` and
+    `target_javascript/0` smart constructors
+  - `is_javascript_safe(enc: Encoding) -> Bool` — `False` for the
+    bignum-backed codecs (`base8`, `base10`, `base32` Crockford /
+    CrockfordCheck, `base36`, `base58` Bitcoin / Flickr, `base62`)
+    that lose precision past `Number.MAX_SAFE_INTEGER`, `True` for
+    every other encoding
+  - `supports_target(enc: Encoding, target: Target) -> Bool` —
+    always `True` for `target_erlang()`, delegates to
+    `is_javascript_safe` for `target_javascript()`
+  Useful after `multibase.decode` auto-detects an `Encoding` from a
+  prefix supplied by an untrusted source: callers can reject codecs
+  the JavaScript target cannot represent without listing them by
+  hand. README has a worked dynamic-selection example. (#43)
 
 ### Changed
 

@@ -205,6 +205,80 @@ pub fn base91() -> Encoding {
 }
 
 // ---------------------------------------------------------------------------
+// Target capabilities.
+//
+// Some encodings produce correct results regardless of compilation
+// target; others rely on arbitrary-precision integer arithmetic and
+// cannot represent inputs larger than `Number.MAX_SAFE_INTEGER` on
+// JavaScript. The README explains the underlying constraint, but
+// callers that need to *select* an encoding at runtime (multibase
+// auto-detection, user-configurable codec choice) must be able to
+// branch on this property programmatically.
+// ---------------------------------------------------------------------------
+
+/// A Gleam compilation target. Construct with `target_erlang/0` or
+/// `target_javascript/0` and pass to `supports_target/2`.
+pub opaque type Target {
+  Erlang
+  JavaScript
+}
+
+/// The Erlang/BEAM target.
+pub fn target_erlang() -> Target {
+  Erlang
+}
+
+/// The JavaScript target (Node.js or browser).
+pub fn target_javascript() -> Target {
+  JavaScript
+}
+
+/// True if the encoding produces correct results on the JavaScript
+/// target for inputs of any size.
+///
+/// Encodings whose internals rely on arbitrary-precision integer
+/// arithmetic (`base8`, `base10`, `base32` Crockford / CrockfordCheck,
+/// `base36`, `base58` Bitcoin / Flickr, `base62`) inherit JavaScript's
+/// `Number.MAX_SAFE_INTEGER` (2^53 - 1) ceiling and may produce
+/// incorrect output for inputs that represent integers above that
+/// bound — this returns `False` for them.
+///
+/// Byte-oriented encodings (`base2`, `base16`, `base32` RFC4648 /
+/// Hex / Clockwork / ZBase32, `base45`, `base64` *, `base85` *,
+/// `base91`) are correct on both targets — this returns `True` for
+/// them.
+pub fn is_javascript_safe(enc: Encoding) -> Bool {
+  case enc {
+    Base2 | Base16 | Base45 | Base91 -> True
+    Base8 | Base10 | Base36 | Base62 -> False
+    Base32(variant) ->
+      case variant {
+        RFC4648 | Hex | Clockwork | ZBase32 -> True
+        Crockford | CrockfordCheck -> False
+      }
+    Base58(_) -> False
+    Base64(_) -> True
+    Base85(_) -> True
+  }
+}
+
+/// True if the encoding works correctly on the given target.
+///
+/// All encodings work on the Erlang target (BEAM has bignum
+/// integers). On JavaScript, this delegates to `is_javascript_safe/1`.
+///
+/// Useful for filtering an `Encoding` value picked at runtime — for
+/// example, after `multibase.decode` auto-detects the encoding from
+/// a prefix supplied by an untrusted source — before running the
+/// decoded payload through downstream logic.
+pub fn supports_target(enc: Encoding, target: Target) -> Bool {
+  case target {
+    Erlang -> True
+    JavaScript -> is_javascript_safe(enc)
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Dispatch.
 // ---------------------------------------------------------------------------
 
