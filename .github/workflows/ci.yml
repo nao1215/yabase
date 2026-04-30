@@ -64,12 +64,18 @@ jobs:
       - run: gleam test
 
   test-javascript:
+    # Two lanes:
+    #   - "18" is the documented minimum supported Node version (see README).
+    #     Failures here mean we have to either fix the code or update the
+    #     stated support floor — they must not be silently dropped.
+    #   - "22" is current latest-LTS coverage for general confidence.
     name: Test (JavaScript / Node ${{ matrix.node }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         node:
+          - "18"
           - "22"
     steps:
       - uses: actions/checkout@v6

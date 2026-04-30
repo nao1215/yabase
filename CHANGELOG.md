@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   surface on JS instead of merely confirming it compiles. The release
   workflow runs the same JS test step before publishing to Hex so the
   release matrix matches CI. (#42)
+- **Minimum-supported Node compatibility lane.** The CI and release
+  JavaScript matrix now also runs against Node 18 — the support
+  floor documented in the README — in addition to the latest-LTS
+  lane on Node 22. The two lanes are commented as "support floor"
+  and "convenience coverage" so future bumps are intentional. (#47)
 
 ### Changed
 
