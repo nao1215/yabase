@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- **ci(javascript)**: The JavaScript CI lane now runs the full test
+  suite (`gleam test --target javascript`) instead of build-only, and
+  exercises both Node 18 (the documented support floor) and Node 22.
+  Closes the gap where JavaScript-target regressions in the public
+  codec surface could ship without being caught. (#42, #47)
+
 ## [0.11.0] - 2026-04-30
 
 ### Added
