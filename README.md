@@ -270,31 +270,41 @@ serialized for a JavaScript consumer.
 
 yabase supports the following [multibase](https://github.com/multiformats/multibase) prefixes.
 "encode + decode" means `encode_multibase` emits this prefix and `decode_multibase` recognizes it.
-"decode only" means `decode_multibase` recognizes the prefix but `encode_multibase` uses the canonical form.
+"decode only" means `decode_multibase` recognizes the prefix but `encode_multibase` uses the canonical form named in parentheses.
+
+The table below is generated from `yabase/core/encoding`. To regenerate it, run `just gen-readme` and replace the fenced block. CI fails if the README drifts from the source-of-truth functions (`multibase_prefix`, `from_multibase_prefix`, `multibase_name`).
+
+<!-- BEGIN: multibase-prefix-table -->
 
 | Prefix | Encoding | Support |
 |--------|----------|---------|
 | `0` | base2 | encode + decode |
 | `7` | base8 | encode + decode |
 | `9` | base10 | encode + decode |
-| `f` | base16 (lowercase) | encode + decode |
-| `F` | base16 (uppercase) | decode only (encode emits `f`) |
-| `b` / `B` | base32 (no padding) | decode only (encode emits `c`) |
-| `c` | base32pad | encode + decode (decoder also accepts unpadded) |
-| `C` | base32pad (uppercase prefix) | decode only (encode emits `c`) |
-| `t` | base32hexpad | encode + decode (decoder also accepts unpadded) |
-| `T` | base32hexpad (uppercase prefix) | decode only (encode emits `t`) |
-| `v` / `V` | base32hex (no padding) | decode only (encode emits `t`) |
-| `h` | base32z | encode + decode |
+| `f` | base16 | encode + decode |
+| `F` | base16 | decode only (encode emits `f`) |
+| `c` | base32pad | encode + decode |
+| `C` | base32pad | decode only (encode emits `c`) |
+| `b` | base32pad | decode only (encode emits `c`) |
+| `B` | base32pad | decode only (encode emits `c`) |
+| `t` | base32hexpad | encode + decode |
+| `T` | base32hexpad | decode only (encode emits `t`) |
+| `v` | base32hexpad | decode only (encode emits `t`) |
+| `V` | base32hexpad | decode only (encode emits `t`) |
 | `k` | base36 | encode + decode |
-| `K` | base36 (uppercase prefix) | decode only (encode emits `k`) |
+| `K` | base36 | decode only (encode emits `k`) |
 | `R` | base45 | encode + decode |
 | `z` | base58btc | encode + decode |
 | `Z` | base58flickr | encode + decode |
-| `m` | base64 (no padding) | encode + decode |
+| `h` | base32z | encode + decode |
 | `M` | base64pad | encode + decode |
-| `u` | base64url (no padding) | encode + decode |
+| `m` | base64 | encode + decode |
 | `U` | base64urlpad | encode + decode |
+| `u` | base64url | encode + decode |
+
+<!-- END: multibase-prefix-table -->
+
+The `c` and `t` decoder lanes also accept unpadded input (`b` / `B`, `v` / `V`); they share the same underlying decoder.
 
 ### Bech32 / Bech32m (BIP 173, BIP 350)
 

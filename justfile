@@ -54,6 +54,14 @@ verify-examples:
 verify-readme:
   bash scripts/verify-readme.sh
 
+# Print the canonical content for the README's auto-generated tables.
+# Pipe / paste the output into `README.md` between the matching
+# BEGIN/END markers (the drift test in `test/readme_drift_test.gleam`
+# runs in CI and fails if the README falls out of sync with the
+# source-of-truth functions in `yabase/core/encoding`).
+gen-readme:
+  gleam run -m yabase/dev/gen_readme
+
 ci: deps check
 
 clean:
