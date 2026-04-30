@@ -19,6 +19,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   floor documented in the README — in addition to the latest-LTS
   lane on Node 22. The two lanes are commented as "support floor"
   and "convenience coverage" so future bumps are intentional. (#47)
+- **README's multibase prefix table is now generated from source.**
+  The hand-maintained "Multibase prefix coverage" table is replaced
+  by a fenced section between `<!-- BEGIN: multibase-prefix-table -->`
+  and `<!-- END: multibase-prefix-table -->` whose content is derived
+  from `encoding.multibase_prefix`, `encoding.from_multibase_prefix`,
+  and `encoding.multibase_name`. A new `test/readme_drift_test.gleam`
+  fails CI if the README falls out of sync with the source-of-truth
+  functions, and `just gen-readme` (or `gleam run -m yabase/dev/gen_readme`)
+  prints the canonical content for paste-update. (#46)
 - **Target capability helpers on `yabase/core/encoding`.** New public
   surface lets callers branch on JavaScript safety programmatically
   instead of scraping README caveats:
