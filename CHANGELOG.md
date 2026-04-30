@@ -48,6 +48,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   intentionally excluded on JavaScript, where 53-bit `Number`
   precision cannot represent the inputs. The README "Supported
   targets" section documents this policy. (#42)
+- **`Decoded` is now `pub opaque type` (BREAKING)**. The
+  `multibase.decode/1` (and `yabase.decode_multibase/1`) result is
+  still a `Decoded` value, but external callers can no longer pattern
+  match on the `Decoded(encoding:, data:)` constructor. Use the new
+  accessors instead:
+  - `encoding.decoded_encoding(decoded: Decoded) -> Encoding`
+  - `encoding.decoded_data(decoded: Decoded) -> BitArray`
+  Code that previously wrote
+  `let assert Ok(Decoded(encoding: enc, data: payload)) = decode_multibase(...)`
+  becomes
+  `let assert Ok(d) = decode_multibase(...); let enc = encoding.decoded_encoding(d); let payload = encoding.decoded_data(d)`.
+  Tests that only consume the bytes can use `multibase.decode_bytes/1`,
+  which returns `Result(BitArray, CodecError)` directly. README and
+  `examples/multibase_auto_detect.gleam` are updated. (#45)
 
 ## [0.11.0] - 2026-04-30
 

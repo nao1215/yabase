@@ -26,7 +26,9 @@ pub fn encode_multibase(
 }
 
 /// Decode a multibase-prefixed string, auto-detecting encoding.
-/// Returns Decoded(encoding, data) where data is the decoded BitArray.
+/// Inspect the result with `encoding.decoded_encoding/1` and
+/// `encoding.decoded_data/1` — the `Decoded` type is opaque so its
+/// representation can evolve without breaking external pattern matches.
 pub fn decode_multibase(value: String) -> Result(Decoded, CodecError) {
   multibase.decode(value)
 }

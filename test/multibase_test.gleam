@@ -1,5 +1,5 @@
 import gleam/string
-import yabase/core/encoding.{Decoded}
+import yabase/core/encoding
 import yabase/core/error.{
   InvalidCharacter, UnsupportedMultibaseEncoding, UnsupportedPrefix,
 }
@@ -11,7 +11,7 @@ pub fn registry_0_base2_test() -> Nil {
   let data = <<"Hi":utf8>>
   let assert Ok(encoded) = multibase.encode_with_prefix(encoding.base2(), data)
   assert encoded == "00100100001101001"
-  let assert Ok(Decoded(encoding: _, data: decoded)) = multibase.decode(encoded)
+  let assert Ok(decoded) = multibase.decode_bytes(encoded)
   assert decoded == data
 }
 
@@ -22,7 +22,7 @@ pub fn registry_7_base8_test() -> Nil {
     "7" <> _ -> True
     _ -> False
   }
-  let assert Ok(Decoded(encoding: _, data: decoded)) = multibase.decode(encoded)
+  let assert Ok(decoded) = multibase.decode_bytes(encoded)
   assert decoded == data
 }
 
@@ -33,7 +33,7 @@ pub fn registry_9_base10_test() -> Nil {
     "9" <> _ -> True
     _ -> False
   }
-  let assert Ok(Decoded(encoding: _, data: decoded)) = multibase.decode(encoded)
+  let assert Ok(decoded) = multibase.decode_bytes(encoded)
   assert decoded == data
 }
 
@@ -41,13 +41,12 @@ pub fn registry_f_base16_test() -> Nil {
   let data = <<"yes mani !":utf8>>
   let assert Ok(encoded) = multibase.encode_with_prefix(encoding.base16(), data)
   assert encoded == "f796573206d616e692021"
-  let assert Ok(Decoded(encoding: _, data: decoded)) = multibase.decode(encoded)
+  let assert Ok(decoded) = multibase.decode_bytes(encoded)
   assert decoded == data
 }
 
 pub fn registry_upper_f_base16_decode_test() -> Nil {
-  let assert Ok(Decoded(encoding: _, data: decoded)) =
-    multibase.decode("F796573206D616E692021")
+  let assert Ok(decoded) = multibase.decode_bytes("F796573206D616E692021")
   assert decoded == <<"yes mani !":utf8>>
 }
 
@@ -59,7 +58,7 @@ pub fn registry_c_base32pad_test() -> Nil {
     "c" <> _ -> True
     _ -> False
   }
-  let assert Ok(Decoded(encoding: _, data: decoded)) = multibase.decode(encoded)
+  let assert Ok(decoded) = multibase.decode_bytes(encoded)
   assert decoded == data
 }
 
@@ -71,7 +70,7 @@ pub fn registry_t_base32hexpad_test() -> Nil {
     "t" <> _ -> True
     _ -> False
   }
-  let assert Ok(Decoded(encoding: _, data: decoded)) = multibase.decode(encoded)
+  let assert Ok(decoded) = multibase.decode_bytes(encoded)
   assert decoded == data
 }
 
@@ -83,7 +82,7 @@ pub fn registry_h_base32z_test() -> Nil {
     "h" <> _ -> True
     _ -> False
   }
-  let assert Ok(Decoded(encoding: _, data: decoded)) = multibase.decode(encoded)
+  let assert Ok(decoded) = multibase.decode_bytes(encoded)
   assert decoded == data
 }
 
@@ -95,7 +94,7 @@ pub fn registry_k_base36_test() -> Nil {
     "k" <> _ -> True
     _ -> False
   }
-  let assert Ok(Decoded(encoding: _, data: decoded)) = multibase.decode(encoded)
+  let assert Ok(decoded) = multibase.decode_bytes(encoded)
   assert decoded == data
 }
 
@@ -108,7 +107,7 @@ pub fn registry_z_base58btc_test() -> Nil {
     "z" <> _ -> True
     _ -> False
   }
-  let assert Ok(Decoded(encoding: _, data: decoded)) = multibase.decode(encoded)
+  let assert Ok(decoded) = multibase.decode_bytes(encoded)
   assert decoded == data
 }
 
@@ -121,7 +120,7 @@ pub fn registry_upper_z_base58flickr_test() -> Nil {
     "Z" <> _ -> True
     _ -> False
   }
-  let assert Ok(Decoded(encoding: _, data: decoded)) = multibase.decode(encoded)
+  let assert Ok(decoded) = multibase.decode_bytes(encoded)
   assert decoded == data
 }
 
@@ -130,7 +129,7 @@ pub fn registry_upper_m_base64pad_test() -> Nil {
   let assert Ok(encoded) =
     multibase.encode_with_prefix(encoding.base64_standard(), data)
   assert encoded == "MeWVzIG1hbmkgIQ=="
-  let assert Ok(Decoded(encoding: _, data: decoded)) = multibase.decode(encoded)
+  let assert Ok(decoded) = multibase.decode_bytes(encoded)
   assert decoded == data
 }
 
@@ -139,7 +138,7 @@ pub fn registry_lower_m_base64_test() -> Nil {
   let assert Ok(encoded) =
     multibase.encode_with_prefix(encoding.base64_no_padding(), data)
   assert encoded == "meWVzIG1hbmkgIQ"
-  let assert Ok(Decoded(encoding: _, data: decoded)) = multibase.decode(encoded)
+  let assert Ok(decoded) = multibase.decode_bytes(encoded)
   assert decoded == data
 }
 
@@ -151,7 +150,7 @@ pub fn registry_upper_u_base64urlpad_test() -> Nil {
     "U" <> _ -> True
     _ -> False
   }
-  let assert Ok(Decoded(encoding: _, data: decoded)) = multibase.decode(encoded)
+  let assert Ok(decoded) = multibase.decode_bytes(encoded)
   assert decoded == data
 }
 
@@ -163,7 +162,7 @@ pub fn registry_lower_u_base64url_nopad_test() -> Nil {
     "u" <> _ -> True
     _ -> False
   }
-  let assert Ok(Decoded(encoding: _, data: decoded)) = multibase.decode(encoded)
+  let assert Ok(decoded) = multibase.decode_bytes(encoded)
   assert decoded == data
 }
 
@@ -194,12 +193,12 @@ pub fn registry_upper_r_base45_test() -> Nil {
     "R" <> _ -> True
     _ -> False
   }
-  let assert Ok(Decoded(encoding: _, data: decoded)) = multibase.decode(encoded)
+  let assert Ok(decoded) = multibase.decode_bytes(encoded)
   assert decoded == data
 }
 
 pub fn registry_upper_b_base32upper_decode_test() -> Nil {
-  let assert Ok(Decoded(encoding: _, data: decoded)) = multibase.decode("BMY")
+  let assert Ok(decoded) = multibase.decode_bytes("BMY")
   assert decoded == <<"f":utf8>>
 }
 
@@ -303,14 +302,14 @@ pub fn multibase_u_rejects_padded_input_test() -> Nil {
 pub fn decode_base32pad_accepts_unpadded_test() -> Nil {
   let data = <<"f":utf8>>
   // "cMY======" is canonical padded; "cMY" is unpadded
-  let assert Ok(Decoded(encoding: _, data: decoded)) = multibase.decode("cMY")
+  let assert Ok(decoded) = multibase.decode_bytes("cMY")
   assert decoded == data
 }
 
 pub fn decode_base32hexpad_accepts_unpadded_test() -> Nil {
   let data = <<"f":utf8>>
   // "tCO======" is canonical padded; "tCO" is unpadded
-  let assert Ok(Decoded(encoding: _, data: decoded)) = multibase.decode("tCO")
+  let assert Ok(decoded) = multibase.decode_bytes("tCO")
   assert decoded == data
 }
 
@@ -321,14 +320,13 @@ pub fn decode_alias_upper_c_base32pad_test() -> Nil {
     multibase.encode_with_prefix(encoding.base32_rfc4648(), data)
   // Replace lowercase c prefix with uppercase C
   let alias_encoded = "C" <> string.drop_start(canonical, 1)
-  let assert Ok(Decoded(encoding: _, data: decoded)) =
-    multibase.decode(alias_encoded)
+  let assert Ok(decoded) = multibase.decode_bytes(alias_encoded)
   assert decoded == data
 }
 
 pub fn decode_alias_lowercase_b_base32_nopad_test() -> Nil {
   // b = base32 no-padding (lowercase); maps to RFC4648 codec
-  let assert Ok(Decoded(encoding: _, data: decoded)) = multibase.decode("bMY")
+  let assert Ok(decoded) = multibase.decode_bytes("bMY")
   assert decoded == <<"f":utf8>>
 }
 
@@ -338,8 +336,7 @@ pub fn decode_alias_upper_t_base32hexpad_test() -> Nil {
   let assert Ok(canonical) =
     multibase.encode_with_prefix(encoding.base32_hex(), data)
   let alias_encoded = "T" <> string.drop_start(canonical, 1)
-  let assert Ok(Decoded(encoding: _, data: decoded)) =
-    multibase.decode(alias_encoded)
+  let assert Ok(decoded) = multibase.decode_bytes(alias_encoded)
   assert decoded == data
 }
 
@@ -351,8 +348,7 @@ pub fn decode_alias_lowercase_v_base32hex_nopad_test() -> Nil {
   // Strip t prefix, strip trailing padding, prepend v
   let body = string.drop_start(canonical, 1) |> string.replace("=", "")
   let alias_encoded = "v" <> body
-  let assert Ok(Decoded(encoding: _, data: decoded)) =
-    multibase.decode(alias_encoded)
+  let assert Ok(decoded) = multibase.decode_bytes(alias_encoded)
   assert decoded == data
 }
 
@@ -362,8 +358,7 @@ pub fn decode_alias_upper_v_base32hex_nopad_test() -> Nil {
     multibase.encode_with_prefix(encoding.base32_hex(), data)
   let body = string.drop_start(canonical, 1) |> string.replace("=", "")
   let alias_encoded = "V" <> body
-  let assert Ok(Decoded(encoding: _, data: decoded)) =
-    multibase.decode(alias_encoded)
+  let assert Ok(decoded) = multibase.decode_bytes(alias_encoded)
   assert decoded == data
 }
 
@@ -373,8 +368,7 @@ pub fn decode_alias_upper_k_base36_test() -> Nil {
   let assert Ok(canonical) =
     multibase.encode_with_prefix(encoding.base36(), data)
   let alias_encoded = "K" <> string.drop_start(canonical, 1)
-  let assert Ok(Decoded(encoding: _, data: decoded)) =
-    multibase.decode(alias_encoded)
+  let assert Ok(decoded) = multibase.decode_bytes(alias_encoded)
   assert decoded == data
 }
 
@@ -384,136 +378,118 @@ pub fn decode_alias_upper_k_base36_test() -> Nil {
 // basic.csv: "yes mani !"
 pub fn spec_basic_base16_test() -> Nil {
   let data = <<"yes mani !":utf8>>
-  let assert Ok(Decoded(encoding: _, data: d)) =
-    multibase.decode("f796573206d616e692021")
+  let assert Ok(d) = multibase.decode_bytes("f796573206d616e692021")
   assert d == data
 }
 
 pub fn spec_basic_base32pad_test() -> Nil {
   let data = <<"yes mani !":utf8>>
-  let assert Ok(Decoded(encoding: _, data: d)) =
-    multibase.decode("cpfsxgidnmfxgsibb")
+  let assert Ok(d) = multibase.decode_bytes("cpfsxgidnmfxgsibb")
   assert d == data
 }
 
 pub fn spec_basic_base32z_test() -> Nil {
   let data = <<"yes mani !":utf8>>
-  let assert Ok(Decoded(encoding: _, data: d)) =
-    multibase.decode("hxf1zgedpcfzg1ebb")
+  let assert Ok(d) = multibase.decode_bytes("hxf1zgedpcfzg1ebb")
   assert d == data
 }
 
 @target(erlang)
 pub fn spec_basic_base36_test() -> Nil {
   let data = <<"yes mani !":utf8>>
-  let assert Ok(Decoded(encoding: _, data: d)) =
-    multibase.decode("k2lcpzo5yikidynfl")
+  let assert Ok(d) = multibase.decode_bytes("k2lcpzo5yikidynfl")
   assert d == data
 }
 
 @target(erlang)
 pub fn spec_basic_base58btc_test() -> Nil {
   let data = <<"yes mani !":utf8>>
-  let assert Ok(Decoded(encoding: _, data: d)) =
-    multibase.decode("z7paNL19xttacUY")
+  let assert Ok(d) = multibase.decode_bytes("z7paNL19xttacUY")
   assert d == data
 }
 
 @target(erlang)
 pub fn spec_basic_base58flickr_test() -> Nil {
   let data = <<"yes mani !":utf8>>
-  let assert Ok(Decoded(encoding: _, data: d)) =
-    multibase.decode("Z7Pznk19XTTzBtx")
+  let assert Ok(d) = multibase.decode_bytes("Z7Pznk19XTTzBtx")
   assert d == data
 }
 
 pub fn spec_basic_base64_test() -> Nil {
   let data = <<"yes mani !":utf8>>
-  let assert Ok(Decoded(encoding: _, data: d)) =
-    multibase.decode("meWVzIG1hbmkgIQ")
+  let assert Ok(d) = multibase.decode_bytes("meWVzIG1hbmkgIQ")
   assert d == data
 }
 
 pub fn spec_basic_base64pad_test() -> Nil {
   let data = <<"yes mani !":utf8>>
-  let assert Ok(Decoded(encoding: _, data: d)) =
-    multibase.decode("MeWVzIG1hbmkgIQ==")
+  let assert Ok(d) = multibase.decode_bytes("MeWVzIG1hbmkgIQ==")
   assert d == data
 }
 
 pub fn spec_basic_base64url_test() -> Nil {
   let data = <<"yes mani !":utf8>>
-  let assert Ok(Decoded(encoding: _, data: d)) =
-    multibase.decode("ueWVzIG1hbmkgIQ")
+  let assert Ok(d) = multibase.decode_bytes("ueWVzIG1hbmkgIQ")
   assert d == data
 }
 
 pub fn spec_basic_base64urlpad_test() -> Nil {
   let data = <<"yes mani !":utf8>>
-  let assert Ok(Decoded(encoding: _, data: d)) =
-    multibase.decode("UeWVzIG1hbmkgIQ==")
+  let assert Ok(d) = multibase.decode_bytes("UeWVzIG1hbmkgIQ==")
   assert d == data
 }
 
 // leading_zero.csv: "\x00yes mani !"
 pub fn spec_leading_zero_base16_test() -> Nil {
   let data = <<0, "yes mani !":utf8>>
-  let assert Ok(Decoded(encoding: _, data: d)) =
-    multibase.decode("f00796573206d616e692021")
+  let assert Ok(d) = multibase.decode_bytes("f00796573206d616e692021")
   assert d == data
 }
 
 @target(erlang)
 pub fn spec_leading_zero_base36_test() -> Nil {
   let data = <<0, "yes mani !":utf8>>
-  let assert Ok(Decoded(encoding: _, data: d)) =
-    multibase.decode("k02lcpzo5yikidynfl")
+  let assert Ok(d) = multibase.decode_bytes("k02lcpzo5yikidynfl")
   assert d == data
 }
 
 @target(erlang)
 pub fn spec_leading_zero_base58btc_test() -> Nil {
   let data = <<0, "yes mani !":utf8>>
-  let assert Ok(Decoded(encoding: _, data: d)) =
-    multibase.decode("z17paNL19xttacUY")
+  let assert Ok(d) = multibase.decode_bytes("z17paNL19xttacUY")
   assert d == data
 }
 
 @target(erlang)
 pub fn spec_leading_zero_base58flickr_test() -> Nil {
   let data = <<0, "yes mani !":utf8>>
-  let assert Ok(Decoded(encoding: _, data: d)) =
-    multibase.decode("Z17Pznk19XTTzBtx")
+  let assert Ok(d) = multibase.decode_bytes("Z17Pznk19XTTzBtx")
   assert d == data
 }
 
 pub fn spec_leading_zero_base64pad_test() -> Nil {
   let data = <<0, "yes mani !":utf8>>
-  let assert Ok(Decoded(encoding: _, data: d)) =
-    multibase.decode("MAHllcyBtYW5pICE=")
+  let assert Ok(d) = multibase.decode_bytes("MAHllcyBtYW5pICE=")
   assert d == data
 }
 
 // two_leading_zeros.csv: "\x00\x00yes mani !"
 pub fn spec_two_leading_zeros_base16_test() -> Nil {
   let data = <<0, 0, "yes mani !":utf8>>
-  let assert Ok(Decoded(encoding: _, data: d)) =
-    multibase.decode("f0000796573206d616e692021")
+  let assert Ok(d) = multibase.decode_bytes("f0000796573206d616e692021")
   assert d == data
 }
 
 @target(erlang)
 pub fn spec_two_leading_zeros_base58btc_test() -> Nil {
   let data = <<0, 0, "yes mani !":utf8>>
-  let assert Ok(Decoded(encoding: _, data: d)) =
-    multibase.decode("z117paNL19xttacUY")
+  let assert Ok(d) = multibase.decode_bytes("z117paNL19xttacUY")
   assert d == data
 }
 
 @target(erlang)
 pub fn spec_two_leading_zeros_base36_test() -> Nil {
   let data = <<0, 0, "yes mani !":utf8>>
-  let assert Ok(Decoded(encoding: _, data: d)) =
-    multibase.decode("k002lcpzo5yikidynfl")
+  let assert Ok(d) = multibase.decode_bytes("k002lcpzo5yikidynfl")
   assert d == data
 }

@@ -1,6 +1,6 @@
 import gleeunit
 import yabase
-import yabase/core/encoding.{Decoded}
+import yabase/core/encoding
 import yabase/core/error.{
   InvalidCharacter, UnsupportedMultibaseEncoding, UnsupportedPrefix,
 }
@@ -36,8 +36,8 @@ pub fn encode_decode_base32_test() -> Nil {
 pub fn multibase_roundtrip_base16_test() -> Nil {
   let data = <<"Hello":utf8>>
   let assert Ok(prefixed) = yabase.encode_multibase(encoding.base16(), data)
-  let assert Ok(Decoded(encoding: _, data: decoded)) =
-    yabase.decode_multibase(prefixed)
+  let assert Ok(d) = yabase.decode_multibase(prefixed)
+  let decoded = encoding.decoded_data(d)
   assert decoded == data
 }
 
@@ -45,8 +45,8 @@ pub fn multibase_roundtrip_base58_bitcoin_test() -> Nil {
   let data = <<"Hello":utf8>>
   let assert Ok(prefixed) =
     yabase.encode_multibase(encoding.base58_bitcoin(), data)
-  let assert Ok(Decoded(encoding: _, data: decoded)) =
-    yabase.decode_multibase(prefixed)
+  let assert Ok(d) = yabase.decode_multibase(prefixed)
+  let decoded = encoding.decoded_data(d)
   assert decoded == data
 }
 
@@ -58,8 +58,8 @@ pub fn multibase_roundtrip_base58_flickr_test() -> Nil {
     "Z" <> _ -> True
     _ -> False
   }
-  let assert Ok(Decoded(encoding: _, data: decoded)) =
-    yabase.decode_multibase(prefixed)
+  let assert Ok(d) = yabase.decode_multibase(prefixed)
+  let decoded = encoding.decoded_data(d)
   assert decoded == data
 }
 
@@ -67,8 +67,8 @@ pub fn multibase_roundtrip_base64_nopad_test() -> Nil {
   let data = <<"Hello":utf8>>
   let assert Ok(prefixed) =
     yabase.encode_multibase(encoding.base64_no_padding(), data)
-  let assert Ok(Decoded(encoding: _, data: decoded)) =
-    yabase.decode_multibase(prefixed)
+  let assert Ok(d) = yabase.decode_multibase(prefixed)
+  let decoded = encoding.decoded_data(d)
   assert decoded == data
 }
 
@@ -114,8 +114,8 @@ pub fn multibase_roundtrip_urlsafe_nopadding_test() -> Nil {
     "u" <> _ -> True
     _ -> False
   }
-  let assert Ok(Decoded(encoding: _, data: decoded)) =
-    yabase.decode_multibase(prefixed)
+  let assert Ok(d) = yabase.decode_multibase(prefixed)
+  let decoded = encoding.decoded_data(d)
   assert decoded == data
 }
 
@@ -134,7 +134,7 @@ pub fn multibase_roundtrip_base45_test() -> Nil {
     "R" <> _ -> True
     _ -> False
   }
-  let assert Ok(Decoded(encoding: _, data: decoded)) =
-    yabase.decode_multibase(prefixed)
+  let assert Ok(d) = yabase.decode_multibase(prefixed)
+  let decoded = encoding.decoded_data(d)
   assert decoded == data
 }

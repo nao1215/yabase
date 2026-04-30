@@ -95,9 +95,32 @@ pub opaque type Encoding {
   Base91
 }
 
-/// A decoded value tagged with its detected encoding.
-pub type Decoded {
+/// A decoded value tagged with its detected encoding. Use
+/// `decoded_encoding/1` and `decoded_data/1` to inspect the
+/// contents — the constructor is package-private so the
+/// representation can evolve (e.g. add a multibase prefix field)
+/// without breaking external pattern matches.
+pub opaque type Decoded {
   Decoded(encoding: Encoding, data: BitArray)
+}
+
+/// Build a `Decoded` value. Package-internal; multibase decoders use
+/// this to tag their result. External callers receive a `Decoded`
+/// from `multibase.decode/1` and inspect it with `decoded_encoding`
+/// / `decoded_data`.
+@internal
+pub fn make_decoded(encoding: Encoding, data: BitArray) -> Decoded {
+  Decoded(encoding: encoding, data: data)
+}
+
+/// The encoding that was auto-detected when this value was decoded.
+pub fn decoded_encoding(decoded: Decoded) -> Encoding {
+  decoded.encoding
+}
+
+/// The decoded raw bytes.
+pub fn decoded_data(decoded: Decoded) -> BitArray {
+  decoded.data
 }
 
 // ---------------------------------------------------------------------------

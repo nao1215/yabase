@@ -206,19 +206,20 @@ Prefix-based encoding and auto-detection:
 
 ```gleam
 import yabase
-import yabase/core/encoding.{Decoded}
+import yabase/core/encoding
 
 // Encode with multibase prefix
 let assert Ok(prefixed) =
   yabase.encode_multibase(encoding.base16(), <<"Hello":utf8>>)
 // "f48656c6c6f"
 
-// Decode with auto-detection. The opaque `Encoding` value is bound
-// directly; compare against a smart constructor or use
-// `encoding.multibase_name/1` if you need to label it.
-let assert Ok(Decoded(encoding: enc, data: _data)) =
-  yabase.decode_multibase(prefixed)
-let assert True = enc == encoding.base16()
+// Decode with auto-detection. The result is an opaque `Decoded` value
+// — use `encoding.decoded_encoding/1` and `encoding.decoded_data/1`
+// to inspect it, and `encoding.multibase_name/1` if you need to
+// label the detected codec.
+let assert Ok(d) = yabase.decode_multibase(prefixed)
+let assert True = encoding.decoded_encoding(d) == encoding.base16()
+let _data = encoding.decoded_data(d)
 ```
 
 ### Selecting codecs by target
@@ -229,7 +230,7 @@ auto-detection, user-configurable codec choice, or any list-of-options
 UI — can branch on JavaScript safety without scraping the README.
 
 ```gleam
-import yabase/core/encoding.{type Decoded, Decoded}
+import yabase/core/encoding.{type Decoded}
 import yabase/core/multibase
 
 pub fn safe_decode_for_javascript(
@@ -237,7 +238,8 @@ pub fn safe_decode_for_javascript(
 ) -> Result(Decoded, Nil) {
   let js = encoding.target_javascript()
   case multibase.decode(prefixed) {
-    Ok(Decoded(encoding: enc, data: _) as decoded) ->
+    Ok(decoded) -> {
+      let enc = encoding.decoded_encoding(decoded)
       case encoding.supports_target(enc, js) {
         True -> Ok(decoded)
         // Auto-detected codec (e.g. base58btc, base36) is bignum-backed
@@ -246,6 +248,7 @@ pub fn safe_decode_for_javascript(
         // corrupt payload.
         False -> Error(Nil)
       }
+    }
     Error(_) -> Error(Nil)
   }
 }
