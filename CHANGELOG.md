@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-04-30
+
 ### Added
 
 - **JavaScript-target test lane in CI.** CI now runs `gleam test
