@@ -8,7 +8,7 @@
 /// `Error(UnsupportedMultibaseEncoding)` from `encode_with_prefix`.
 import gleam/result
 import gleam/string
-import yabase/core/encoding.{type Decoded, type Encoding, Decoded}
+import yabase/core/encoding.{type Decoded, type Encoding}
 import yabase/core/error.{
   type CodecError, UnsupportedMultibaseEncoding, UnsupportedPrefix,
 }
@@ -38,7 +38,7 @@ pub fn decode(value: String) -> Result(Decoded, CodecError) {
         Error(Nil) -> Error(UnsupportedPrefix(prefix))
         Ok(enc) ->
           encoding.decode_as(enc, rest)
-          |> result.map(fn(data) { Decoded(encoding: enc, data: data) })
+          |> result.map(fn(data) { encoding.make_decoded(enc, data) })
       }
   }
 }
