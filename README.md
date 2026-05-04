@@ -71,17 +71,7 @@ pub fn main() {
 }
 ```
 
-> **Why not `let assert` on encode?** yabase's own `gleam.toml`
-> enables glinter's `assert_ok_pattern = "error"` rule, so the
-> recommended shape in production code is to avoid `let assert
-> Ok(_)` for cases that cannot meaningfully fail. The facade
-> returns plain `String` for infallible encodings and only the
-> decode side is `Result`-shaped — there `let assert` is fine in a
-> README snippet but real code should propagate the error. If you
-> need to pick an encoding at runtime, see the unified API in
-> [API layers](#api-layers); `yabase.encode` is `Result`-shaped
-> for every variant because the `Encoding` ADT erases per-variant
-> error possibilities.
+That covers the success path. See [Notes for production code](#notes-for-production-code) at the bottom for the lint-policy and error-propagation guidance.
 
 ## Integer IDs
 
@@ -405,6 +395,24 @@ The [`examples/`](examples/) directory contains runnable use-case examples:
 | `bitcoin_base58check.gleam` | Bitcoin address encoding with version byte and checksum |
 | `bitcoin_bech32.gleam` | Bech32/Bech32m address framing (BIP 173 / BIP 350) |
 | `multibase_auto_detect.gleam` | Prefix-based encoding auto-detection for content-addressed systems |
+
+## Notes for production code
+
+The Quick start uses `let assert Ok(_decoded)` because that keeps the
+README snippet readable. Real applications should propagate the error
+instead.
+
+**Why not `let assert` on encode?** yabase's own `gleam.toml`
+enables glinter's `assert_ok_pattern = "error"` rule, so the
+recommended shape in production code is to avoid `let assert
+Ok(_)` for cases that cannot meaningfully fail. The facade
+returns plain `String` for infallible encodings and only the
+decode side is `Result`-shaped — there `let assert` is fine in a
+README snippet but real code should propagate the error. If you
+need to pick an encoding at runtime, see the unified API in
+[API layers](#api-layers); `yabase.encode` is `Result`-shaped
+for every variant because the `Encoding` ADT erases per-variant
+error possibilities.
 
 ## Development
 
