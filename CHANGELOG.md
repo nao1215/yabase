@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-05-04
+
+### Documentation
+
+- **readme**: Quick start now ends at the facade encode + decode happy
+  path with a single sentence pointing at a new "Notes for production
+  code" section near the bottom of the README. The prior `let assert` /
+  glinter `assert_ok_pattern = "error"` explanation, and the pointer
+  to the `Result`-shaped unified `yabase.encode`, are moved verbatim
+  into that later section so first-time readers see the facade success
+  path before the policy detail. (#55)
+
 ## [0.12.0] - 2026-04-30
 
 ### Added
