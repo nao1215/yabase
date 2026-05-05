@@ -83,7 +83,7 @@ jobs:
         with:
           otp-version: "27"
           gleam-version: "1.15"
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node }}
       - run: gleam deps download
