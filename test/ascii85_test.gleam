@@ -129,3 +129,33 @@ pub fn roundtrip_high_bits_test() -> Nil {
   let data = <<0xff, 0xfe, 0xfd, 0xfc>>
   assert ascii85.decode(ascii85.encode(data)) == Ok(data)
 }
+
+// --- Whitespace tolerance (#59) ---
+//
+// Mirror `adobe_ascii85`'s posture: skip ASCII whitespace inside the
+// payload so wrapped btoa output round-trips without a hand-rolled
+// `string.replace` shim on the caller side.
+
+pub fn decode_skips_space_test() -> Nil {
+  // 'y' is the four-spaces shortcut. Surrounding whitespace must be
+  // ignored.
+  assert ascii85.decode(" y ") == Ok(<<0x20, 0x20, 0x20, 0x20>>)
+}
+
+pub fn decode_skips_newline_test() -> Nil {
+  assert ascii85.decode("9jqo^\n") == Ok(<<"Man ":utf8>>)
+}
+
+pub fn decode_skips_carriage_return_test() -> Nil {
+  assert ascii85.decode("9jqo^\r\n") == Ok(<<"Man ":utf8>>)
+}
+
+pub fn decode_skips_tab_test() -> Nil {
+  assert ascii85.decode("\t9jqo^\t") == Ok(<<"Man ":utf8>>)
+}
+
+pub fn decode_skips_whitespace_inside_group_test() -> Nil {
+  // Whitespace must also be skipped between characters of a single
+  // 5-char group.
+  assert ascii85.decode("9j\nqo^") == Ok(<<"Man ":utf8>>)
+}

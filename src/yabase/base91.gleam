@@ -97,6 +97,20 @@ fn decode_loop(
       }
       Ok(list_to_bit_array(list.reverse(final_acc), <<>>))
     }
+    [c, ..rest]
+      if c == " " || c == "\t" || c == "\n" || c == "\r" || c == "\r\n"
+    ->
+      // basE91 reference: "the decoder simply ignores characters not in
+      // the alphabet". The reference encoder wraps long output at 76
+      // chars, so any caller who pipes wrapped text through us would
+      // otherwise need a hand-rolled `string.replace(_, "\n", "")`
+      // shim. Skip ASCII whitespace silently and keep the position
+      // counter advancing so error offsets remain meaningful.
+      //
+      // `string.to_graphemes` collapses CR+LF into a single `"\r\n"`
+      // grapheme cluster, so handle that cluster as one token here.
+      // (#60)
+      decode_loop(rest, val, queue, nbits, acc, pos + 1)
     [c, ..rest] ->
       case char_index(c) {
         Error(Nil) -> Error(InvalidCharacter(c, pos))

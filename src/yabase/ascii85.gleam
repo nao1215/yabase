@@ -91,6 +91,18 @@ fn decode_groups(
 ) -> Result(BitArray, CodecError) {
   case string.pop_grapheme(input) {
     Error(Nil) -> Ok(acc)
+    // Skip whitespace at group boundaries to mirror `adobe_ascii85`
+    // and the historical btoa reference. Most production btoa
+    // emitters wrap output at column 76; rejecting whitespace
+    // forced every caller to write a `string.replace` shim.
+    // `string.pop_grapheme` returns CR+LF as a single `"\r\n"`
+    // cluster, so handle that one too. (#59)
+    Ok(#(" ", rest)) -> decode_groups(rest, acc, pos + 1)
+    Ok(#("\t", rest)) -> decode_groups(rest, acc, pos + 1)
+    Ok(#("\n", rest)) -> decode_groups(rest, acc, pos + 1)
+    Ok(#("\r", rest)) -> decode_groups(rest, acc, pos + 1)
+    Ok(#("\r\n", rest)) -> decode_groups(rest, acc, pos + 1)
+    Ok(#("\u{000C}", rest)) -> decode_groups(rest, acc, pos + 1)
     Ok(#("z", rest)) ->
       decode_groups(rest, bit_array.append(acc, <<0:32>>), pos + 1)
     Ok(#("y", rest)) ->
@@ -155,6 +167,14 @@ fn collect_group(
   )
   case string.pop_grapheme(input) {
     Error(Nil) -> Ok(#(list.reverse(acc), count, ""))
+    // Skip whitespace inside a group as well, matching adobe_ascii85.
+    // (#59)
+    Ok(#(" ", rest)) -> collect_group(rest, acc, count, pos + 1)
+    Ok(#("\t", rest)) -> collect_group(rest, acc, count, pos + 1)
+    Ok(#("\n", rest)) -> collect_group(rest, acc, count, pos + 1)
+    Ok(#("\r", rest)) -> collect_group(rest, acc, count, pos + 1)
+    Ok(#("\r\n", rest)) -> collect_group(rest, acc, count, pos + 1)
+    Ok(#("\u{000C}", rest)) -> collect_group(rest, acc, count, pos + 1)
     Ok(#(c, rest)) ->
       case char_to_ascii85_value(c) {
         Error(Nil) -> Error(InvalidCharacter(c, pos))
