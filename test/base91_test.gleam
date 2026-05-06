@@ -110,11 +110,11 @@ pub fn roundtrip_all_ff_32_test() -> Nil {
 
 // --- Error cases ---
 
-pub fn decode_invalid_char_space_test() -> Nil {
-  assert case base91.decode(" ") {
-    Error(InvalidCharacter(" ", 0)) -> True
-    _ -> False
-  }
+pub fn decode_only_space_is_empty_test() -> Nil {
+  // basE91 reference treats whitespace as ignorable. A whitespace-
+  // only input therefore decodes to the empty bit array, not an
+  // InvalidCharacter error. (#60)
+  assert base91.decode(" ") == Ok(<<>>)
 }
 
 pub fn decode_invalid_char_dash_test() -> Nil {
@@ -125,9 +125,36 @@ pub fn decode_invalid_char_dash_test() -> Nil {
 }
 
 pub fn decode_invalid_char_embedded_test() -> Nil {
-  // Valid chars around an invalid one
-  assert case base91.decode("fP KNd") {
-    Error(InvalidCharacter(" ", _)) -> True
+  // Valid chars around an invalid (non-alphabet, non-whitespace) one
+  assert case base91.decode("fP\u{0007}KNd") {
+    Error(InvalidCharacter(_, _)) -> True
     _ -> False
   }
+}
+
+// --- Whitespace tolerance (#60) ---
+
+pub fn decode_skips_space_test() -> Nil {
+  // basE91 reference: "the decoder simply ignores characters not in
+  // the alphabet". The reference encoder also wraps long output at
+  // 76 chars, so wrapped text must round-trip.
+  assert base91.decode("fP NKd") == Ok(<<"test":utf8>>)
+}
+
+pub fn decode_skips_newline_test() -> Nil {
+  assert base91.decode("fPNKd\n") == Ok(<<"test":utf8>>)
+}
+
+pub fn decode_skips_carriage_return_test() -> Nil {
+  assert base91.decode("fPNKd\r\n") == Ok(<<"test":utf8>>)
+}
+
+pub fn decode_skips_tab_test() -> Nil {
+  assert base91.decode("\tfPNKd\t") == Ok(<<"test":utf8>>)
+}
+
+pub fn decode_skips_mixed_whitespace_test() -> Nil {
+  // Hello World encoding ">OwJh>Io0Tv!lE" with whitespace injected
+  // throughout (simulates wrapped + tab-indented transport).
+  assert base91.decode(">OwJh\n>Io0\tTv!lE\r\n") == Ok(<<"Hello World":utf8>>)
 }

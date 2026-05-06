@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **base91**: `decode` now silently ignores ASCII whitespace
+  (` `, `\t`, `\n`, `\r`, and the CR+LF cluster) instead of
+  rejecting it as `InvalidCharacter`. The basE91 reference
+  implementation is explicitly lenient about non-alphabet bytes,
+  and the reference encoder wraps long output at 76 chars, so any
+  caller piping wrapped text used to need a hand-rolled
+  `string.replace` shim. (#60)
+- **ascii85**: `decode` now skips ASCII whitespace at group
+  boundaries and inside groups, mirroring the existing
+  `adobe_ascii85` posture (and the historical btoa reference
+  decoders, which all ignore whitespace). Production btoa emitters
+  routinely wrap output at column 76; rejecting whitespace forced
+  every caller to strip it first. (#59)
+
 ## [0.13.0] - 2026-05-04
 
 ### Documentation
