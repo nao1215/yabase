@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-05-06
+
 ### Fixed
 
 - **base91**: `decode` now silently ignores ASCII whitespace
