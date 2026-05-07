@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Documentation
+
+- **README**: new "Codec ergonomics" section spells out the
+  per-module `encode` return-type asymmetry (`String` vs
+  `Result(String, CodecError)`) that arises from genuine encode-
+  time preconditions in `z85`, `rfc1924_base85`, `base58check`,
+  and `bech32`. The section names every codec by category and
+  recommends the unified `yabase.encode` API for callers that
+  need a uniform `Result` shape (e.g. property-test tooling).
+  The asymmetry itself is unchanged — closing it would require
+  a smart-constructor refactor across every Result-returning
+  codec, which is a larger breaking change. (#63)
+
 ### Fixed
 
 - **Every encoder now rejects sub-byte input** at the boundary
