@@ -26,6 +26,7 @@ import yabase/base36 as base36_module
 import yabase/base45 as base45_module
 import yabase/base58/bitcoin as base58_bitcoin_module
 import yabase/base58/flickr as base58_flickr_module
+import yabase/base58check as base58check_module
 import yabase/base62 as base62_module
 import yabase/base64/dq as base64_dq_module
 import yabase/base64/nopadding as base64_nopadding_module
@@ -34,7 +35,12 @@ import yabase/base64/urlsafe as base64_urlsafe_module
 import yabase/base64/urlsafe_nopadding as base64_urlsafe_nopadding_module
 import yabase/base8
 import yabase/base91 as base91_module
-import yabase/core/error.{type CodecError as CodecErrorAlias}
+import yabase/bech32 as bech32_module
+import yabase/core/error.{
+  type Bech32Variant, type CodecError as CodecErrorAlias, Base58CheckDecoded,
+  Bech32 as Bech32V, Bech32Decoded, Bech32m as Bech32mV, InvalidChecksum,
+  InvalidHrp,
+}
 import yabase/rfc1924_base85
 import yabase/z85 as z85_module
 
@@ -89,10 +95,12 @@ pub opaque type Encoding {
   Base36
   Base45
   Base58(Base58Variant)
+  Base58Check(version: Int)
   Base62
   Base64(Base64Variant)
   Base85(Base85Variant)
   Base91
+  Bech32(hrp: String, variant: Bech32Variant)
 }
 
 /// A decoded value tagged with its detected encoding. Use
@@ -227,6 +235,29 @@ pub fn base91() -> Encoding {
   Base91
 }
 
+/// Smart constructor for the Base58Check encoding. The `version`
+/// byte is part of the checksummed payload — `decode_as` rejects
+/// any wire whose embedded version does not match, surfacing the
+/// mismatch as `InvalidChecksum`.
+pub fn base58_check(version: Int) -> Encoding {
+  Base58Check(version: version)
+}
+
+/// Smart constructor for Bech32 (BIP 173 — the original variant).
+/// The `hrp` (human-readable part) is the protocol-specific prefix
+/// emitted before the checksummed payload (e.g. `"bc"` for Bitcoin
+/// mainnet, `"npub"` for Nostr public keys).
+pub fn bech32(hrp: String) -> Encoding {
+  Bech32(hrp: hrp, variant: Bech32V)
+}
+
+/// Smart constructor for Bech32m (BIP 350 — the improved variant).
+/// Same wire shape as Bech32 but with a different checksum constant
+/// to detect cross-variant decoding.
+pub fn bech32m(hrp: String) -> Encoding {
+  Bech32(hrp: hrp, variant: Bech32mV)
+}
+
 // ---------------------------------------------------------------------------
 // Target capabilities.
 //
@@ -280,8 +311,10 @@ pub fn is_javascript_safe(enc: Encoding) -> Bool {
         Crockford | CrockfordCheck -> False
       }
     Base58(_) -> False
+    Base58Check(_) -> False
     Base64(_) -> True
     Base85(_) -> True
+    Bech32(_, _) -> True
   }
 }
 
@@ -322,6 +355,7 @@ pub fn encode(enc: Encoding, data: BitArray) -> Result(String, CodecError) {
     Base45 -> Ok(base45_module.encode(data))
     Base58(Bitcoin) -> Ok(base58_bitcoin_module.encode(data))
     Base58(Flickr) -> Ok(base58_flickr_module.encode(data))
+    Base58Check(version) -> base58check_module.encode(version, data)
     Base62 -> Ok(base62_module.encode(data))
     Base64(Standard) -> Ok(base64_standard_module.encode(data))
     Base64(UrlSafe) -> Ok(base64_urlsafe_module.encode(data))
@@ -333,6 +367,7 @@ pub fn encode(enc: Encoding, data: BitArray) -> Result(String, CodecError) {
     Base85(Rfc1924) -> rfc1924_base85.encode(data)
     Base85(Z85) -> z85_module.encode(data)
     Base91 -> Ok(base91_module.encode(data))
+    Bech32(hrp, variant) -> bech32_module.encode(variant, hrp, data)
   }
 }
 
@@ -353,6 +388,7 @@ pub fn decode_as(enc: Encoding, value: String) -> Result(BitArray, CodecError) {
     Base45 -> base45_module.decode(value)
     Base58(Bitcoin) -> base58_bitcoin_module.decode(value)
     Base58(Flickr) -> base58_flickr_module.decode(value)
+    Base58Check(version) -> decode_base58check_with_version(value, version)
     Base62 -> base62_module.decode(value)
     Base64(Standard) -> base64_standard_module.decode(value)
     Base64(UrlSafe) -> base64_urlsafe_module.decode(value)
@@ -364,6 +400,45 @@ pub fn decode_as(enc: Encoding, value: String) -> Result(BitArray, CodecError) {
     Base85(Rfc1924) -> rfc1924_base85.decode(value)
     Base85(Z85) -> z85_module.decode(value)
     Base91 -> base91_module.decode(value)
+    Bech32(hrp, variant) -> decode_bech32_with_metadata(value, hrp, variant)
+  }
+}
+
+/// Decode a Base58Check string and reject the result if the embedded
+/// version byte does not match the version declared in the
+/// `Encoding` value.
+fn decode_base58check_with_version(
+  value: String,
+  expected_version: Int,
+) -> Result(BitArray, CodecError) {
+  case base58check_module.decode(value) {
+    Ok(Base58CheckDecoded(version: v, payload: p)) ->
+      case v == expected_version {
+        True -> Ok(p)
+        False -> Error(InvalidChecksum)
+      }
+    Error(e) -> Error(e)
+  }
+}
+
+/// Decode a Bech32 string and reject the result if the embedded HRP
+/// or variant does not match what the `Encoding` value declared.
+fn decode_bech32_with_metadata(
+  value: String,
+  expected_hrp: String,
+  expected_variant: Bech32Variant,
+) -> Result(BitArray, CodecError) {
+  case bech32_module.decode(value) {
+    Ok(Bech32Decoded(hrp: h, data: d, variant: v)) ->
+      case h == expected_hrp {
+        False -> Error(InvalidHrp("expected " <> expected_hrp <> ", got " <> h))
+        True ->
+          case v == expected_variant {
+            True -> Ok(d)
+            False -> Error(InvalidChecksum)
+          }
+      }
+    Error(e) -> Error(e)
   }
 }
 
@@ -399,6 +474,11 @@ pub fn multibase_prefix(enc: Encoding) -> Result(String, Nil) {
     Base85(Rfc1924) -> Error(Nil)
     Base85(Z85) -> Error(Nil)
     Base91 -> Error(Nil)
+    // Checksum-bearing encodings carry per-instance metadata (version
+    // / HRP) that has no place in the prefix-only multibase scheme,
+    // so they have no assigned multibase prefix.
+    Base58Check(_) -> Error(Nil)
+    Bech32(_, _) -> Error(Nil)
   }
 }
 
@@ -454,6 +534,9 @@ pub fn multibase_name(enc: Encoding) -> String {
     Base85(Rfc1924) -> "rfc1924-base85"
     Base85(Z85) -> "z85"
     Base91 -> "base91"
+    Base58Check(_) -> "base58check"
+    Bech32(_, Bech32V) -> "bech32"
+    Bech32(_, Bech32mV) -> "bech32m"
   }
 }
 
