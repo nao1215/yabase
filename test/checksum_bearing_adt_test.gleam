@@ -10,6 +10,15 @@ import gleeunit/should
 import yabase
 import yabase/core/encoding
 
+// Base58Check is bignum-backed via Base58, so it is not
+// JavaScript-safe under the documented `Number.MAX_SAFE_INTEGER`
+// constraint. Pin these tests to the Erlang target — the dispatch
+// itself is exhaustive on both targets, but only the BEAM executes
+// the bignum hot path. `is_javascript_safe(Base58Check(_))` returns
+// `False`, so callers picking codecs at runtime can route around
+// this on the JS target.
+
+@target(erlang)
 pub fn base58_check_round_trip_test() {
   let encoding = encoding.base58_check(0)
   let payload = <<"hello":utf8>>
@@ -18,6 +27,7 @@ pub fn base58_check_round_trip_test() {
   decoded |> should.equal(payload)
 }
 
+@target(erlang)
 pub fn base58_check_rejects_mismatched_version_test() {
   // Encode with version 0, attempt to decode with version 5 — the
   // version byte is part of the checksummed payload, so a mismatch
