@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-05-07
+
 ### Added
 
 - **Checksum-bearing encodings now fit the `Encoding` ADT.** New
