@@ -8,13 +8,18 @@ import gleam/string
 import yabase/core/error.{
   type CodecError, InvalidCharacter, InvalidLength, Overflow,
 }
+import yabase/core/guard
 
 const prefix = "<~"
 
 const suffix = "~>"
 
 /// Encode a BitArray to Adobe Ascii85 with <~ ~> delimiters.
+///
+/// Sub-byte input panics; see
+/// `yabase/core/guard.assert_byte_aligned`.
 pub fn encode(data: BitArray) -> String {
+  guard.assert_byte_aligned(data)
   prefix
   <> {
     encode_groups(data, [])

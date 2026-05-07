@@ -4,9 +4,16 @@ import gleam/bool
 import gleam/list
 import gleam/string
 import yabase/core/error.{type CodecError, InvalidCharacter, InvalidLength}
+import yabase/core/guard
 
 /// Encode a BitArray to a binary string (e.g. <<0x41>> -> "01000001").
+///
+/// Sub-byte input (a `BitArray` whose bit size is not a multiple of
+/// 8) panics; the byte-walker would otherwise silently drop the
+/// trailing fewer-than-8-bit segment. See
+/// `yabase/core/guard.assert_byte_aligned`.
 pub fn encode(data: BitArray) -> String {
+  guard.assert_byte_aligned(data)
   encode_bytes(data, [])
   |> list.reverse
   |> string.join("")

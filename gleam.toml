@@ -58,7 +58,7 @@ unused_exports = "error"
 unwrap_used = "error"
 
 [tools.glinter.ignore]
-"test/**/*.gleam" = ["assert_ok_pattern", "unused_exports"]
+"test/**/*.gleam" = ["assert_ok_pattern", "unused_exports", "missing_type_annotation"]
 "src/yabase.gleam" = ["label_possible"]
 "src/yabase/adobe_ascii85.gleam" = ["deep_nesting", "label_possible"]
 "src/yabase/ascii85.gleam" = ["deep_nesting", "label_possible"]
@@ -71,7 +71,7 @@ unwrap_used = "error"
 "src/yabase/base64/*.gleam" = ["deep_nesting", "function_complexity", "label_possible"]
 "src/yabase/base91.gleam" = ["deep_nesting", "function_complexity", "label_possible"]
 "src/yabase/bech32.gleam" = ["deep_nesting", "label_possible"]
-"src/yabase/core/*.gleam" = ["label_possible"]
+"src/yabase/core/*.gleam" = ["label_possible", "avoid_panic"]
 "src/yabase/internal/*.gleam" = ["label_possible"]
 "src/yabase/rfc1924_base85.gleam" = ["deep_nesting", "label_possible"]
 "src/yabase/z85.gleam" = ["deep_nesting", "label_possible"]

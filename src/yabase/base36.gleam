@@ -2,12 +2,17 @@
 /// Leading 0x00 bytes round-trip as leading "0" characters.
 import gleam/string
 import yabase/core/error.{type CodecError}
+import yabase/core/guard
 import yabase/internal/bignum
 
 const alphabet = "0123456789abcdefghijklmnopqrstuvwxyz"
 
 /// Encode a BitArray to Base36 (lowercase).
+///
+/// Sub-byte input panics; see
+/// `yabase/core/guard.assert_byte_aligned`.
 pub fn encode(data: BitArray) -> String {
+  guard.assert_byte_aligned(data)
   bignum.encode(data, 36, alphabet)
 }
 

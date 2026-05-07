@@ -6,13 +6,18 @@ import gleam/string
 import yabase/core/error.{
   type CodecError, InvalidCharacter, InvalidLength, NonCanonical,
 }
+import yabase/core/guard
 
 const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 
 const pad = "="
 
 /// Encode a BitArray to standard Base64 with padding.
+///
+/// Sub-byte input panics; see
+/// `yabase/core/guard.assert_byte_aligned`.
 pub fn encode(data: BitArray) -> String {
+  guard.assert_byte_aligned(data)
   encode_chunks(data, [])
   |> list.reverse
   |> string.join("")

@@ -9,9 +9,14 @@ import gleam/string
 import yabase/core/error.{
   type CodecError, InvalidCharacter, InvalidLength, Overflow,
 }
+import yabase/core/guard
 
 /// Encode a BitArray to Ascii85.
+///
+/// Sub-byte input panics; see
+/// `yabase/core/guard.assert_byte_aligned`.
 pub fn encode(data: BitArray) -> String {
+  guard.assert_byte_aligned(data)
   encode_groups(data, [])
   |> list.reverse
   |> string.join("")

@@ -11,11 +11,16 @@ import gleam/int
 import gleam/list
 import gleam/string
 import yabase/core/error.{type CodecError, InvalidCharacter}
+import yabase/core/guard
 
 const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#$%&()*+,./:;<=>?@[]^_`{|}~\""
 
 /// Encode a BitArray to Base91.
+///
+/// Sub-byte input panics; see
+/// `yabase/core/guard.assert_byte_aligned`.
 pub fn encode(data: BitArray) -> String {
+  guard.assert_byte_aligned(data)
   encode_loop(data, 0, 0, [])
   |> list.reverse
   |> string.join("")
