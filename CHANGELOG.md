@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **Checksum-bearing encodings now fit the `Encoding` ADT.** New
+  smart constructors `encoding.base58_check(version: Int)`,
+  `encoding.bech32(hrp: String)`, and `encoding.bech32m(hrp: String)`
+  return `Encoding` values that the unified `yabase.encode` and
+  `yabase.decode` family dispatches alongside the plain codecs.
+  `yabase.decode` rejects any wire whose embedded checksum-bearing
+  metadata (Base58Check version, Bech32 HRP / variant) does not
+  match what the caller declared on the `Encoding` value:
+  - Base58Check version mismatch → `Error(InvalidChecksum)` (the
+    version is part of the checksummed payload, so a mismatch is a
+    checksum-class failure on the wire).
+  - Bech32 HRP mismatch → `Error(InvalidHrp(_))` carrying the
+    expected and observed HRP.
+  - Bech32 / Bech32m variant mismatch → `Error(InvalidChecksum)`
+    (the variants share the same wire shape but differ in the
+    checksum constant).
+  Property-test tooling that consumes `Encoding` (e.g.
+  [metamon](https://github.com/nao1215/metamon)'s
+  `forall_round_trip`) can now drive every codec — plain and
+  checksum-bearing — through one ADT without forking by codec
+  module. The README's "Checksum-bearing" section is rewritten to
+  lead with the unified API while the per-module
+  `yabase/base58check`, `yabase/bech32` decoders remain available
+  for callers that need to inspect the embedded metadata
+  directly. Six round-trip tests in
+  `test/checksum_bearing_adt_test.gleam` lock the new dispatch
+  (positive controls + version / HRP / variant mismatch
+  rejection). (#65)
+
 ### Documentation
 
 - **README**: new "Codec ergonomics" section spells out the

@@ -137,15 +137,33 @@ pub fn lookup(public_id: String) -> Bool {
 
 Big-integer encodings (Base8, Base10, Base36, Base58, Base62, Crockford Base32) preserve leading zero bytes: each leading 0x00 byte encodes as the alphabet's zero character, and decoding reverses this. For example, `base10.decode("001")` returns `Ok(<<0, 0, 1>>)`.
 
-### Checksum-bearing (separate API)
+### Checksum-bearing
 
-These encodings carry metadata (version bytes, checksums, HRP) and have their own API outside the `Encoding` ADT.
+These encodings carry metadata (version bytes, checksums, HRP) and the metadata
+is part of the `Encoding` value:
 
-| Encoding | Module | Description |
-|----------|--------|-------------|
-| Base58Check | `yabase/base58check` | Bitcoin-style: version byte + payload + SHA-256 double-hash checksum |
-| Bech32 | `yabase/bech32` | BIP 173: byte-payload encoding (HRP + 8-to-5 conversion + checksum), not SegWit address validation |
-| Bech32m | `yabase/bech32` | BIP 350: improved checksum constant, same byte-payload API |
+| Encoding | Module | `Encoding` constructor | Description |
+|----------|--------|-----------------------|-------------|
+| Base58Check | `yabase/base58check` | `encoding.base58_check(version)` | Bitcoin-style: version byte + payload + SHA-256 double-hash checksum |
+| Bech32 | `yabase/bech32` | `encoding.bech32(hrp)` | BIP 173: byte-payload encoding (HRP + 8-to-5 conversion + checksum), not SegWit address validation |
+| Bech32m | `yabase/bech32` | `encoding.bech32m(hrp)` | BIP 350: improved checksum constant, same byte-payload API |
+
+Both fit the unified `yabase.encode` / `yabase.decode` shape:
+
+```gleam
+import yabase
+import yabase/core/encoding
+
+let assert Ok(_encoded) =
+  yabase.encode(encoding.bech32("bc"), <<0xDE, 0xAD, 0xBE, 0xEF>>)
+```
+
+`yabase.decode` rejects any wire whose embedded checksum-bearing
+metadata (Base58Check version, Bech32 HRP / variant) does not match
+what the caller declared on the `Encoding` value. The low-level
+modules (`yabase/base58check.decode`, `yabase/bech32.decode`) remain
+available when the caller needs to inspect the embedded metadata
+directly.
 
 ## API layers
 
