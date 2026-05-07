@@ -190,6 +190,43 @@ let encoded = facade.encode_base64(<<"Hello":utf8>>)
 let assert Ok(_decoded) = facade.decode_base64(encoded)
 ```
 
+## Codec ergonomics: `encode` return-type asymmetry
+
+The per-module `encode` family is **not uniform**:
+
+| Codec | `encode` signature |
+| --- | --- |
+| `base2`, `base8`, `base10`, `base16`, `base32/{rfc4648, hex, crockford, clockwork, zbase32}`, `base36`, `base45`, `base62`, `base64/{standard, urlsafe, nopadding, urlsafe_nopadding, dq}`, `base91`, `base58/{bitcoin, flickr}`, `ascii85`, `adobe_ascii85` | `fn(BitArray) -> String` |
+| **`z85`, `rfc1924_base85`** | **`fn(BitArray) -> Result(String, CodecError)`** |
+| **`base58check`** | **`fn(Int, BitArray) -> Result(String, CodecError)`** |
+| **`bech32`** | **`fn(String, BitArray, Bech32Variant) -> Result(String, CodecError)`** |
+
+The four `Result`-returning codecs have genuine encode-time
+preconditions:
+
+- `z85` / `rfc1924_base85` require the input length to be a
+  multiple of 4 bytes
+- `base58check` requires the version byte to be in `0..=255`
+- `bech32` validates the human-readable part (HRP) and the
+  variant
+- All four also reject sub-byte input via the same
+  precondition path used for the constraint above.
+
+Every other codec rejects sub-byte input (`bit_array.bit_size %
+8 != 0`) by panicking via
+`yabase/core/guard.assert_byte_aligned` (see #64) — a
+programmer-error path, not a runtime-input path. With that,
+sub-byte input is uniformly rejected across the codec family;
+only the *shape* of the rejection differs.
+
+If you need a uniform `Result(String, _)` shape across every
+codec — e.g. for property-test tooling like
+[`metamon`](https://github.com/nao1215/metamon)'s
+`forall_round_trip` — use the **unified API**
+(`yabase.encode`) at the top of this README. It always returns
+`Result(String, CodecError)` and absorbs the per-module
+asymmetry behind a single `Encoding` ADT dispatch.
+
 ### Multibase support
 
 Prefix-based encoding and auto-detection:
