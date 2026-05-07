@@ -6,6 +6,7 @@ import gleam/bool
 import gleam/list
 import gleam/string
 import yabase/core/error.{type CodecError, InvalidCharacter, InvalidLength}
+import yabase/core/guard
 
 const dq_alphabet = [
   "あ", "い", "う", "え", "お", "か", "き", "く", "け", "こ", "さ", "し", "す", "せ", "そ", "た",
@@ -17,7 +18,11 @@ const dq_alphabet = [
 const dq_pad = "・"
 
 /// Encode a BitArray to Base64 DQ (hiragana).
+///
+/// Sub-byte input panics; see
+/// `yabase/core/guard.assert_byte_aligned`.
 pub fn encode(data: BitArray) -> String {
+  guard.assert_byte_aligned(data)
   encode_chunks(data, [])
   |> list.reverse
   |> string.join("")

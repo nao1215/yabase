@@ -9,6 +9,7 @@ import gleam/int
 import gleam/list
 import gleam/string
 import yabase/core/error.{type CodecError, InvalidCharacter, InvalidLength}
+import yabase/core/guard
 
 /// Encode a BitArray to an uppercase hexadecimal string per
 /// RFC 4648 §8 (the canonical Base 16 encoding).
@@ -18,6 +19,7 @@ import yabase/core/error.{type CodecError, InvalidCharacter, InvalidLength}
 /// many JSON Web Token implementations); the decoder accepts either
 /// case, so round-trips work in both directions.
 pub fn encode(data: BitArray) -> String {
+  guard.assert_byte_aligned(data)
   encode_bytes(data, [], string.uppercase)
   |> list.reverse
   |> string.join("")
@@ -28,6 +30,7 @@ pub fn encode(data: BitArray) -> String {
 /// (`sha256sum` shell output, IPFS multibase prefix `f`, etc.). The
 /// canonical RFC 4648 §8 form is uppercase — see `encode/1`.
 pub fn encode_lowercase(data: BitArray) -> String {
+  guard.assert_byte_aligned(data)
   encode_bytes(data, [], string.lowercase)
   |> list.reverse
   |> string.join("")

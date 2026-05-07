@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Every encoder now rejects sub-byte input** at the boundary
+  via the new `yabase/core/guard.assert_byte_aligned` helper, which
+  panics when the input `BitArray`'s total bit length is not a
+  multiple of 8. Previously the byte-walker pattern
+  `<<byte:int, rest:bits>>` used in `base16.encode`,
+  `base2.encode`, `base8.encode`, `base64.standard.encode`, and
+  most other codecs only matched a full 8-bit prefix; any trailing
+  fewer-than-8-bit segment fell through the catch-all branch and
+  was **silently dropped**, producing a string that decoded to a
+  strictly shorter `BitArray` than the caller supplied. A
+  reproducer like `base16.encode(<<0xFF, 0x80, 1:size(3)>>)` lost
+  the 3-bit tail without warning. The new guard turns that data
+  loss into a loud crash with a diagnostic message
+  (`"yabase encode: input must be byte-aligned (a multiple of 8
+  bits); got N bits"`). Sub-byte input has always been outside the
+  `encode` contract, so the change is API-compatible for every
+  caller that was already passing byte-aligned `BitArray`s.
+  Affected codecs: `base2`, `base8`, `base10`, `base16`,
+  `base32/{rfc4648, hex, crockford, clockwork, zbase32}`, `base36`,
+  `base45`, `base58/{bitcoin, flickr}`, `base62`,
+  `base64/{standard, urlsafe, nopadding, urlsafe_nopadding, dq}`,
+  `base91`, `ascii85`, `adobe_ascii85`. The Result-returning
+  codecs (`z85`, `rfc1924_base85`, `base58check`, `bech32`)
+  already rejected sub-byte input via their existing length checks
+  and are unchanged. (#64)
+
+
 ## [0.14.0] - 2026-05-06
 
 ### Fixed

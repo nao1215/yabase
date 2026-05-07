@@ -6,11 +6,16 @@ import gleam/bit_array
 import gleam/list
 import gleam/string
 import yabase/core/error.{type CodecError, InvalidCharacter, InvalidLength}
+import yabase/core/guard
 
 const alphabet = "ybndrfg8ejkmcpqxot1uwisza345h769"
 
 /// Encode a BitArray to z-base-32 (no padding).
+///
+/// Sub-byte input panics; see
+/// `yabase/core/guard.assert_byte_aligned`.
 pub fn encode(data: BitArray) -> String {
+  guard.assert_byte_aligned(data)
   encode_bits(data, [])
   |> list.reverse
   |> string.join("")

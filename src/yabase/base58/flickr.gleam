@@ -2,12 +2,17 @@
 /// Alphabet: 123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ
 /// Same as Bitcoin but with swapped upper/lower case.
 import yabase/core/error.{type CodecError}
+import yabase/core/guard
 import yabase/internal/bignum
 
 const alphabet = "123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ"
 
 /// Encode a BitArray to Base58 (Flickr).
+///
+/// Sub-byte input panics; see
+/// `yabase/core/guard.assert_byte_aligned`.
 pub fn encode(data: BitArray) -> String {
+  guard.assert_byte_aligned(data)
   bignum.encode(data, 58, alphabet)
 }
 

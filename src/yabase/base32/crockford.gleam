@@ -29,6 +29,7 @@
 /// integer model.
 import gleam/string
 import yabase/core/error.{type CodecError, InvalidChecksum, InvalidLength}
+import yabase/core/guard
 import yabase/internal/bignum
 
 const alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
@@ -47,6 +48,7 @@ const alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
 /// [`yabase/base32/rfc4648.encode`](../rfc4648.html#encode)
 /// instead.
 pub fn encode(data: BitArray) -> String {
+  guard.assert_byte_aligned(data)
   bignum.encode(data, 32, alphabet)
 }
 
