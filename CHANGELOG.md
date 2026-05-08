@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-05-08
+
 ### Tests
 - New `test/empty_input_round_trip_test.gleam` pins the empty-input
   round-trip contract uniformly across all 32 facade pairs in
