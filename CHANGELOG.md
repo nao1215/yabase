@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Tests
+- New `test/empty_input_round_trip_test.gleam` pins the empty-input
+  round-trip contract uniformly across all 32 facade pairs in
+  `yabase/facade`. For every total `encode_*` function, the test
+  asserts `decode(encode(<<>>)) == Ok(<<>>)`. For the two `Result`-
+  returning encoders (Z85, RFC 1924 Base85) the same round-trip is
+  pinned via `let assert Ok(encoded) = encode(<<>>)`. The RFC 4648
+  family additionally pins `decode("") == Ok(<<>>)` directly. A future
+  refactor that flips the rule for one codec now surfaces here as a
+  single-test diff. metamon is not a dev-dep so the property is
+  exercised exhaustively over the facade rather than via
+  `forall_round_trip`. (#70)
+
 ## [0.15.0] - 2026-05-07
 
 ### Added
