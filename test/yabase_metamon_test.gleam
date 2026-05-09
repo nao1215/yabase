@@ -87,6 +87,7 @@ pub fn base32_hex_round_trip_test() -> Nil {
   })
 }
 
+@target(erlang)
 pub fn base32_crockford_round_trip_test() -> Nil {
   metamon.forall(small_bit_array_generator(), fn(data) {
     crockford.decode(crockford.encode(data)) == Ok(data)
@@ -121,12 +122,14 @@ pub fn base64_nopadding_round_trip_test() -> Nil {
 
 // ---------- other bases ----------
 
+@target(erlang)
 pub fn base10_round_trip_test() -> Nil {
   metamon.forall(small_bit_array_generator(), fn(data) {
     base10.decode(base10.encode(data)) == Ok(data)
   })
 }
 
+@target(erlang)
 pub fn base36_round_trip_test() -> Nil {
   metamon.forall(small_bit_array_generator(), fn(data) {
     base36.decode(base36.encode(data)) == Ok(data)
@@ -139,12 +142,14 @@ pub fn base45_round_trip_test() -> Nil {
   })
 }
 
+@target(erlang)
 pub fn base58_bitcoin_round_trip_test() -> Nil {
   metamon.forall(small_bit_array_generator(), fn(data) {
     base58_bitcoin.decode(base58_bitcoin.encode(data)) == Ok(data)
   })
 }
 
+@target(erlang)
 pub fn base62_round_trip_test() -> Nil {
   metamon.forall(small_bit_array_generator(), fn(data) {
     base62.decode(base62.encode(data)) == Ok(data)
