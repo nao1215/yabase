@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-05-10
+
 ### Documentation
 
 - README gains a `## Strictness` section between `## Quick start`
