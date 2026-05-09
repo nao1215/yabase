@@ -73,6 +73,48 @@ pub fn main() {
 
 That covers the success path. See [Notes for production code](#notes-for-production-code) at the bottom for the lint-policy and error-propagation guidance.
 
+## Strictness
+
+The default `decode_base32` and `decode_base64` (and their
+URL-safe / no-padding cousins) are **lenient** — they accept
+non-canonical pad bits per the spec's MAY-relax clause. For
+interop with strict peers (JWT canonical-form check, signature
+verification, RFC-strict gateway), reach for the `_strict`
+siblings. They reject non-canonical pad bits per RFC 4648 §3.5
+with a typed error.
+
+```gleam
+import yabase/facade
+
+// Lenient default — accepts non-canonical trailing pad bits:
+let _lenient = facade.decode_base64("TR==")
+// -> Ok(<<...>>)
+
+// Strict — rejects non-canonical input per RFC 4648 §3.5:
+let _strict = facade.decode_base64_strict("TR==")
+// -> Error(InvalidPadding)
+```
+
+Available facade pairs:
+
+- `decode_base32` / `decode_base32_strict` (RFC 4648 §6 + §3.5)
+- `decode_base64` / `decode_base64_strict` (RFC 4648 §4 + §3.5)
+
+Reach into `yabase/base32/rfc4648` / `yabase/base64/standard`
+for the URL-safe / nopadding variants if you need their strict
+forms (`yabase/base64/urlsafe.decode_strict`,
+`yabase/base32/hex.decode_strict`, etc.). The strictness axis
+is independent of the padding axis: `_nopadding` already
+requires pad-free input, but its decoder is also lenient about
+non-canonical trailing bits — pair with `_strict` when both
+properties matter.
+
+Use the strict variants by default for any decoder fed with
+attacker-controlled input (auth tokens, signed payloads,
+multi-tenant API gateways). The lenient default is the right
+shape for friendly clients (config files, internal RPC) where
+the producer is trusted not to ship malformed pad bits.
+
 ## Integer IDs
 
 Short URL-safe identifiers — DB autoincrement ids, sequence numbers, hash truncations — usually want `Int -> compact string` rather than `BitArray -> String`. The `yabase/intid` module provides this directly so callers do not have to write the `Int -> big-endian bytes -> trim-leading-zero` shim themselves.
