@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **`yabase/intid`**: `encode_int_base10` /
+  `decode_int_base10` / `decode_int_base10_bounded` close the
+  decimal gap in the integer-id surface. Every other base
+  (base32 RFC 4648 / Crockford, base36, base58 Bitcoin /
+  Flickr, base62) had encode/decode/bounded-decode helpers; the
+  base10 omission broke switch-case bench harnesses (\"swap
+  base58 for base62 to compare ID lengths, hit a compile error
+  on `encode_int_base10`\") and forced callers to special-case
+  decimal with `int.to_string` / `int.parse` plus a hand-rolled
+  bounds check. The new helpers route through `yabase/base10`
+  for symmetry with the rest of the family. (#78)
 - Property-based round-trip tests using
   [metamon](https://github.com/nao1215/metamon) covering every
   encoding's `decode(encode(data)) == Ok(data)` invariant. Lives

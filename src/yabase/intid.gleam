@@ -49,6 +49,7 @@ import gleam/bool
 import gleam/int
 import gleam/result
 import gleam/string
+import yabase/base10
 import yabase/base32/crockford as base32_crockford
 import yabase/base32/rfc4648 as base32_rfc4648
 import yabase/base36
@@ -125,6 +126,35 @@ pub fn decode_int_base32_crockford_bounded(
   max max: Int,
 ) -> Result(Int, CodecError) {
   use value <- result.try(decode_int_base32_crockford(input))
+  bound_check(value, max)
+}
+
+/// Encode a non-negative `Int` as a Base10 (decimal) string.
+///
+/// Behaviour matches `int.to_string` for the typical case
+/// (positive integers) and the rest of the `intid` family for the
+/// switch-case bench harnesses described in #78. Routing through
+/// `base10.encode` keeps the contract uniform with the other
+/// `encode_int_*` functions: a non-negative `Int` in, a string
+/// in the alphabet out, no padding.
+pub fn encode_int_base10(value: Int) -> String {
+  base10.encode(int_to_bytes_be(value))
+}
+
+/// Decode a Base10 (decimal) string back to an `Int`.
+pub fn decode_int_base10(input: String) -> Result(Int, CodecError) {
+  use input <- result.try(reject_empty(input))
+  base10.decode(input)
+  |> result.map(bytes_to_int)
+}
+
+/// Decode a Base10 (decimal) string back to an `Int`, rejecting
+/// values greater than `max` with `Error(Overflow)`.
+pub fn decode_int_base10_bounded(
+  input input: String,
+  max max: Int,
+) -> Result(Int, CodecError) {
+  use value <- result.try(decode_int_base10(input))
   bound_check(value, max)
 }
 
