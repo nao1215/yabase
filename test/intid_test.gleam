@@ -1,4 +1,7 @@
-import yabase/core/error.{InvalidCharacter, InvalidLength, Overflow}
+import gleam/string
+import yabase/core/error.{
+  InvalidCharacter, InvalidChecksum, InvalidLength, Overflow,
+}
 import yabase/intid
 
 // === Base32 (RFC 4648) ===
@@ -357,6 +360,133 @@ pub fn decode_int_base32_crockford_bounded_above_cap_test() -> Nil {
       max: intid.int64_max,
     )
     == Error(Overflow)
+}
+
+// === Issue #73: Crockford Base32 with check symbol ===
+
+pub fn encode_int_base32_crockford_check_zero_test() -> Nil {
+  // 0 encoded as Crockford "0" then check digit for 0 mod 37 == "0".
+  assert intid.encode_int_base32_crockford_check(0) == "00"
+}
+
+pub fn decode_int_base32_crockford_check_roundtrip_test() -> Nil {
+  let encoded = intid.encode_int_base32_crockford_check(987_654)
+  assert intid.decode_int_base32_crockford_check(encoded) == Ok(987_654)
+}
+
+pub fn decode_int_base32_crockford_check_empty_test() -> Nil {
+  assert intid.decode_int_base32_crockford_check("") == Error(InvalidLength(0))
+}
+
+pub fn decode_int_base32_crockford_check_detects_typo_test() -> Nil {
+  // Take a valid checksummed encoding and mutate one body character.
+  // The decoder must reject the typo via InvalidChecksum, which is the
+  // whole reason callers reach for the `_check` variant.
+  let encoded = intid.encode_int_base32_crockford_check(123_456)
+  let body = string_drop_last(encoded)
+  let check = string_take_last(encoded)
+  let mutated = mutate_first_body_char(body) <> check
+  assert intid.decode_int_base32_crockford_check(mutated)
+    == Error(InvalidChecksum)
+}
+
+pub fn decode_int_base32_crockford_check_bounded_within_test() -> Nil {
+  let encoded = intid.encode_int_base32_crockford_check(42)
+  assert intid.decode_int_base32_crockford_check_bounded(
+      input: encoded,
+      max: intid.int64_max,
+    )
+    == Ok(42)
+}
+
+@target(erlang)
+pub fn decode_int_base32_crockford_check_bounded_above_cap_test() -> Nil {
+  let encoded = intid.encode_int_base32_crockford_check(intid.int64_max + 1)
+  assert intid.decode_int_base32_crockford_check_bounded(
+      input: encoded,
+      max: intid.int64_max,
+    )
+    == Error(Overflow)
+}
+
+// === Issue #73: Base58Check ===
+//
+// The Base58Check round-trip tests below are `@target(erlang)` because
+// `yabase/base58check`'s round-trip is itself only exercised on Erlang
+// in this repo (see `test/base58check_test.gleam`); the JS-side
+// SHA-256 divergence is pre-existing scope and tracked separately. The
+// `decode_int_base58check_empty_test` runs on both targets because
+// empty-input rejection short-circuits before any hashing.
+
+@target(erlang)
+pub fn encode_int_base58check_zero_roundtrips_test() -> Nil {
+  let encoded = intid.encode_int_base58check(0)
+  assert intid.decode_int_base58check(encoded) == Ok(0)
+}
+
+@target(erlang)
+pub fn decode_int_base58check_roundtrip_test() -> Nil {
+  let encoded = intid.encode_int_base58check(9_999_999_999)
+  assert intid.decode_int_base58check(encoded) == Ok(9_999_999_999)
+}
+
+pub fn decode_int_base58check_empty_test() -> Nil {
+  assert intid.decode_int_base58check("") == Error(InvalidLength(0))
+}
+
+@target(erlang)
+pub fn decode_int_base58check_detects_typo_test() -> Nil {
+  // Mutate the first checksum-bearing position. Base58Check's 4-byte
+  // SHA-256 suffix means this *must* fail — that is the property the
+  // helper exists to guarantee for callers.
+  let encoded = intid.encode_int_base58check(424_242)
+  let mutated = mutate_first_body_char(encoded)
+  assert intid.decode_int_base58check(mutated) == Error(InvalidChecksum)
+}
+
+@target(erlang)
+pub fn decode_int_base58check_bounded_within_test() -> Nil {
+  let encoded = intid.encode_int_base58check(1234)
+  assert intid.decode_int_base58check_bounded(
+      input: encoded,
+      max: intid.int64_max,
+    )
+    == Ok(1234)
+}
+
+@target(erlang)
+pub fn decode_int_base58check_bounded_above_cap_test() -> Nil {
+  let encoded = intid.encode_int_base58check(intid.int64_max + 1)
+  assert intid.decode_int_base58check_bounded(
+      input: encoded,
+      max: intid.int64_max,
+    )
+    == Error(Overflow)
+}
+
+// Helpers for the typo-detection tests above. Kept in the test module so
+// the production API stays focused on Int↔string.
+fn string_drop_last(s: String) -> String {
+  let len = string.length(s)
+  string.slice(s, 0, len - 1)
+}
+
+fn string_take_last(s: String) -> String {
+  let len = string.length(s)
+  string.slice(s, len - 1, 1)
+}
+
+fn mutate_first_body_char(s: String) -> String {
+  // Flip the first character to a different valid Crockford / Base58
+  // character. Both alphabets contain "1" and "2", so swapping between
+  // them produces a syntactically valid but checksum-invalid string.
+  let head = string.slice(s, 0, 1)
+  let tail = string.slice(s, 1, string.length(s) - 1)
+  let replacement = case head {
+    "1" -> "2"
+    _ -> "1"
+  }
+  replacement <> tail
 }
 
 // Issue #74: a wrapper that only `import yabase/intid` must be able to
