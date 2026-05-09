@@ -64,6 +64,58 @@ pub fn decode_int_base32_crockford_roundtrip_test() -> Nil {
   assert intid.decode_int_base32_crockford(encoded) == Ok(987_654)
 }
 
+// === encoding.base10() (#78) ===
+
+pub fn encode_int_base10_zero_test() -> Nil {
+  assert intid.encode_int_base10(0) == "0"
+}
+
+pub fn encode_int_base10_single_digit_test() -> Nil {
+  assert intid.encode_int_base10(7) == "7"
+}
+
+pub fn encode_int_base10_carry_test() -> Nil {
+  assert intid.encode_int_base10(10) == "10"
+}
+
+pub fn encode_int_base10_large_test() -> Nil {
+  assert intid.encode_int_base10(1_000_000_000) == "1000000000"
+}
+
+pub fn decode_int_base10_empty_test() -> Nil {
+  assert intid.decode_int_base10("") == Error(InvalidLength(0))
+}
+
+pub fn decode_int_base10_round_trip_test() -> Nil {
+  let encoded = intid.encode_int_base10(8_675_309)
+  assert intid.decode_int_base10(encoded) == Ok(8_675_309)
+}
+
+pub fn decode_int_base10_leading_zero_tolerant_test() -> Nil {
+  // The byte-roundtrip path treats leading zero characters as
+  // leading 0x00 bytes, which still decode to the same integer
+  // value — matching the behaviour of `decode_int_base36` for
+  // `"0042"` vs `"42"`.
+  assert intid.decode_int_base10("0042") == intid.decode_int_base10("42")
+}
+
+pub fn decode_int_base10_invalid_char_test() -> Nil {
+  assert intid.decode_int_base10("12a3") == Error(InvalidCharacter("a", 2))
+}
+
+pub fn decode_int_base10_bounded_within_max_test() -> Nil {
+  assert intid.decode_int_base10_bounded(input: "100", max: 1000) == Ok(100)
+}
+
+pub fn decode_int_base10_bounded_at_max_test() -> Nil {
+  assert intid.decode_int_base10_bounded(input: "1000", max: 1000) == Ok(1000)
+}
+
+pub fn decode_int_base10_bounded_overflow_test() -> Nil {
+  assert intid.decode_int_base10_bounded(input: "1001", max: 1000)
+    == Error(Overflow)
+}
+
 // === encoding.base36() ===
 
 pub fn encode_int_base36_zero_test() -> Nil {
