@@ -55,8 +55,20 @@ import yabase/base36
 import yabase/base58/bitcoin as base58_bitcoin
 import yabase/base58/flickr as base58_flickr
 import yabase/base62
-import yabase/core/error.{type CodecError, InvalidLength, Overflow}
+import yabase/core/error.{
+  type CodecError as CoreCodecError, InvalidLength, Overflow,
+}
 import yabase/internal/bignum
+
+/// Issue #74: every `decode_int_*` function in this module returns
+/// `Result(Int, CodecError)`. Without this re-export, callers who only
+/// `import yabase/intid` cannot type-annotate a wrapper around a
+/// decode call without reaching into `yabase/core/error` — a module
+/// the README does not mention. The alias keeps the type identity
+/// (it's the same `CodecError` the underlying codec functions
+/// already use) so error values flow through unchanged.
+pub type CodecError =
+  CoreCodecError
 
 /// Largest value that fits in a signed 64-bit integer (`2^63 - 1`).
 /// Use as the `max` argument to `decode_int_*_bounded` when the

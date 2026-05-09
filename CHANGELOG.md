@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- **`yabase/intid` and the top-level `yabase` module now re-export
+  `CodecError`** as a public type alias, so callers who only
+  `import yabase/intid` (or only `import yabase`) can type-annotate a
+  wrapper around `decode_int_*` / `encode` / `decode` without reaching
+  into `yabase/core/error`. The alias preserves type identity (it
+  resolves to the same `CodecError` the underlying functions already
+  return), so existing code keeps working unchanged. (#74)
+
 ## [0.16.0] - 2026-05-08
 
 ### Tests

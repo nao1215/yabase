@@ -358,3 +358,32 @@ pub fn decode_int_base32_crockford_bounded_above_cap_test() -> Nil {
     )
     == Error(Overflow)
 }
+
+// Issue #74: a wrapper that only `import yabase/intid` must be able to
+// type-annotate the error returned by `decode_int_*` without reaching
+// into `yabase/core/error`. This test pins down that the re-exported
+// `intid.CodecError` works as a type annotation and that values of the
+// underlying error type round-trip through the alias unchanged.
+pub fn intid_codec_error_alias_round_trips_test() -> Nil {
+  // The alias is the literal type the decoder returns, so values match
+  // by structural equality. `InvalidLength` is one of the existing
+  // variants from `yabase/core/error`.
+  let result: Result(Int, intid.CodecError) =
+    intid.decode_int_base58_bounded(input: "", max: intid.int53_max)
+  assert result == Error(InvalidLength(0))
+}
+
+pub fn intid_codec_error_alias_propagates_through_wrapper_test() -> Nil {
+  // Demonstrates the wrapper shape from Issue #74's reproduction: a
+  // user function that takes only `yabase/intid` as an import and
+  // returns the codec error through a custom name.
+  let result = decode_job_id("0OIl")
+  // base58 alphabet excludes 0 / O / I / l → InvalidCharacter on the
+  // first offending position.
+  let assert Error(_) = result
+  Nil
+}
+
+fn decode_job_id(s: String) -> Result(Int, intid.CodecError) {
+  intid.decode_int_base58_bounded(input: s, max: intid.int53_max)
+}
