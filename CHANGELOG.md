@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Property-based round-trip tests using
+  [metamon](https://github.com/nao1215/metamon) covering every
+  encoding's `decode(encode(data)) == Ok(data)` invariant. Lives
+  in `test/yabase_metamon_test.gleam` and pins the documented
+  round-trip law for: base16 (upper / lowercase), base32 RFC 4648
+  / hex / Crockford / Clockwork, base64 standard / urlsafe /
+  nopadding, base10, base36, base45, base58 Bitcoin, base62,
+  base91, ascii85 (4-byte-aligned inputs), z85 (4-byte-aligned
+  inputs). The 4-byte-aligned generators stay inside ascii85 /
+  z85's documented length contract; non-conforming length is
+  rejected with `LengthNotMultipleOf4` per the existing strict
+  variants and is exercised by the per-encoding test files.
+
 ## [0.17.0] - 2026-05-09
 
 ### Added
