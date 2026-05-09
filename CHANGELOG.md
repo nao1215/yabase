@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-05-09
+
 ### Added
 - **`yabase/intid` gains checksum-bearing `_check` variants** for the
   Crockford Base32 and Base58Check codecs, removing the
