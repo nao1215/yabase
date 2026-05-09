@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Documentation
+
+- README gains a `## Strictness` section between `## Quick start`
+  and `## Integer IDs`. The new section names the lenient-by-
+  default `decode_base32` / `decode_base64` posture, shows the
+  `decode_base64("TR==")` repro for non-canonical pad bits (RFC
+  4648 §3.5), points at the `_strict` siblings on the facade,
+  cross-references the per-encoding strict variants for URL-safe
+  / hex / nopadding, and gives the lenient-vs-strict default
+  recommendation (strict for attacker-controlled input, lenient
+  for friendly producers). Closes the discoverability gap from
+  #79 — the strict variants shipped in #39 but the README never
+  mentioned them. (#79)
+
 ### Added
 
 - **`yabase/intid`**: `encode_int_base10` /
