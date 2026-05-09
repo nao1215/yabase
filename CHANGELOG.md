@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- **`yabase/intid` gains checksum-bearing `_check` variants** for the
+  Crockford Base32 and Base58Check codecs, removing the
+  `Int → BitArray → encode_check / decode_check → BitArray → Int`
+  dance every caller previously reimplemented. New helpers:
+  `encode_int_base32_crockford_check`,
+  `decode_int_base32_crockford_check[_bounded]`,
+  `encode_int_base58check`,
+  `decode_int_base58check[_bounded]`. The decoders surface
+  `Error(InvalidChecksum)` on a mistyped input — the whole reason
+  callers reach for the checksummed variant. Base58Check is fixed at
+  version byte `0` (Bitcoin mainnet P2PKH); callers who need a
+  different version still drop to `yabase/base58check` directly. (#73)
 - **`yabase/intid` and the top-level `yabase` module now re-export
   `CodecError`** as a public type alias, so callers who only
   `import yabase/intid` (or only `import yabase`) can type-annotate a

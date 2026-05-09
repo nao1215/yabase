@@ -54,6 +54,7 @@ import yabase/base32/rfc4648 as base32_rfc4648
 import yabase/base36
 import yabase/base58/bitcoin as base58_bitcoin
 import yabase/base58/flickr as base58_flickr
+import yabase/base58check
 import yabase/base62
 import yabase/core/error.{
   type CodecError as CoreCodecError, InvalidLength, Overflow,
@@ -190,6 +191,84 @@ pub fn decode_int_base58_flickr_bounded(
   max max: Int,
 ) -> Result(Int, CodecError) {
   use value <- result.try(decode_int_base58_flickr(input))
+  bound_check(value, max)
+}
+
+/// Encode a non-negative `Int` as a Crockford Base32 string with a
+/// trailing checksum symbol (Douglas Crockford's optional check
+/// character).
+///
+/// Issue #73: same shape as `encode_int_base32_crockford` but with
+/// the typo-resistance guard the underlying codec already supports.
+/// Use the matching `decode_int_base32_crockford_check` to recover
+/// the integer; the decoder verifies the symbol and returns
+/// `Error(InvalidChecksum)` if the input was mistyped.
+pub fn encode_int_base32_crockford_check(value: Int) -> String {
+  base32_crockford.encode_check(int_to_bytes_be(value))
+}
+
+/// Decode a checksummed Crockford Base32 string back to an `Int`,
+/// verifying the trailing check symbol.
+pub fn decode_int_base32_crockford_check(
+  input: String,
+) -> Result(Int, CodecError) {
+  use input <- result.try(reject_empty(input))
+  base32_crockford.decode_check(input)
+  |> result.map(bytes_to_int)
+}
+
+/// Decode a checksummed Crockford Base32 string back to an `Int`,
+/// rejecting values greater than `max` with `Error(Overflow)`.
+pub fn decode_int_base32_crockford_check_bounded(
+  input input: String,
+  max max: Int,
+) -> Result(Int, CodecError) {
+  use value <- result.try(decode_int_base32_crockford_check(input))
+  bound_check(value, max)
+}
+
+/// Encode a non-negative `Int` as a Base58Check string (Bitcoin's
+/// double-SHA-256 checksum format).
+///
+/// Issue #73: this is the int-typed counterpart of
+/// `yabase/base58check.encode/2`. Version is fixed at `0`
+/// (Bitcoin mainnet P2PKH) — callers that need a different version
+/// should reach for `yabase/base58check.encode/2` directly with their
+/// own `BitArray` payload.
+///
+/// Returns the canonical Base58Check string. The underlying
+/// `yabase/base58check.encode` only errors on out-of-range version
+/// bytes (this helper hard-codes a valid one), so this signature
+/// does not surface a `Result`.
+pub fn encode_int_base58check(value: Int) -> String {
+  base58check.encode(0, int_to_bytes_be(value))
+  |> result.unwrap("")
+}
+
+/// Decode a Base58Check string back to an `Int`, verifying the
+/// 4-byte SHA-256 checksum.
+///
+/// Issue #73: returns the *payload* as an `Int`, ignoring the version
+/// byte (which `encode_int_base58check` always sets to `0`).
+/// Callers that need to inspect the version byte should reach for
+/// `yabase/base58check.decode/1` directly.
+pub fn decode_int_base58check(input: String) -> Result(Int, CodecError) {
+  use input <- result.try(reject_empty(input))
+  case base58check.decode(input) {
+    Error(e) -> Error(e)
+    Ok(decoded) -> Ok(bytes_to_int(decoded.payload))
+  }
+}
+
+/// Decode a Base58Check string back to an `Int`, rejecting payload
+/// values greater than `max` with `Error(Overflow)`. The checksum is
+/// verified before the bounds check, so a corrupted input fails as
+/// `InvalidChecksum` rather than `Overflow`.
+pub fn decode_int_base58check_bounded(
+  input input: String,
+  max max: Int,
+) -> Result(Int, CodecError) {
+  use value <- result.try(decode_int_base58check(input))
   bound_check(value, max)
 }
 
