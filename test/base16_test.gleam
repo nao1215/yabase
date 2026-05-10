@@ -1,5 +1,5 @@
 import yabase/base16
-import yabase/core/error.{InvalidCharacter, InvalidLength}
+import yabase/core/error.{InvalidCharacter, InvalidLength, NonCanonical}
 
 // --- Fixed vectors ---
 
@@ -112,4 +112,44 @@ pub fn roundtrip_leading_zeros_test() -> Nil {
 pub fn roundtrip_high_bits_test() -> Nil {
   let data = <<0xff, 0xfe, 0xfd, 0x80, 0x00>>
   assert base16.decode(base16.encode(data)) == Ok(data)
+}
+
+// ===== decode_strict (RFC 4648 §8 canonical-uppercase check) =====
+
+pub fn decode_strict_canonical_uppercase_passes_test() -> Nil {
+  // Canonical RFC 4648 §8 form is uppercase A-F.
+  assert base16.decode_strict("DEADBEEF") == Ok(<<0xde, 0xad, 0xbe, 0xef>>)
+}
+
+pub fn decode_strict_lowercase_rejected_test() -> Nil {
+  // Lowercase is the opt-in non-canonical form (encode_lowercase).
+  // The strict path rejects it even though decode/1 accepts it.
+  assert base16.decode_strict("deadbeef") == Error(NonCanonical)
+}
+
+pub fn decode_strict_mixed_case_rejected_test() -> Nil {
+  // Mixed case is non-canonical.
+  assert base16.decode_strict("DeAdBeEf") == Error(NonCanonical)
+}
+
+pub fn decode_strict_propagates_invalid_character_test() -> Nil {
+  // Non-hex characters surface unchanged from decode/1 — strict
+  // does not mask other failure modes.
+  assert case base16.decode_strict("Z0") {
+    Error(InvalidCharacter(_, _)) -> True
+    _ -> False
+  }
+}
+
+pub fn decode_strict_propagates_invalid_length_test() -> Nil {
+  // Odd-length input surfaces InvalidLength from decode/1.
+  assert case base16.decode_strict("ABC") {
+    Error(InvalidLength(_)) -> True
+    _ -> False
+  }
+}
+
+pub fn decode_strict_empty_passes_test() -> Nil {
+  // Empty input encodes to empty string — that is canonical.
+  assert base16.decode_strict("") == Ok(<<>>)
 }
