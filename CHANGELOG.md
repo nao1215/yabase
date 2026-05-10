@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **`yabase/intid.encode_int_base16` / `decode_int_base16` /
+  `decode_int_base16_bounded`**: closes the API symmetry gap where
+  every other base in `intid` (base10, base32 RFC 4648 / Crockford,
+  base36, base58 Bitcoin / Flickr / check, base62) had `encode_int_*`
+  and `decode_int_*` helpers but base16 was missing. The new helpers
+  route through `yabase/base16` and use the canonical RFC 4648 §8
+  uppercase output. Lenient case-insensitive read on the decode side,
+  matching the rest of the family. Adds 9 regression tests covering
+  zero, single byte, canonical uppercase, empty input rejection,
+  round-trip, case-insensitive read, invalid character, and the
+  bounded variants. Closes #85.
 - **`yabase/base16.decode_strict/1`**: canonical-form check for hex
   digests, mirroring the existing `decode_strict` on `base32/rfc4648`
   and `base64/standard`. Returns `Error(NonCanonical)` for input

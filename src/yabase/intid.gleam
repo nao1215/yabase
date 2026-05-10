@@ -76,6 +76,7 @@ import gleam/int
 import gleam/result
 import gleam/string
 import yabase/base10
+import yabase/base16
 import yabase/base32/crockford as base32_crockford
 import yabase/base32/rfc4648 as base32_rfc4648
 import yabase/base36
@@ -188,6 +189,39 @@ pub fn decode_int_base10_bounded(
   max max: Int,
 ) -> Result(Int, CodecError) {
   use value <- result.try(decode_int_base10(input))
+  bound_check(value, max)
+}
+
+/// Encode an `Int` as a Base16 (uppercase hexadecimal) string.
+/// Negative inputs are normalized to `int.absolute_value`; see the
+/// module note on "Negative inputs are silently absolutized".
+///
+/// Routing through `base16.encode` keeps the contract uniform with
+/// the rest of the `encode_int_*` family. The output uses the
+/// canonical RFC 4648 §8 uppercase alphabet (`0-9 A-F`) — callers
+/// who need lowercase for interop with `sha256sum`-style tools can
+/// post-process with `string.lowercase` or use `base16.encode_lowercase`
+/// after `int_to_bytes_be` themselves.
+pub fn encode_int_base16(value: Int) -> String {
+  base16.encode(int_to_bytes_be(value))
+}
+
+/// Decode a Base16 (hexadecimal) string back to an `Int`. Accepts
+/// both uppercase and lowercase input via `base16.decode`'s
+/// case-insensitive alphabet.
+pub fn decode_int_base16(input: String) -> Result(Int, CodecError) {
+  use input <- result.try(reject_empty(input))
+  base16.decode(input)
+  |> result.map(bytes_to_int)
+}
+
+/// Decode a Base16 (hexadecimal) string back to an `Int`, rejecting
+/// values greater than `max` with `Error(Overflow)`.
+pub fn decode_int_base16_bounded(
+  input input: String,
+  max max: Int,
+) -> Result(Int, CodecError) {
+  use value <- result.try(decode_int_base16(input))
   bound_check(value, max)
 }
 

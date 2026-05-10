@@ -116,6 +116,55 @@ pub fn decode_int_base10_bounded_overflow_test() -> Nil {
     == Error(Overflow)
 }
 
+// === encoding.base16() (#85) ===
+
+pub fn encode_int_base16_zero_test() -> Nil {
+  assert intid.encode_int_base16(0) == "00"
+}
+
+pub fn encode_int_base16_single_byte_test() -> Nil {
+  assert intid.encode_int_base16(255) == "FF"
+}
+
+pub fn encode_int_base16_canonical_uppercase_test() -> Nil {
+  // Uses RFC 4648 §8 canonical uppercase, matching base16.encode.
+  assert intid.encode_int_base16(0xdeadbeef) == "DEADBEEF"
+}
+
+pub fn decode_int_base16_empty_test() -> Nil {
+  assert intid.decode_int_base16("") == Error(InvalidLength(0))
+}
+
+pub fn decode_int_base16_round_trip_test() -> Nil {
+  let encoded = intid.encode_int_base16(8_675_309)
+  assert intid.decode_int_base16(encoded) == Ok(8_675_309)
+}
+
+pub fn decode_int_base16_case_insensitive_test() -> Nil {
+  // base16.decode accepts both cases; intid surfaces the same
+  // lenient read behaviour.
+  assert intid.decode_int_base16("DEADBEEF")
+    == intid.decode_int_base16("deadbeef")
+}
+
+pub fn decode_int_base16_invalid_char_test() -> Nil {
+  assert intid.decode_int_base16("12Z3") == Error(InvalidCharacter("z", 2))
+}
+
+pub fn decode_int_base16_bounded_within_max_test() -> Nil {
+  assert intid.decode_int_base16_bounded(input: "FF", max: 1000) == Ok(255)
+}
+
+pub fn decode_int_base16_bounded_at_max_test() -> Nil {
+  // Hex requires even-length input; "00FF" zero-pads to 4 chars.
+  assert intid.decode_int_base16_bounded(input: "00FF", max: 255) == Ok(255)
+}
+
+pub fn decode_int_base16_bounded_overflow_test() -> Nil {
+  assert intid.decode_int_base16_bounded(input: "FFFF", max: 255)
+    == Error(Overflow)
+}
+
 // === encoding.base36() ===
 
 pub fn encode_int_base36_zero_test() -> Nil {
