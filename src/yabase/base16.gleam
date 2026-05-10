@@ -8,7 +8,9 @@ import gleam/bit_array
 import gleam/int
 import gleam/list
 import gleam/string
-import yabase/core/error.{type CodecError, InvalidCharacter, InvalidLength}
+import yabase/core/error.{
+  type CodecError, InvalidCharacter, InvalidLength, NonCanonical,
+}
 import yabase/core/guard
 
 /// Encode a BitArray to an uppercase hexadecimal string per
@@ -58,6 +60,30 @@ pub fn decode(input: String) -> Result(BitArray, CodecError) {
   case len % 2 {
     0 -> decode_pairs(chars, <<>>, 0)
     _ -> Error(InvalidLength(len))
+  }
+}
+
+/// Decode `input` and additionally reject non-canonical encodings
+/// per RFC 4648 §8: the canonical Base 16 form is uppercase
+/// (`0-9 A-F`). Useful for HMAC / TOTP / WebAuthn / content-
+/// addressable storage and any signature-verification context where
+/// the encoded string itself is part of the contract — strict mode
+/// rejects the lowercase form (`encode_lowercase/1`'s output) as
+/// non-canonical even though it decodes to the same bytes through
+/// the lenient `decode/1`.
+///
+/// Returns `Error(NonCanonical)` when the input is not byte-equal
+/// to `encode(decode(input))`. Other failure modes
+/// (`InvalidCharacter`, `InvalidLength`) are surfaced unchanged from
+/// `decode/1`.
+pub fn decode_strict(input: String) -> Result(BitArray, CodecError) {
+  case decode(input) {
+    Error(e) -> Error(e)
+    Ok(bytes) ->
+      case encode(bytes) == input {
+        True -> Ok(bytes)
+        False -> Error(NonCanonical)
+      }
   }
 }
 

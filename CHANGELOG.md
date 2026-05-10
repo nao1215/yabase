@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **`yabase/base16.decode_strict/1`**: canonical-form check for hex
+  digests, mirroring the existing `decode_strict` on `base32/rfc4648`
+  and `base64/standard`. Returns `Error(NonCanonical)` for input
+  that decodes successfully but is not byte-equal to `encode/1`'s
+  output — i.e. lowercase (`encode_lowercase/1`'s output), mixed
+  case, or any other deviation from the RFC 4648 §8 canonical
+  uppercase form. Useful for HMAC/TOTP/WebAuthn/content-addressable
+  storage workflows where the encoded string itself is part of the
+  contract. Other failure modes (`InvalidCharacter`,
+  `InvalidLength`) surface unchanged from `decode/1`. Closes #87.
+
 ### Documentation
 
 - **`yabase/intid` negative-input handling**: every `encode_int_*`
