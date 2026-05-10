@@ -24,9 +24,35 @@
 //// lookups. The byte-oriented decoders in `yabase/facade` retain the
 //// `Ok(<<>>)` round-trip behavior for empty input.
 ////
-//// Negative inputs are normalized to `int.absolute_value` before
-//// encoding — the magnitude is what gets stored. The decode side
-//// always returns a non-negative `Int`.
+//// ## Negative inputs are silently absolutized
+////
+//// Every `encode_int_*` function in this module accepts any `Int`
+//// — including negatives — and normalizes the input to
+//// `int.absolute_value` before encoding. The magnitude is what gets
+//// stored. The decode side always returns a non-negative `Int`.
+////
+//// **This is intentional, not a bug, but it is a footgun.** Two
+//// distinct inputs (`-1` and `1`) round-trip to the same `Int`,
+//// breaking bijection. Code that compares a re-encoded value to its
+//// source can match where you would expect a mismatch. If your
+//// caller path can produce negative values (offsets that subtracted
+//// past zero, Posix timestamps from before 1970, deliberate
+//// `-1` sentinels), the safer pattern is to validate the sign at
+//// the boundary before reaching `encode_int_*`:
+////
+//// ```gleam
+//// case n >= 0 {
+////   True -> Ok(encode_int_base32_crockford(n))
+////   False -> Error(MyDomainError.NegativeId(n))
+//// }
+//// ```
+////
+//// We intentionally chose silent absolutization over `Result` /
+//// `panic` for ergonomics — almost every realistic short-ID caller
+//// reaches `encode_int_*` with a value that is already non-negative
+//// (DB autoincrement, hash truncation, sequence number), and forcing
+//// `Result` everywhere added boilerplate without preventing real
+//// bugs. Tracked in #84.
 ////
 //// ## Bounded decode
 ////
@@ -85,7 +111,10 @@ pub const int64_max: Int = 9_223_372_036_854_775_807
 /// a JavaScript consumer.
 pub const int53_max: Int = 9_007_199_254_740_991
 
-/// Encode a non-negative `Int` as a Base32 (RFC 4648) string.
+/// Encode an `Int` as a Base32 (RFC 4648) string. Negative inputs
+/// are normalized to `int.absolute_value`; see the module note on
+/// "Negative inputs are silently absolutized" for the rationale and
+/// the recommended boundary-check pattern.
 pub fn encode_int_base32_rfc4648(value: Int) -> String {
   base32_rfc4648.encode(int_to_bytes_be(value))
 }
@@ -107,7 +136,9 @@ pub fn decode_int_base32_rfc4648_bounded(
   bound_check(value, max)
 }
 
-/// Encode a non-negative `Int` as a Crockford Base32 string.
+/// Encode an `Int` as a Crockford Base32 string. Negative inputs
+/// are normalized to `int.absolute_value`; see the module note on
+/// "Negative inputs are silently absolutized".
 pub fn encode_int_base32_crockford(value: Int) -> String {
   base32_crockford.encode(int_to_bytes_be(value))
 }
@@ -129,7 +160,9 @@ pub fn decode_int_base32_crockford_bounded(
   bound_check(value, max)
 }
 
-/// Encode a non-negative `Int` as a Base10 (decimal) string.
+/// Encode an `Int` as a Base10 (decimal) string. Negative inputs
+/// are normalized to `int.absolute_value`; see the module note on
+/// "Negative inputs are silently absolutized".
 ///
 /// Behaviour matches `int.to_string` for the typical case
 /// (positive integers) and the rest of the `intid` family for the
@@ -158,7 +191,9 @@ pub fn decode_int_base10_bounded(
   bound_check(value, max)
 }
 
-/// Encode a non-negative `Int` as a Base36 string.
+/// Encode an `Int` as a Base36 string. Negative inputs are
+/// normalized to `int.absolute_value`; see the module note on
+/// "Negative inputs are silently absolutized".
 pub fn encode_int_base36(value: Int) -> String {
   base36.encode(int_to_bytes_be(value))
 }
@@ -180,7 +215,9 @@ pub fn decode_int_base36_bounded(
   bound_check(value, max)
 }
 
-/// Encode a non-negative `Int` as a Base58 (Bitcoin alphabet) string.
+/// Encode an `Int` as a Base58 (Bitcoin alphabet) string. Negative
+/// inputs are normalized to `int.absolute_value`; see the module
+/// note on "Negative inputs are silently absolutized".
 pub fn encode_int_base58(value: Int) -> String {
   base58_bitcoin.encode(int_to_bytes_be(value))
 }
@@ -202,7 +239,9 @@ pub fn decode_int_base58_bounded(
   bound_check(value, max)
 }
 
-/// Encode a non-negative `Int` as a Base58 (Flickr alphabet) string.
+/// Encode an `Int` as a Base58 (Flickr alphabet) string. Negative
+/// inputs are normalized to `int.absolute_value`; see the module
+/// note on "Negative inputs are silently absolutized".
 pub fn encode_int_base58_flickr(value: Int) -> String {
   base58_flickr.encode(int_to_bytes_be(value))
 }
@@ -302,7 +341,9 @@ pub fn decode_int_base58check_bounded(
   bound_check(value, max)
 }
 
-/// Encode a non-negative `Int` as a Base62 string.
+/// Encode an `Int` as a Base62 string. Negative inputs are
+/// normalized to `int.absolute_value`; see the module note on
+/// "Negative inputs are silently absolutized".
 pub fn encode_int_base62(value: Int) -> String {
   base62.encode(int_to_bytes_be(value))
 }
