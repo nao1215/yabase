@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-05-11
+
 ### Added
 
 - **`yabase/intid.encode_int_base16` / `decode_int_base16` /
