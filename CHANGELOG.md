@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Documentation
+
+- **`yabase/intid` negative-input handling**: every `encode_int_*`
+  function silently normalizes negative inputs to
+  `int.absolute_value`. The previous module docstring mentioned this
+  in passing — easy to miss because it was buried inside a long
+  paragraph and the per-function one-liners said "non-negative
+  `Int`" without noting what happens when callers pass a negative.
+  Move the negative-input note to a dedicated `## Negative inputs
+  are silently absolutized` subsection at the top of the module
+  doc, calling it out as an intentional but footgun-prone design
+  choice and showing the recommended boundary-check pattern. Update
+  every `encode_int_*` function's one-line docstring to read
+  "Negative inputs are normalized to `int.absolute_value`; see the
+  module note ..." so callers can't miss it. Behaviour itself is
+  unchanged — the contract is the same, just made more visible.
+  Closes #84.
+
 ### Fixed
 
 - **Security / Functional Suitability**: `base32/rfc4648.decode_strict`
