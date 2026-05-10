@@ -7,7 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-## [0.18.0] - 2026-05-10
+### Fixed
+
+- **Security / Functional Suitability**: `base32/rfc4648.decode_strict`
+  was upper-casing the input before comparing to the canonical
+  re-encoding (`encode(bytes) == string.uppercase(input)`), which
+  silently accepted lowercase and mixed-case input — exactly the
+  axis the strict path exists to gate. The check is now byte-equal
+  (`encode(bytes) == input`), so lowercase, mixed-case, missing
+  padding, and any other deviation from `encode/1`'s output are
+  rejected with `Error(NonCanonical)`. This closes the replay-attack
+  surface where two distinct wire forms (e.g. `MZXW6===` and
+  `mzxw6===`) both validated as canonical for the same bytes —
+  important for HMAC / TOTP / WebAuthn / content-addressable-storage
+  use cases that were the entire reason for the strict path.
+  The docstring is updated to state the contract clearly. The
+  pre-existing test that asserted the buggy behaviour
+  (`rfc4648_decode_strict_lowercase_canonical_passes_test`) is
+  rewritten to assert the new contract, and two new regression tests
+  cover mixed case and missing-padding cases. Closes #86.
+
+
 
 ### Documentation
 

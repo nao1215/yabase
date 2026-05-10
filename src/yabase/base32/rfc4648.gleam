@@ -63,23 +63,23 @@ pub fn decode(input: String) -> Result(BitArray, CodecError) {
 }
 
 /// Decode `input` and additionally reject non-canonical encodings
-/// per RFC 4648 §3.5: the trailing pad bits in a final block of
-/// fewer than 5 bytes must be zero. Useful for signature
-/// verification and content-addressable storage, where the wire
+/// per RFC 4648 §3.5 / §6: the canonical form is the uppercase,
+/// padded shape produced by `encode/1`, and any deviation
+/// (lowercase, mixed case, missing padding, non-zero pad bits in a
+/// final partial block) is rejected with `Error(NonCanonical)`.
+/// Useful for signature verification, content-addressable storage,
+/// and replay-attack-resistant token handling, where the wire
 /// encoding's uniqueness is part of the contract.
 ///
-/// Returns `Error(NonCanonical)` when the input decodes to bytes
-/// whose canonical re-encoding (uppercase alphabet, padded) differs
-/// from the input. The check is case-insensitive and tolerates
-/// already-padded vs unpadded input — the canonical form is the
-/// uppercase, padded shape produced by `encode/1`. Other failure
-/// modes (`InvalidCharacter`, `InvalidLength`) are surfaced
-/// unchanged from `decode/1`.
+/// Returns `Error(NonCanonical)` when the input is not byte-equal
+/// to `encode(decode(input))`. Other failure modes
+/// (`InvalidCharacter`, `InvalidLength`) are surfaced unchanged from
+/// `decode/1`.
 pub fn decode_strict(input: String) -> Result(BitArray, CodecError) {
   case decode(input) {
     Error(e) -> Error(e)
     Ok(bytes) ->
-      case encode(bytes) == string.uppercase(input) {
+      case encode(bytes) == input {
         True -> Ok(bytes)
         False -> Error(NonCanonical)
       }

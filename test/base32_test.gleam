@@ -419,8 +419,24 @@ pub fn rfc4648_decode_strict_full_block_passes_test() -> Nil {
   assert rfc4648.decode_strict("MZXW6YTBOI======") == Ok(<<"foobar":utf8>>)
 }
 
-pub fn rfc4648_decode_strict_lowercase_canonical_passes_test() -> Nil {
-  // Strict accepts case-insensitive input but compares against the
-  // uppercase canonical form.
-  assert rfc4648.decode_strict("my======") == Ok(<<"f":utf8>>)
+pub fn rfc4648_decode_strict_lowercase_rejected_test() -> Nil {
+  // Per RFC 4648 §3.5/§6, the canonical form is uppercase. A strict
+  // decoder MUST reject lowercase input, even though the lenient
+  // `decode/1` accepts it. Closes the security gap where two distinct
+  // wire forms ("MY======" and "my======") would both validate as
+  // canonical for the same bytes — exactly the replay-attack surface
+  // strict decoders exist to close.
+  assert rfc4648.decode_strict("my======") == Error(NonCanonical)
+}
+
+pub fn rfc4648_decode_strict_mixed_case_rejected_test() -> Nil {
+  // Mixed case is also non-canonical.
+  assert rfc4648.decode_strict("My======") == Error(NonCanonical)
+}
+
+pub fn rfc4648_decode_strict_missing_padding_rejected_test() -> Nil {
+  // Canonical form for "f" is "MY======" with full padding to 8
+  // chars. The unpadded form "MY" is accepted by lenient `decode/1`
+  // but is non-canonical for the strict path.
+  assert rfc4648.decode_strict("MY") == Error(NonCanonical)
 }
