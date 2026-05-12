@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-05-12
+
 ### Added
 
 - `intid.encode_int(encoding:, value:)`,
