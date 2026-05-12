@@ -29,6 +29,14 @@ pub type CodecError {
   /// verification, content-addressable storage, audit comparisons)
   /// can opt into it.
   NonCanonical
+  /// The chosen `Encoding` has no integer-domain codec wired up in
+  /// `yabase/intid`. Surfaces from `intid.encode_int` /
+  /// `intid.decode_int` when the dispatch is asked to handle a
+  /// byte-only encoding (e.g. Base64, Base85, Bech32) for which an
+  /// `Int -> string` mapping would have no canonical form. Carries
+  /// the encoding's name so the caller can render an actionable
+  /// error.
+  UnsupportedForInt(encoding_name: String)
 }
 
 /// Bech32 encoding variant.

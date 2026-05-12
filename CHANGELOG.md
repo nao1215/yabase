@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `intid.encode_int(encoding:, value:)`,
+  `intid.decode_int(encoding:, value:)`, and
+  `intid.decode_int_bounded(encoding:, value:, max:)`: the generic
+  integer-side facade that mirrors `yabase.encode` / `yabase.decode`
+  for runtime codec selection. Picks the right per-base helper from
+  an `Encoding` value so callers writing their own dispatch
+  (`case enc { Base58 -> intid.encode_int_base58(n); ... }`) can
+  delete the boilerplate. Supports the same integer-domain codecs
+  the per-base helpers already cover (Base10, Base16, Base32
+  RFC4648 / Crockford / CrockfordCheck, Base36, Base58 Bitcoin /
+  Flickr, Base58Check, Base62). Surfaces a new `UnsupportedForInt`
+  error variant on `CodecError` for byte-only encodings (Base2,
+  Base8, Base64 family, Base85 family, Base91, Bech32, the
+  remaining Base32 variants). The per-base `encode_int_*` /
+  `decode_int_*` / `decode_int_*_bounded` helpers stay for callers
+  who pick the codec at compile time — no breaking change. (#93)
+
 ## [0.19.0] - 2026-05-11
 
 ### Added
