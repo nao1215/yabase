@@ -335,6 +335,78 @@ pub fn supports_target(enc: Encoding, target: Target) -> Bool {
 }
 
 // ---------------------------------------------------------------------------
+// Integer codec dispatch tags.
+//
+// `Encoding` is opaque so callers cannot pattern-match its variants
+// from outside this module. The `intid` facade needs to branch on
+// the variant to dispatch `encode_int` / `decode_int` to the right
+// per-base helper without re-implementing the integer ↔ bytes shim
+// in this module (which would introduce an import cycle with the
+// per-base modules). `IntCodec` is the non-opaque tag the facade
+// reads via `int_codec/1`. The variants enumerate exactly the
+// encodings that `yabase/intid` currently supports; everything else
+// surfaces as `IntCodecUnsupported(name)` so the facade can return
+// `UnsupportedForInt(name)` without losing the encoding identity.
+// ---------------------------------------------------------------------------
+
+/// A tag describing which integer codec, if any, `yabase/intid`
+/// should dispatch to for a given `Encoding`. Used by the
+/// `intid.encode_int` / `intid.decode_int` facade; not interesting
+/// for callers that pick the codec at compile time and reach for
+/// the per-base `encode_int_*` / `decode_int_*` helpers directly.
+pub type IntCodec {
+  IntBase10
+  IntBase16
+  IntBase32Rfc4648
+  IntBase32Crockford
+  IntBase32CrockfordCheck
+  IntBase36
+  IntBase58Bitcoin
+  IntBase58Flickr
+  IntBase58Check(version: Int)
+  IntBase62
+  /// The `Encoding` has no integer codec wired up; the carried
+  /// name is the encoding's display identity for use in
+  /// `UnsupportedForInt(name)`.
+  IntCodecUnsupported(name: String)
+}
+
+/// Map an `Encoding` to the tag describing how `yabase/intid` should
+/// handle it. Internal to the package — exposed because `intid` lives
+/// in a separate module but needs to branch on the opaque variant.
+pub fn int_codec(enc: Encoding) -> IntCodec {
+  case enc {
+    Base10 -> IntBase10
+    Base16 -> IntBase16
+    Base32(RFC4648) -> IntBase32Rfc4648
+    Base32(Crockford) -> IntBase32Crockford
+    Base32(CrockfordCheck) -> IntBase32CrockfordCheck
+    Base36 -> IntBase36
+    Base58(Bitcoin) -> IntBase58Bitcoin
+    Base58(Flickr) -> IntBase58Flickr
+    Base58Check(version) -> IntBase58Check(version)
+    Base62 -> IntBase62
+    Base2 -> IntCodecUnsupported("Base2")
+    Base8 -> IntCodecUnsupported("Base8")
+    Base32(Hex) -> IntCodecUnsupported("Base32(Hex)")
+    Base32(Clockwork) -> IntCodecUnsupported("Base32(Clockwork)")
+    Base32(ZBase32) -> IntCodecUnsupported("Base32(ZBase32)")
+    Base45 -> IntCodecUnsupported("Base45")
+    Base64(Standard) -> IntCodecUnsupported("Base64(Standard)")
+    Base64(UrlSafe) -> IntCodecUnsupported("Base64(UrlSafe)")
+    Base64(NoPadding) -> IntCodecUnsupported("Base64(NoPadding)")
+    Base64(UrlSafeNoPadding) -> IntCodecUnsupported("Base64(UrlSafeNoPadding)")
+    Base64(DQ) -> IntCodecUnsupported("Base64(DQ)")
+    Base85(Btoa) -> IntCodecUnsupported("Base85(Btoa)")
+    Base85(Adobe) -> IntCodecUnsupported("Base85(Adobe)")
+    Base85(Rfc1924) -> IntCodecUnsupported("Base85(Rfc1924)")
+    Base85(Z85) -> IntCodecUnsupported("Base85(Z85)")
+    Base91 -> IntCodecUnsupported("Base91")
+    Bech32(_, _) -> IntCodecUnsupported("Bech32")
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Dispatch.
 // ---------------------------------------------------------------------------
 

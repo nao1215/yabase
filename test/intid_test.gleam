@@ -1,6 +1,7 @@
 import gleam/string
+import yabase/core/encoding
 import yabase/core/error.{
-  InvalidCharacter, InvalidChecksum, InvalidLength, Overflow,
+  InvalidCharacter, InvalidChecksum, InvalidLength, Overflow, UnsupportedForInt,
 }
 import yabase/intid
 
@@ -617,4 +618,102 @@ pub fn intid_codec_error_alias_propagates_through_wrapper_test() -> Nil {
 
 fn decode_job_id(s: String) -> Result(Int, intid.CodecError) {
   intid.decode_int_base58_bounded(input: s, max: intid.int53_max)
+}
+
+// === Issue #93: generic encode_int / decode_int facade ===
+
+pub fn encode_int_facade_matches_per_base_base58_test() -> Nil {
+  let direct = intid.encode_int_base58(42)
+  assert intid.encode_int(encoding: encoding.base58_bitcoin(), value: 42)
+    == Ok(direct)
+}
+
+pub fn encode_int_facade_matches_per_base_base32_crockford_test() -> Nil {
+  let direct = intid.encode_int_base32_crockford(31)
+  assert intid.encode_int(encoding: encoding.base32_crockford(), value: 31)
+    == Ok(direct)
+}
+
+pub fn encode_int_facade_matches_per_base_base62_test() -> Nil {
+  let direct = intid.encode_int_base62(123_456)
+  assert intid.encode_int(encoding: encoding.base62(), value: 123_456)
+    == Ok(direct)
+}
+
+pub fn encode_int_facade_matches_per_base_base16_test() -> Nil {
+  let direct = intid.encode_int_base16(255)
+  assert intid.encode_int(encoding: encoding.base16(), value: 255) == Ok(direct)
+}
+
+pub fn encode_int_facade_unsupported_base64_test() -> Nil {
+  // Base64 has no integer codec. The facade must surface
+  // UnsupportedForInt rather than fall back to byte encoding.
+  let result = intid.encode_int(encoding: encoding.base64_standard(), value: 42)
+  assert result == Error(UnsupportedForInt("Base64(Standard)"))
+}
+
+pub fn encode_int_facade_unsupported_bech32_test() -> Nil {
+  let result = intid.encode_int(encoding: encoding.bech32("bc"), value: 42)
+  assert result == Error(UnsupportedForInt("Bech32"))
+}
+
+pub fn decode_int_facade_matches_per_base_base58_test() -> Nil {
+  let encoded = intid.encode_int_base58(42)
+  assert intid.decode_int(encoding: encoding.base58_bitcoin(), value: encoded)
+    == Ok(42)
+}
+
+pub fn decode_int_facade_rejects_empty_input_test() -> Nil {
+  // Same contract as the per-base decoders: empty input is
+  // InvalidLength(0), not the integer zero.
+  assert intid.decode_int(encoding: encoding.base58_bitcoin(), value: "")
+    == Error(InvalidLength(0))
+}
+
+pub fn decode_int_facade_unsupported_test() -> Nil {
+  assert intid.decode_int(encoding: encoding.base85_z85(), value: "abc")
+    == Error(UnsupportedForInt("Base85(Z85)"))
+}
+
+pub fn encode_int_then_decode_int_round_trip_test() -> Nil {
+  let enc = encoding.base58_bitcoin()
+  let assert Ok(encoded) = intid.encode_int(encoding: enc, value: 1_234_567)
+  assert intid.decode_int(encoding: enc, value: encoded) == Ok(1_234_567)
+}
+
+pub fn decode_int_bounded_facade_overflow_test() -> Nil {
+  let enc = encoding.base58_bitcoin()
+  let assert Ok(encoded) = intid.encode_int(encoding: enc, value: 1_000_000)
+  // The encoded value (1_000_000) exceeds max=10, so the bounded
+  // facade returns Overflow — same shape as decode_int_*_bounded.
+  let result = intid.decode_int_bounded(encoding: enc, value: encoded, max: 10)
+  assert result == Error(Overflow)
+}
+
+pub fn decode_int_bounded_facade_within_range_test() -> Nil {
+  let enc = encoding.base32_crockford()
+  let assert Ok(encoded) = intid.encode_int(encoding: enc, value: 100)
+  let result =
+    intid.decode_int_bounded(encoding: enc, value: encoded, max: 1000)
+  assert result == Ok(100)
+}
+
+pub fn encode_int_facade_base58check_test() -> Nil {
+  // The version goes through the IntBase58Check carrier so a
+  // non-default version reaches the underlying codec.
+  let assert Ok(s) =
+    intid.encode_int(encoding: encoding.base58_check(5), value: 42)
+  // The decoded round trip is verified against the same version.
+  assert intid.decode_int(encoding: encoding.base58_check(5), value: s)
+    == Ok(42)
+}
+
+pub fn decode_int_facade_base58check_version_mismatch_test() -> Nil {
+  // Encode with version 5, decode with version 0 → InvalidChecksum,
+  // matching what `yabase.decode` does for Base58Check at the byte
+  // layer.
+  let assert Ok(s) =
+    intid.encode_int(encoding: encoding.base58_check(5), value: 42)
+  assert intid.decode_int(encoding: encoding.base58_check(0), value: s)
+    == Error(InvalidChecksum)
 }

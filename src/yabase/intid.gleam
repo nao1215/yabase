@@ -84,8 +84,10 @@ import yabase/base58/bitcoin as base58_bitcoin
 import yabase/base58/flickr as base58_flickr
 import yabase/base58check
 import yabase/base62
+import yabase/core/encoding
 import yabase/core/error.{
-  type CodecError as CoreCodecError, InvalidLength, Overflow,
+  type CodecError as CoreCodecError, InvalidChecksum, InvalidLength, Overflow,
+  UnsupportedForInt,
 }
 import yabase/internal/bignum
 
@@ -397,6 +399,106 @@ pub fn decode_int_base62_bounded(
 ) -> Result(Int, CodecError) {
   use value <- result.try(decode_int_base62(input))
   bound_check(value, max)
+}
+
+// ---------------------------------------------------------------------------
+// Generic Encoding -> Int facade (#93)
+//
+// The per-base helpers above are the right tool when the codec is
+// known at compile time. The facade is the right tool when the
+// codec is picked at runtime (multibase auto-detection, user
+// preference, config). The shape mirrors `yabase.encode` /
+// `yabase.decode` so a call site that already uses the byte facade
+// reads the integer-side call the same way.
+// ---------------------------------------------------------------------------
+
+/// Encode an `Int` to a string using the supplied `Encoding`,
+/// dispatching to the matching `encode_int_*` helper. Negative
+/// inputs are normalised to `int.absolute_value` exactly as the
+/// per-base helpers do; see the module note on "Negative inputs
+/// are silently absolutized" for the rationale and the
+/// boundary-check pattern.
+///
+/// Returns `Error(UnsupportedForInt(name))` for encodings that have
+/// no integer codec wired up (every byte-only codec: `Base2`,
+/// `Base8`, `Base32(Hex|Clockwork|ZBase32)`, `Base45`, every
+/// `Base64` / `Base85` variant, `Base91`, `Bech32`). For
+/// `Base58Check`, the existing `encode_int_base58check/1` helper
+/// uses the fixed version byte `0x00`; reach for the generic
+/// facade with `encoding.base58_check(version)` to pin a different
+/// version.
+pub fn encode_int(
+  encoding encoding: encoding.Encoding,
+  value value: Int,
+) -> Result(String, CodecError) {
+  case encoding.int_codec(encoding) {
+    encoding.IntBase10 -> Ok(encode_int_base10(value))
+    encoding.IntBase16 -> Ok(encode_int_base16(value))
+    encoding.IntBase32Rfc4648 -> Ok(encode_int_base32_rfc4648(value))
+    encoding.IntBase32Crockford -> Ok(encode_int_base32_crockford(value))
+    encoding.IntBase32CrockfordCheck ->
+      Ok(encode_int_base32_crockford_check(value))
+    encoding.IntBase36 -> Ok(encode_int_base36(value))
+    encoding.IntBase58Bitcoin -> Ok(encode_int_base58(value))
+    encoding.IntBase58Flickr -> Ok(encode_int_base58_flickr(value))
+    encoding.IntBase58Check(version) ->
+      base58check.encode(version, int_to_bytes_be(value))
+    encoding.IntBase62 -> Ok(encode_int_base62(value))
+    encoding.IntCodecUnsupported(name) -> Error(UnsupportedForInt(name))
+  }
+}
+
+/// Decode a string back to an `Int` using the supplied `Encoding`,
+/// dispatching to the matching `decode_int_*` helper.
+///
+/// Empty input returns `Error(InvalidLength(0))` so callers can
+/// distinguish "no ID was supplied" from "the ID is zero" — the
+/// same contract as the per-base helpers.
+///
+/// Returns `Error(UnsupportedForInt(name))` for encodings that have
+/// no integer codec wired up.
+pub fn decode_int(
+  encoding encoding: encoding.Encoding,
+  value value: String,
+) -> Result(Int, CodecError) {
+  case encoding.int_codec(encoding) {
+    encoding.IntBase10 -> decode_int_base10(value)
+    encoding.IntBase16 -> decode_int_base16(value)
+    encoding.IntBase32Rfc4648 -> decode_int_base32_rfc4648(value)
+    encoding.IntBase32Crockford -> decode_int_base32_crockford(value)
+    encoding.IntBase32CrockfordCheck -> decode_int_base32_crockford_check(value)
+    encoding.IntBase36 -> decode_int_base36(value)
+    encoding.IntBase58Bitcoin -> decode_int_base58(value)
+    encoding.IntBase58Flickr -> decode_int_base58_flickr(value)
+    encoding.IntBase58Check(version) ->
+      decode_int_base58check_with_version(value, version)
+    encoding.IntBase62 -> decode_int_base62(value)
+    encoding.IntCodecUnsupported(name) -> Error(UnsupportedForInt(name))
+  }
+}
+
+/// Decode a string back to an `Int` using the supplied `Encoding`,
+/// rejecting values greater than `max` with `Error(Overflow)`. The
+/// runtime sibling of the per-base `decode_int_*_bounded` helpers.
+pub fn decode_int_bounded(
+  encoding encoding: encoding.Encoding,
+  value value: String,
+  max max: Int,
+) -> Result(Int, CodecError) {
+  use decoded <- result.try(decode_int(encoding: encoding, value: value))
+  bound_check(decoded, max)
+}
+
+fn decode_int_base58check_with_version(
+  input: String,
+  version: Int,
+) -> Result(Int, CodecError) {
+  use input <- result.try(reject_empty(input))
+  use decoded <- result.try(base58check.decode(input))
+  case decoded.version == version {
+    True -> Ok(bytes_to_int(decoded.payload))
+    False -> Error(InvalidChecksum)
+  }
 }
 
 // `decode_int_*` rejects the empty string so callers can distinguish
