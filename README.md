@@ -92,7 +92,7 @@ let _lenient = facade.decode_base64("TR==")
 
 // Strict — rejects non-canonical input per RFC 4648 §3.5:
 let _strict = facade.decode_base64_strict("TR==")
-// -> Error(InvalidPadding)
+// -> Error(NonCanonical)
 ```
 
 Available facade pairs:
