@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-05-18
+
 ### Documentation
 
 - README's `decode_base64_strict("TR==")` example now annotates the result as `Error(NonCanonical)` instead of `Error(InvalidPadding)`. The `CodecError` type has no `InvalidPadding` constructor, so pattern-matching the README's snippet failed to compile. The strict decoders' own doc-strings already used the correct variant name; this fix aligns the README with both the type and the docstrings. (#96)
