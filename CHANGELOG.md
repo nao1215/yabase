@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.22.0] - 2026-05-21
+
 ### Added
 
 - `intid.encode_int_base16_compact/1`: leading-zero-dropping companion to the existing byte-aligned `intid.encode_int_base16/1`, so the `encode_int_*` family now has a uniform compact variant across base10/base16/base36/base58/base62 (`encode_int_base16_compact(1) == Ok("1")`, `encode_int_base16_compact(2025) == Ok("7E9")`); the byte-aligned `encode_int_base16/1` is unchanged. `intid.decode_int_base16/1` now also accepts odd-length input (internally zero-padded on the left), so `decode_int_base16(encode_int_base16_compact(n) |> result.unwrap_or("")) == Ok(n)` round-trips for every non-negative `Int`; the low-level `base16.decode/1` keeps its strict even-length contract. (#99)
