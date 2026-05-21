@@ -1,8 +1,8 @@
 import gleam/string
 import yabase/core/encoding
 import yabase/core/error.{
-  InvalidCharacter, InvalidChecksum, InvalidLength, NegativeValue, Overflow,
-  UnsupportedForInt,
+  InvalidCharacter, InvalidChecksum, InvalidLength, NegativeValue, NonCanonical,
+  Overflow, UnsupportedForInt,
 }
 import yabase/intid
 
@@ -228,8 +228,14 @@ pub fn decode_int_base58_empty_test() -> Nil {
   assert intid.decode_int_base58("") == Error(InvalidLength(0))
 }
 
-pub fn decode_int_base58_leading_zero_tolerant_test() -> Nil {
-  assert intid.decode_int_base58("11NH") == intid.decode_int_base58("NH")
+pub fn decode_int_base58_rejects_leading_one_test() -> Nil {
+  // Base58 (Bitcoin) uses `"1"` as the zero character, so `"11NH"`
+  // decodes to the same `Int` as `"NH"` via the byte-roundtrip path
+  // — historically that turned multiple wire strings into aliases
+  // for the same ID. The decoder now rejects the non-canonical form
+  // so each `Int` has exactly one valid encoded representation.
+  // Closes #101.
+  assert intid.decode_int_base58("11NH") == Error(NonCanonical)
 }
 
 pub fn decode_int_base58_roundtrip_test() -> Nil {
@@ -377,12 +383,25 @@ pub fn decode_int_base58_bounded_at_cap_test() -> Nil {
     == Ok(intid.int64_max)
 }
 
+@target(erlang)
 pub fn decode_int_base58_bounded_above_cap_test() -> Nil {
   // 58^12 - 1 = "zzzzzzzzzzzz" (12 z's) ≈ 1.5e21, well above int64_max.
   // This is the exact reproduction case from the issue: an attacker
   // (or honest user typing a wrong URL) supplies 12 z's and the
   // unbounded decoder would return a bignum that crashes int64-bound
   // sinks (sqlite/postgres bigserial/mysql bigint).
+  //
+  // `@target(erlang)` because the canonical-form check added in #101
+  // re-encodes the decoded value to compare against the input. On
+  // Erlang `bytes_to_int` returns an unbounded bignum so the re-encode
+  // reproduces `"zzzzzzzzzzzz"` and the canonical check passes,
+  // leaving the bounded variant to surface `Overflow` as expected.
+  // On the JavaScript target `Number.MAX_SAFE_INTEGER` (2^53 - 1) is
+  // well below the 12-z magnitude, so `bytes_to_int` loses precision,
+  // the re-encode produces a different string, and the canonical
+  // check returns `Error(NonCanonical)` before `bounded` ever runs.
+  // The other 12-z / above-cap variants in this file already pin the
+  // Erlang-only contract the same way (see `decode_int_base58_bounded_just_above_cap_test`).
   assert intid.decode_int_base58_bounded(
       input: "zzzzzzzzzzzz",
       max: intid.int64_max,

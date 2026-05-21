@@ -80,7 +80,7 @@ import yabase/base62
 import yabase/core/encoding
 import yabase/core/error.{
   type CodecError as CoreCodecError, InvalidChecksum, InvalidLength,
-  NegativeValue, Overflow, UnsupportedForInt,
+  NegativeValue, NonCanonical, Overflow, UnsupportedForInt,
 }
 import yabase/internal/bignum
 
@@ -334,11 +334,33 @@ pub fn encode_int_base58(value: Int) -> Result(String, CodecError) {
   base58_bitcoin.encode(bytes)
 }
 
-/// Decode a Base58 (Bitcoin alphabet) string back to an `Int`.
+/// Decode a Base58 (Bitcoin alphabet) string back to an `Int`,
+/// rejecting non-canonical wire forms with `Error(NonCanonical)`.
+///
+/// The Bitcoin Base58 alphabet uses `"1"` as the zero character, so
+/// the byte-oriented `base58_bitcoin.decode` prepends one `0x00` byte
+/// for every leading `"1"` in the input. When that byte string is
+/// read back as a big-endian integer the leading zero bytes
+/// disappear, which means `"5Q"`, `"15Q"`, `"115Q"`, … all decode to
+/// the same `Int`. That collapses the bijection that ID callers
+/// (URL shorteners, idempotency keys, database lookups) rely on:
+/// two different wire strings can name the same row, breaking
+/// deduplication and cache invariants.
+///
+/// The fix is to require the input to be byte-equal to the
+/// canonical encoding (`encode_int_base58(decoded) == input`). The
+/// only legal leading `"1"` is the single-character input `"1"`,
+/// which is the canonical encoding of `0`. Any other input that
+/// starts with `"1"` is `Error(NonCanonical)`. Closes #101.
 pub fn decode_int_base58(input: String) -> Result(Int, CodecError) {
   use input <- result.try(reject_empty(input))
-  base58_bitcoin.decode(input)
-  |> result.map(bytes_to_int)
+  use bytes <- result.try(base58_bitcoin.decode(input))
+  let value = bytes_to_int(bytes)
+  use canonical <- result.try(encode_int_base58(value))
+  case canonical == input {
+    True -> Ok(value)
+    False -> Error(NonCanonical)
+  }
 }
 
 /// Decode a Base58 (Bitcoin alphabet) string back to an `Int`,
