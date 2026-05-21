@@ -24,35 +24,28 @@
 //// lookups. The byte-oriented decoders in `yabase/facade` retain the
 //// `Ok(<<>>)` round-trip behavior for empty input.
 ////
-//// ## Negative inputs are silently absolutized
+//// ## Negative inputs are rejected
 ////
-//// Every `encode_int_*` function in this module accepts any `Int`
-//// — including negatives — and normalizes the input to
-//// `int.absolute_value` before encoding. The magnitude is what gets
-//// stored. The decode side always returns a non-negative `Int`.
+//// Every `encode_int_*` function in this module returns
+//// `Result(String, CodecError)` and rejects negative inputs with
+//// `Error(NegativeValue(value))`. The integer codecs only define a
+//// canonical representation for non-negative values, so silently
+//// dropping the sign would break the `decode(encode(n)) == n`
+//// round-trip whenever `n < 0` (closed #84, reopened as #100).
 ////
-//// **This is intentional, not a bug, but it is a footgun.** Two
-//// distinct inputs (`-1` and `1`) round-trip to the same `Int`,
-//// breaking bijection. Code that compares a re-encoded value to its
-//// source can match where you would expect a mismatch. If your
-//// caller path can produce negative values (offsets that subtracted
-//// past zero, Posix timestamps from before 1970, deliberate
-//// `-1` sentinels), the safer pattern is to validate the sign at
-//// the boundary before reaching `encode_int_*`:
+//// If your caller path can produce negatives (offsets that
+//// subtracted past zero, Posix timestamps from before 1970,
+//// deliberate `-1` sentinels), map them to a sign-preserving wire
+//// format like zigzag or to a domain-specific error at the
+//// boundary:
 ////
 //// ```gleam
-//// case n >= 0 {
-////   True -> Ok(encode_int_base32_crockford(n))
-////   False -> Error(MyDomainError.NegativeId(n))
+//// case intid.encode_int_base32_crockford(n) {
+////   Ok(s) -> Ok(s)
+////   Error(intid.NegativeValue(_)) -> Error(MyDomainError.NegativeId(n))
+////   Error(other) -> Error(MyDomainError.CodecFailed(other))
 //// }
 //// ```
-////
-//// We intentionally chose silent absolutization over `Result` /
-//// `panic` for ergonomics — almost every realistic short-ID caller
-//// reaches `encode_int_*` with a value that is already non-negative
-//// (DB autoincrement, hash truncation, sequence number), and forcing
-//// `Result` everywhere added boilerplate without preventing real
-//// bugs. Tracked in #84.
 ////
 //// ## Bounded decode
 ////
@@ -86,8 +79,8 @@ import yabase/base58check
 import yabase/base62
 import yabase/core/encoding
 import yabase/core/error.{
-  type CodecError as CoreCodecError, InvalidChecksum, InvalidLength, Overflow,
-  UnsupportedForInt,
+  type CodecError as CoreCodecError, InvalidChecksum, InvalidLength,
+  NegativeValue, Overflow, UnsupportedForInt,
 }
 import yabase/internal/bignum
 
@@ -114,12 +107,13 @@ pub const int64_max: Int = 9_223_372_036_854_775_807
 /// a JavaScript consumer.
 pub const int53_max: Int = 9_007_199_254_740_991
 
-/// Encode an `Int` as a Base32 (RFC 4648) string. Negative inputs
-/// are normalized to `int.absolute_value`; see the module note on
-/// "Negative inputs are silently absolutized" for the rationale and
-/// the recommended boundary-check pattern.
-pub fn encode_int_base32_rfc4648(value: Int) -> String {
-  base32_rfc4648.encode(int_to_bytes_be(value))
+/// Encode a non-negative `Int` as a Base32 (RFC 4648) string.
+/// Returns `Error(NegativeValue(value))` for negative inputs; see
+/// the module note on "Negative inputs are rejected" for the
+/// rationale and the recommended boundary-check pattern.
+pub fn encode_int_base32_rfc4648(value: Int) -> Result(String, CodecError) {
+  use bytes <- result.map(int_to_bytes_be(value))
+  base32_rfc4648.encode(bytes)
 }
 
 /// Decode a Base32 (RFC 4648) string back to an `Int`.
@@ -139,11 +133,12 @@ pub fn decode_int_base32_rfc4648_bounded(
   bound_check(value, max)
 }
 
-/// Encode an `Int` as a Crockford Base32 string. Negative inputs
-/// are normalized to `int.absolute_value`; see the module note on
-/// "Negative inputs are silently absolutized".
-pub fn encode_int_base32_crockford(value: Int) -> String {
-  base32_crockford.encode(int_to_bytes_be(value))
+/// Encode a non-negative `Int` as a Crockford Base32 string.
+/// Returns `Error(NegativeValue(value))` for negative inputs; see
+/// the module note on "Negative inputs are rejected".
+pub fn encode_int_base32_crockford(value: Int) -> Result(String, CodecError) {
+  use bytes <- result.map(int_to_bytes_be(value))
+  base32_crockford.encode(bytes)
 }
 
 /// Decode a Crockford Base32 string back to an `Int`.
@@ -163,9 +158,9 @@ pub fn decode_int_base32_crockford_bounded(
   bound_check(value, max)
 }
 
-/// Encode an `Int` as a Base10 (decimal) string. Negative inputs
-/// are normalized to `int.absolute_value`; see the module note on
-/// "Negative inputs are silently absolutized".
+/// Encode a non-negative `Int` as a Base10 (decimal) string.
+/// Returns `Error(NegativeValue(value))` for negative inputs; see
+/// the module note on "Negative inputs are rejected".
 ///
 /// Behaviour matches `int.to_string` for the typical case
 /// (positive integers) and the rest of the `intid` family for the
@@ -173,8 +168,9 @@ pub fn decode_int_base32_crockford_bounded(
 /// `base10.encode` keeps the contract uniform with the other
 /// `encode_int_*` functions: a non-negative `Int` in, a string
 /// in the alphabet out, no padding.
-pub fn encode_int_base10(value: Int) -> String {
-  base10.encode(int_to_bytes_be(value))
+pub fn encode_int_base10(value: Int) -> Result(String, CodecError) {
+  use bytes <- result.map(int_to_bytes_be(value))
+  base10.encode(bytes)
 }
 
 /// Decode a Base10 (decimal) string back to an `Int`.
@@ -194,9 +190,9 @@ pub fn decode_int_base10_bounded(
   bound_check(value, max)
 }
 
-/// Encode an `Int` as a Base16 (uppercase hexadecimal) string.
-/// Negative inputs are normalized to `int.absolute_value`; see the
-/// module note on "Negative inputs are silently absolutized".
+/// Encode a non-negative `Int` as a Base16 (uppercase hexadecimal)
+/// string. Returns `Error(NegativeValue(value))` for negative
+/// inputs; see the module note on "Negative inputs are rejected".
 ///
 /// Routing through `base16.encode` keeps the contract uniform with
 /// the rest of the `encode_int_*` family. The output uses the
@@ -210,40 +206,44 @@ pub fn decode_int_base10_bounded(
 /// This function is **byte-aligned**: the output length is always an
 /// even number of hex characters because the encoding pads the
 /// integer's big-endian representation to a whole byte boundary
-/// (`encode_int_base16(1) == "01"`, `encode_int_base16(2025) ==
-/// "07E9"`). This is the right shape for ID interop with
-/// byte-oriented systems (databases, HTTP headers, content-
-/// addressable storage). The other `encode_int_*` functions in this
-/// module are *compact* — they drop leading zero characters
-/// (`encode_int_base58(1) == "2"`, `encode_int_base36(1) == "1"`,
-/// `encode_int_base10(1) == "1"`). Issue #99 surfaced the
+/// (`encode_int_base16(1) == Ok("01")`,
+/// `encode_int_base16(2025) == Ok("07E9")`). This is the right
+/// shape for ID interop with byte-oriented systems (databases, HTTP
+/// headers, content-addressable storage). The other
+/// `encode_int_*` functions in this module are *compact* — they
+/// drop leading zero characters
+/// (`encode_int_base58(1) == Ok("2")`,
+/// `encode_int_base36(1) == Ok("1")`,
+/// `encode_int_base10(1) == Ok("1")`). Issue #99 surfaced the
 /// asymmetry; if you want the compact form for `base16`, use
 /// `encode_int_base16_compact/1` instead. `decode_int_base16/1`
 /// accepts either form (it does not require an even-length input).
-pub fn encode_int_base16(value: Int) -> String {
-  base16.encode(int_to_bytes_be(value))
+pub fn encode_int_base16(value: Int) -> Result(String, CodecError) {
+  use bytes <- result.map(int_to_bytes_be(value))
+  base16.encode(bytes)
 }
 
-/// Encode an `Int` as a Base16 (uppercase hexadecimal) string with
-/// leading zero characters stripped — the compact counterpart to
-/// `encode_int_base16/1`.
+/// Encode a non-negative `Int` as a Base16 (uppercase hexadecimal)
+/// string with leading zero characters stripped — the compact
+/// counterpart to `encode_int_base16/1`.
 ///
 /// ## Byte-aligned vs compact
 ///
 /// `encode_int_base16/1` is **byte-aligned** (always emits an even
-/// number of hex characters: `encode_int_base16(1) == "01"`,
-/// `encode_int_base16(2025) == "07E9"`). This function is **compact**
-/// — leading `"0"` characters are dropped so the output matches the
-/// shape of the rest of the `encode_int_*` family
-/// (`encode_int_base58(1) == "2"`, `encode_int_base36(1) == "1"`,
-/// `encode_int_base10(1) == "1"`). Examples:
+/// number of hex characters: `encode_int_base16(1) == Ok("01")`,
+/// `encode_int_base16(2025) == Ok("07E9")`). This function is
+/// **compact** — leading `"0"` characters are dropped so the
+/// output matches the shape of the rest of the `encode_int_*`
+/// family (`encode_int_base58(1) == Ok("2")`,
+/// `encode_int_base36(1) == Ok("1")`,
+/// `encode_int_base10(1) == Ok("1")`). Examples:
 ///
 /// ```gleam
-/// encode_int_base16_compact(0)      // "0"
-/// encode_int_base16_compact(1)      // "1"
-/// encode_int_base16_compact(255)    // "FF"
-/// encode_int_base16_compact(2025)   // "7E9"
-/// encode_int_base16_compact(0xdeadbeef) // "DEADBEEF"
+/// encode_int_base16_compact(0)      // Ok("0")
+/// encode_int_base16_compact(1)      // Ok("1")
+/// encode_int_base16_compact(255)    // Ok("FF")
+/// encode_int_base16_compact(2025)   // Ok("7E9")
+/// encode_int_base16_compact(0xdeadbeef) // Ok("DEADBEEF")
 /// ```
 ///
 /// Use this when you want column-aligned mixed-base output or
@@ -252,17 +252,19 @@ pub fn encode_int_base16(value: Int) -> String {
 /// even-length contract matters.
 ///
 /// `decode_int_base16/1` accepts the compact form unchanged
-/// (`decode_int_base16(encode_int_base16_compact(n)) == Ok(n)`),
-/// because the underlying `base16.decode` is tolerant of any-length
-/// input — odd-length inputs are zero-padded to the next byte
-/// boundary before decoding.
+/// (`decode_int_base16(encode_int_base16_compact(n) |> result.unwrap_or(""))`
+/// round-trips for every non-negative `Int`), because the
+/// underlying `base16.decode` is tolerant of any-length input —
+/// odd-length inputs are zero-padded to the next byte boundary
+/// before decoding.
 ///
-/// Negative inputs are normalized to `int.absolute_value`; see the
-/// module note on "Negative inputs are silently absolutized".
+/// Returns `Error(NegativeValue(value))` for negative inputs; see
+/// the module note on "Negative inputs are rejected".
 ///
 /// Added in #99.
-pub fn encode_int_base16_compact(value: Int) -> String {
-  drop_leading_zero_chars(base16.encode(int_to_bytes_be(value)))
+pub fn encode_int_base16_compact(value: Int) -> Result(String, CodecError) {
+  use bytes <- result.map(int_to_bytes_be(value))
+  drop_leading_zero_chars(base16.encode(bytes))
 }
 
 /// Decode a Base16 (hexadecimal) string back to an `Int`. Accepts
@@ -299,11 +301,12 @@ pub fn decode_int_base16_bounded(
   bound_check(value, max)
 }
 
-/// Encode an `Int` as a Base36 string. Negative inputs are
-/// normalized to `int.absolute_value`; see the module note on
-/// "Negative inputs are silently absolutized".
-pub fn encode_int_base36(value: Int) -> String {
-  base36.encode(int_to_bytes_be(value))
+/// Encode a non-negative `Int` as a Base36 string. Returns
+/// `Error(NegativeValue(value))` for negative inputs; see the
+/// module note on "Negative inputs are rejected".
+pub fn encode_int_base36(value: Int) -> Result(String, CodecError) {
+  use bytes <- result.map(int_to_bytes_be(value))
+  base36.encode(bytes)
 }
 
 /// Decode a Base36 string back to an `Int`.
@@ -323,11 +326,12 @@ pub fn decode_int_base36_bounded(
   bound_check(value, max)
 }
 
-/// Encode an `Int` as a Base58 (Bitcoin alphabet) string. Negative
-/// inputs are normalized to `int.absolute_value`; see the module
-/// note on "Negative inputs are silently absolutized".
-pub fn encode_int_base58(value: Int) -> String {
-  base58_bitcoin.encode(int_to_bytes_be(value))
+/// Encode a non-negative `Int` as a Base58 (Bitcoin alphabet)
+/// string. Returns `Error(NegativeValue(value))` for negative
+/// inputs; see the module note on "Negative inputs are rejected".
+pub fn encode_int_base58(value: Int) -> Result(String, CodecError) {
+  use bytes <- result.map(int_to_bytes_be(value))
+  base58_bitcoin.encode(bytes)
 }
 
 /// Decode a Base58 (Bitcoin alphabet) string back to an `Int`.
@@ -347,11 +351,12 @@ pub fn decode_int_base58_bounded(
   bound_check(value, max)
 }
 
-/// Encode an `Int` as a Base58 (Flickr alphabet) string. Negative
-/// inputs are normalized to `int.absolute_value`; see the module
-/// note on "Negative inputs are silently absolutized".
-pub fn encode_int_base58_flickr(value: Int) -> String {
-  base58_flickr.encode(int_to_bytes_be(value))
+/// Encode a non-negative `Int` as a Base58 (Flickr alphabet)
+/// string. Returns `Error(NegativeValue(value))` for negative
+/// inputs; see the module note on "Negative inputs are rejected".
+pub fn encode_int_base58_flickr(value: Int) -> Result(String, CodecError) {
+  use bytes <- result.map(int_to_bytes_be(value))
+  base58_flickr.encode(bytes)
 }
 
 /// Decode a Base58 (Flickr alphabet) string back to an `Int`.
@@ -380,8 +385,14 @@ pub fn decode_int_base58_flickr_bounded(
 /// Use the matching `decode_int_base32_crockford_check` to recover
 /// the integer; the decoder verifies the symbol and returns
 /// `Error(InvalidChecksum)` if the input was mistyped.
-pub fn encode_int_base32_crockford_check(value: Int) -> String {
-  base32_crockford.encode_check(int_to_bytes_be(value))
+///
+/// Returns `Error(NegativeValue(value))` for negative inputs; see
+/// the module note on "Negative inputs are rejected".
+pub fn encode_int_base32_crockford_check(
+  value: Int,
+) -> Result(String, CodecError) {
+  use bytes <- result.map(int_to_bytes_be(value))
+  base32_crockford.encode_check(bytes)
 }
 
 /// Decode a checksummed Crockford Base32 string back to an `Int`,
@@ -413,13 +424,14 @@ pub fn decode_int_base32_crockford_check_bounded(
 /// should reach for `yabase/base58check.encode/2` directly with their
 /// own `BitArray` payload.
 ///
-/// Returns the canonical Base58Check string. The underlying
+/// Returns `Error(NegativeValue(value))` for negative inputs; see
+/// the module note on "Negative inputs are rejected". The underlying
 /// `yabase/base58check.encode` only errors on out-of-range version
-/// bytes (this helper hard-codes a valid one), so this signature
-/// does not surface a `Result`.
-pub fn encode_int_base58check(value: Int) -> String {
-  base58check.encode(0, int_to_bytes_be(value))
-  |> result.unwrap("")
+/// bytes, and this helper hard-codes a valid one, so the surfaced
+/// error is always `NegativeValue` in practice.
+pub fn encode_int_base58check(value: Int) -> Result(String, CodecError) {
+  use bytes <- result.try(int_to_bytes_be(value))
+  base58check.encode(0, bytes)
 }
 
 /// Decode a Base58Check string back to an `Int`, verifying the
@@ -449,11 +461,12 @@ pub fn decode_int_base58check_bounded(
   bound_check(value, max)
 }
 
-/// Encode an `Int` as a Base62 string. Negative inputs are
-/// normalized to `int.absolute_value`; see the module note on
-/// "Negative inputs are silently absolutized".
-pub fn encode_int_base62(value: Int) -> String {
-  base62.encode(int_to_bytes_be(value))
+/// Encode a non-negative `Int` as a Base62 string. Returns
+/// `Error(NegativeValue(value))` for negative inputs; see the
+/// module note on "Negative inputs are rejected".
+pub fn encode_int_base62(value: Int) -> Result(String, CodecError) {
+  use bytes <- result.map(int_to_bytes_be(value))
+  base62.encode(bytes)
 }
 
 /// Decode a Base62 string back to an `Int`.
@@ -486,10 +499,10 @@ pub fn decode_int_base62_bounded(
 
 /// Encode an `Int` to a string using the supplied `Encoding`,
 /// dispatching to the matching `encode_int_*` helper. Negative
-/// inputs are normalised to `int.absolute_value` exactly as the
+/// inputs surface as `Error(NegativeValue(value))` exactly as the
 /// per-base helpers do; see the module note on "Negative inputs
-/// are silently absolutized" for the rationale and the
-/// boundary-check pattern.
+/// are rejected" for the rationale and the boundary-handling
+/// pattern.
 ///
 /// Returns `Error(UnsupportedForInt(name))` for encodings that have
 /// no integer codec wired up (every byte-only codec: `Base2`,
@@ -504,18 +517,19 @@ pub fn encode_int(
   value value: Int,
 ) -> Result(String, CodecError) {
   case encoding.int_codec(encoding) {
-    encoding.IntBase10 -> Ok(encode_int_base10(value))
-    encoding.IntBase16 -> Ok(encode_int_base16(value))
-    encoding.IntBase32Rfc4648 -> Ok(encode_int_base32_rfc4648(value))
-    encoding.IntBase32Crockford -> Ok(encode_int_base32_crockford(value))
-    encoding.IntBase32CrockfordCheck ->
-      Ok(encode_int_base32_crockford_check(value))
-    encoding.IntBase36 -> Ok(encode_int_base36(value))
-    encoding.IntBase58Bitcoin -> Ok(encode_int_base58(value))
-    encoding.IntBase58Flickr -> Ok(encode_int_base58_flickr(value))
-    encoding.IntBase58Check(version) ->
-      base58check.encode(version, int_to_bytes_be(value))
-    encoding.IntBase62 -> Ok(encode_int_base62(value))
+    encoding.IntBase10 -> encode_int_base10(value)
+    encoding.IntBase16 -> encode_int_base16(value)
+    encoding.IntBase32Rfc4648 -> encode_int_base32_rfc4648(value)
+    encoding.IntBase32Crockford -> encode_int_base32_crockford(value)
+    encoding.IntBase32CrockfordCheck -> encode_int_base32_crockford_check(value)
+    encoding.IntBase36 -> encode_int_base36(value)
+    encoding.IntBase58Bitcoin -> encode_int_base58(value)
+    encoding.IntBase58Flickr -> encode_int_base58_flickr(value)
+    encoding.IntBase58Check(version) -> {
+      use bytes <- result.try(int_to_bytes_be(value))
+      base58check.encode(version, bytes)
+    }
+    encoding.IntBase62 -> encode_int_base62(value)
     encoding.IntCodecUnsupported(name) -> Error(UnsupportedForInt(name))
   }
 }
@@ -589,11 +603,20 @@ fn bound_check(value: Int, max: Int) -> Result(Int, CodecError) {
   Ok(value)
 }
 
-fn int_to_bytes_be(value: Int) -> BitArray {
-  let magnitude = int.absolute_value(value)
-  case magnitude {
-    0 -> <<0>>
-    _ -> accumulate_bytes(magnitude, <<>>)
+// Convert a non-negative `Int` into a canonical big-endian
+// `BitArray` for the per-base encoders. Negative inputs are
+// rejected with `Error(NegativeValue(_))` rather than silently
+// absolutized — the historical `int.absolute_value` shortcut
+// destroyed the sign and broke `decode(encode(n)) == n` for
+// every `n < 0` (closed #84, regressed in #100). Zero is the
+// only value that maps to a single zero byte; every other
+// non-negative value is encoded with the minimum number of
+// bytes required to represent its magnitude.
+fn int_to_bytes_be(value: Int) -> Result(BitArray, CodecError) {
+  use <- bool.guard(when: value < 0, return: Error(NegativeValue(value)))
+  case value {
+    0 -> Ok(<<0>>)
+    _ -> Ok(accumulate_bytes(value, <<>>))
   }
 }
 
