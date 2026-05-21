@@ -123,7 +123,7 @@ Short URL-safe identifiers — DB autoincrement ids, sequence numbers, hash trun
 import yabase/intid
 
 pub fn main() {
-  let token = intid.encode_int_base58(42)
+  let assert Ok(token) = intid.encode_int_base58(42)
   // token == "j"
 
   let assert Ok(_n) = intid.decode_int_base58(token)
@@ -131,9 +131,9 @@ pub fn main() {
 }
 ```
 
-Available: `encode_int_base32_rfc4648`, `encode_int_base32_crockford`, `encode_int_base36`, `encode_int_base58`, `encode_int_base58_flickr`, `encode_int_base62` and their matching `decode_int_*` (returning `Result(Int, CodecError)`).
+Available: `encode_int_base32_rfc4648`, `encode_int_base32_crockford`, `encode_int_base36`, `encode_int_base58`, `encode_int_base58_flickr`, `encode_int_base62` and their matching `decode_int_*`. All `encode_int_*` functions return `Result(String, CodecError)` and all `decode_int_*` functions return `Result(Int, CodecError)`.
 
-`encode_int_*` emits canonical form. `decode_int_*` is tolerant of leading zero characters (`decode_int_base58("0042")` and `decode_int_base58("42")` return the same `Int`). Negative inputs are normalized via `int.absolute_value` before encoding.
+`encode_int_*` emits canonical form. `decode_int_*` is tolerant of leading zero characters (`decode_int_base58("0042")` and `decode_int_base58("42")` return the same `Int`). Negative inputs are rejected with `Error(NegativeValue(value))` — the integer codecs only define a canonical representation for non-negative values, so silently dropping the sign would break the `decode(encode(n)) == n` round-trip for `n < 0`. Map negatives to a sign-preserving wire format (e.g. zigzag) or to a domain-specific error at the boundary.
 
 `decode_int_*` accepts inputs of any length, so the decoded `Int` is an unbounded Erlang bignum. If the value flows into a fixed-width sink (SQLite `INTEGER`, Postgres `bigserial`, MySQL `BIGINT`, or a JS `number`), use the matching `decode_int_*_bounded(input:, max:)` to get `Error(Overflow)` instead of a downstream crash. Common caps are exported as `intid.int64_max` (signed 64-bit, `2^63 - 1`) and `intid.int53_max` (`Number.MAX_SAFE_INTEGER`).
 

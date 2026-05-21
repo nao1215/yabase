@@ -1,22 +1,23 @@
 import gleam/string
 import yabase/core/encoding
 import yabase/core/error.{
-  InvalidCharacter, InvalidChecksum, InvalidLength, Overflow, UnsupportedForInt,
+  InvalidCharacter, InvalidChecksum, InvalidLength, NegativeValue, Overflow,
+  UnsupportedForInt,
 }
 import yabase/intid
 
 // === Base32 (RFC 4648) ===
 
 pub fn encode_int_base32_rfc4648_zero_test() -> Nil {
-  assert intid.encode_int_base32_rfc4648(0) == "AA======"
+  assert intid.encode_int_base32_rfc4648(0) == Ok("AA======")
 }
 
 pub fn encode_int_base32_rfc4648_one_test() -> Nil {
-  assert intid.encode_int_base32_rfc4648(1) == "AE======"
+  assert intid.encode_int_base32_rfc4648(1) == Ok("AE======")
 }
 
 pub fn encode_int_base32_rfc4648_max_byte_test() -> Nil {
-  assert intid.encode_int_base32_rfc4648(255) == "74======"
+  assert intid.encode_int_base32_rfc4648(255) == Ok("74======")
 }
 
 pub fn decode_int_base32_rfc4648_empty_test() -> Nil {
@@ -24,7 +25,7 @@ pub fn decode_int_base32_rfc4648_empty_test() -> Nil {
 }
 
 pub fn decode_int_base32_rfc4648_roundtrip_test() -> Nil {
-  let encoded = intid.encode_int_base32_rfc4648(1_234_567)
+  let assert Ok(encoded) = intid.encode_int_base32_rfc4648(1_234_567)
   assert intid.decode_int_base32_rfc4648(encoded) == Ok(1_234_567)
 }
 
@@ -36,19 +37,19 @@ pub fn decode_int_base32_rfc4648_invalid_char_test() -> Nil {
 // === Base32 (Crockford) ===
 
 pub fn encode_int_base32_crockford_zero_test() -> Nil {
-  assert intid.encode_int_base32_crockford(0) == "0"
+  assert intid.encode_int_base32_crockford(0) == Ok("0")
 }
 
 pub fn encode_int_base32_crockford_alphabet_max_test() -> Nil {
-  assert intid.encode_int_base32_crockford(31) == "Z"
+  assert intid.encode_int_base32_crockford(31) == Ok("Z")
 }
 
 pub fn encode_int_base32_crockford_carry_test() -> Nil {
-  assert intid.encode_int_base32_crockford(32) == "10"
+  assert intid.encode_int_base32_crockford(32) == Ok("10")
 }
 
 pub fn encode_int_base32_crockford_two_digit_max_test() -> Nil {
-  assert intid.encode_int_base32_crockford(1023) == "ZZ"
+  assert intid.encode_int_base32_crockford(1023) == Ok("ZZ")
 }
 
 pub fn decode_int_base32_crockford_empty_test() -> Nil {
@@ -61,26 +62,26 @@ pub fn decode_int_base32_crockford_leading_zero_tolerant_test() -> Nil {
 }
 
 pub fn decode_int_base32_crockford_roundtrip_test() -> Nil {
-  let encoded = intid.encode_int_base32_crockford(987_654)
+  let assert Ok(encoded) = intid.encode_int_base32_crockford(987_654)
   assert intid.decode_int_base32_crockford(encoded) == Ok(987_654)
 }
 
 // === encoding.base10() (#78) ===
 
 pub fn encode_int_base10_zero_test() -> Nil {
-  assert intid.encode_int_base10(0) == "0"
+  assert intid.encode_int_base10(0) == Ok("0")
 }
 
 pub fn encode_int_base10_single_digit_test() -> Nil {
-  assert intid.encode_int_base10(7) == "7"
+  assert intid.encode_int_base10(7) == Ok("7")
 }
 
 pub fn encode_int_base10_carry_test() -> Nil {
-  assert intid.encode_int_base10(10) == "10"
+  assert intid.encode_int_base10(10) == Ok("10")
 }
 
 pub fn encode_int_base10_large_test() -> Nil {
-  assert intid.encode_int_base10(1_000_000_000) == "1000000000"
+  assert intid.encode_int_base10(1_000_000_000) == Ok("1000000000")
 }
 
 pub fn decode_int_base10_empty_test() -> Nil {
@@ -88,7 +89,7 @@ pub fn decode_int_base10_empty_test() -> Nil {
 }
 
 pub fn decode_int_base10_round_trip_test() -> Nil {
-  let encoded = intid.encode_int_base10(8_675_309)
+  let assert Ok(encoded) = intid.encode_int_base10(8_675_309)
   assert intid.decode_int_base10(encoded) == Ok(8_675_309)
 }
 
@@ -120,16 +121,16 @@ pub fn decode_int_base10_bounded_overflow_test() -> Nil {
 // === encoding.base16() (#85) ===
 
 pub fn encode_int_base16_zero_test() -> Nil {
-  assert intid.encode_int_base16(0) == "00"
+  assert intid.encode_int_base16(0) == Ok("00")
 }
 
 pub fn encode_int_base16_single_byte_test() -> Nil {
-  assert intid.encode_int_base16(255) == "FF"
+  assert intid.encode_int_base16(255) == Ok("FF")
 }
 
 pub fn encode_int_base16_canonical_uppercase_test() -> Nil {
   // Uses RFC 4648 §8 canonical uppercase, matching base16.encode.
-  assert intid.encode_int_base16(0xdeadbeef) == "DEADBEEF"
+  assert intid.encode_int_base16(0xdeadbeef) == Ok("DEADBEEF")
 }
 
 pub fn decode_int_base16_empty_test() -> Nil {
@@ -137,7 +138,7 @@ pub fn decode_int_base16_empty_test() -> Nil {
 }
 
 pub fn decode_int_base16_round_trip_test() -> Nil {
-  let encoded = intid.encode_int_base16(8_675_309)
+  let assert Ok(encoded) = intid.encode_int_base16(8_675_309)
   assert intid.decode_int_base16(encoded) == Ok(8_675_309)
 }
 
@@ -169,19 +170,19 @@ pub fn decode_int_base16_bounded_overflow_test() -> Nil {
 // === encoding.base36() ===
 
 pub fn encode_int_base36_zero_test() -> Nil {
-  assert intid.encode_int_base36(0) == "0"
+  assert intid.encode_int_base36(0) == Ok("0")
 }
 
 pub fn encode_int_base36_alphabet_max_test() -> Nil {
-  assert intid.encode_int_base36(35) == "z"
+  assert intid.encode_int_base36(35) == Ok("z")
 }
 
 pub fn encode_int_base36_carry_test() -> Nil {
-  assert intid.encode_int_base36(36) == "10"
+  assert intid.encode_int_base36(36) == Ok("10")
 }
 
 pub fn encode_int_base36_two_digit_max_test() -> Nil {
-  assert intid.encode_int_base36(1295) == "zz"
+  assert intid.encode_int_base36(1295) == Ok("zz")
 }
 
 pub fn decode_int_base36_empty_test() -> Nil {
@@ -193,7 +194,7 @@ pub fn decode_int_base36_leading_zero_tolerant_test() -> Nil {
 }
 
 pub fn decode_int_base36_roundtrip_test() -> Nil {
-  let encoded = intid.encode_int_base36(8_675_309)
+  let assert Ok(encoded) = intid.encode_int_base36(8_675_309)
   assert intid.decode_int_base36(encoded) == Ok(8_675_309)
 }
 
@@ -204,23 +205,23 @@ pub fn decode_int_base36_invalid_char_test() -> Nil {
 // === Base58 (Bitcoin) ===
 
 pub fn encode_int_base58_zero_test() -> Nil {
-  assert intid.encode_int_base58(0) == "1"
+  assert intid.encode_int_base58(0) == Ok("1")
 }
 
 pub fn encode_int_base58_small_test() -> Nil {
-  assert intid.encode_int_base58(42) == "j"
+  assert intid.encode_int_base58(42) == Ok("j")
 }
 
 pub fn encode_int_base58_alphabet_max_test() -> Nil {
-  assert intid.encode_int_base58(57) == "z"
+  assert intid.encode_int_base58(57) == Ok("z")
 }
 
 pub fn encode_int_base58_carry_test() -> Nil {
-  assert intid.encode_int_base58(58) == "21"
+  assert intid.encode_int_base58(58) == Ok("21")
 }
 
 pub fn encode_int_base58_two_digit_test() -> Nil {
-  assert intid.encode_int_base58(1234) == "NH"
+  assert intid.encode_int_base58(1234) == Ok("NH")
 }
 
 pub fn decode_int_base58_empty_test() -> Nil {
@@ -232,7 +233,7 @@ pub fn decode_int_base58_leading_zero_tolerant_test() -> Nil {
 }
 
 pub fn decode_int_base58_roundtrip_test() -> Nil {
-  let encoded = intid.encode_int_base58(9_999_999_999)
+  let assert Ok(encoded) = intid.encode_int_base58(9_999_999_999)
   assert intid.decode_int_base58(encoded) == Ok(9_999_999_999)
 }
 
@@ -243,15 +244,15 @@ pub fn decode_int_base58_invalid_char_test() -> Nil {
 // === Base58 (Flickr) ===
 
 pub fn encode_int_base58_flickr_zero_test() -> Nil {
-  assert intid.encode_int_base58_flickr(0) == "1"
+  assert intid.encode_int_base58_flickr(0) == Ok("1")
 }
 
 pub fn encode_int_base58_flickr_small_test() -> Nil {
-  assert intid.encode_int_base58_flickr(42) == "J"
+  assert intid.encode_int_base58_flickr(42) == Ok("J")
 }
 
 pub fn decode_int_base58_flickr_roundtrip_test() -> Nil {
-  let encoded = intid.encode_int_base58_flickr(1_234_567)
+  let assert Ok(encoded) = intid.encode_int_base58_flickr(1_234_567)
   assert intid.decode_int_base58_flickr(encoded) == Ok(1_234_567)
 }
 
@@ -262,19 +263,19 @@ pub fn decode_int_base58_flickr_empty_test() -> Nil {
 // === encoding.base62() ===
 
 pub fn encode_int_base62_zero_test() -> Nil {
-  assert intid.encode_int_base62(0) == "0"
+  assert intid.encode_int_base62(0) == Ok("0")
 }
 
 pub fn encode_int_base62_alphabet_max_test() -> Nil {
-  assert intid.encode_int_base62(61) == "z"
+  assert intid.encode_int_base62(61) == Ok("z")
 }
 
 pub fn encode_int_base62_carry_test() -> Nil {
-  assert intid.encode_int_base62(62) == "10"
+  assert intid.encode_int_base62(62) == Ok("10")
 }
 
 pub fn encode_int_base62_large_test() -> Nil {
-  assert intid.encode_int_base62(1_234_567_890) == "1LY7VK"
+  assert intid.encode_int_base62(1_234_567_890) == Ok("1LY7VK")
 }
 
 pub fn decode_int_base62_empty_test() -> Nil {
@@ -282,7 +283,7 @@ pub fn decode_int_base62_empty_test() -> Nil {
 }
 
 pub fn decode_int_base62_roundtrip_test() -> Nil {
-  let encoded = intid.encode_int_base62(2_147_483_647)
+  let assert Ok(encoded) = intid.encode_int_base62(2_147_483_647)
   assert intid.decode_int_base62(encoded) == Ok(2_147_483_647)
 }
 
@@ -290,14 +291,64 @@ pub fn decode_int_base62_leading_zero_tolerant_test() -> Nil {
   assert intid.decode_int_base62("00abc") == intid.decode_int_base62("abc")
 }
 
-// === Cross-cutting: negative inputs are absorbed as |n| ===
+// === Cross-cutting: negative inputs return Error(NegativeValue(_)) (#100) ===
 
-pub fn encode_int_base58_negative_normalized_test() -> Nil {
-  assert intid.encode_int_base58(-42) == intid.encode_int_base58(42)
+pub fn encode_int_base58_negative_returns_error_test() -> Nil {
+  assert intid.encode_int_base58(-42) == Error(NegativeValue(-42))
 }
 
-pub fn encode_int_base62_negative_normalized_test() -> Nil {
-  assert intid.encode_int_base62(-1) == intid.encode_int_base62(1)
+pub fn encode_int_base62_negative_returns_error_test() -> Nil {
+  assert intid.encode_int_base62(-1) == Error(NegativeValue(-1))
+}
+
+pub fn encode_int_base10_negative_returns_error_test() -> Nil {
+  assert intid.encode_int_base10(-1) == Error(NegativeValue(-1))
+}
+
+pub fn encode_int_base16_negative_returns_error_test() -> Nil {
+  assert intid.encode_int_base16(-42) == Error(NegativeValue(-42))
+}
+
+pub fn encode_int_base16_compact_negative_returns_error_test() -> Nil {
+  assert intid.encode_int_base16_compact(-1) == Error(NegativeValue(-1))
+}
+
+pub fn encode_int_base36_negative_returns_error_test() -> Nil {
+  assert intid.encode_int_base36(-1_000_000) == Error(NegativeValue(-1_000_000))
+}
+
+pub fn encode_int_base32_rfc4648_negative_returns_error_test() -> Nil {
+  assert intid.encode_int_base32_rfc4648(-7) == Error(NegativeValue(-7))
+}
+
+pub fn encode_int_base32_crockford_negative_returns_error_test() -> Nil {
+  assert intid.encode_int_base32_crockford(-7) == Error(NegativeValue(-7))
+}
+
+pub fn encode_int_base32_crockford_check_negative_returns_error_test() -> Nil {
+  assert intid.encode_int_base32_crockford_check(-1) == Error(NegativeValue(-1))
+}
+
+pub fn encode_int_base58_flickr_negative_returns_error_test() -> Nil {
+  assert intid.encode_int_base58_flickr(-42) == Error(NegativeValue(-42))
+}
+
+pub fn encode_int_base58check_negative_returns_error_test() -> Nil {
+  assert intid.encode_int_base58check(-1) == Error(NegativeValue(-1))
+}
+
+pub fn encode_int_facade_negative_returns_error_test() -> Nil {
+  // The facade routes negatives through the same `int_to_bytes_be`
+  // guard, so the surfaced error is identical for every codec.
+  assert intid.encode_int(encoding: encoding.base58_bitcoin(), value: -42)
+    == Error(NegativeValue(-42))
+}
+
+pub fn encode_int_facade_base58check_negative_returns_error_test() -> Nil {
+  // Base58Check goes through a separate code path (it concatenates a
+  // version byte before encoding), so pin its negative behaviour too.
+  assert intid.encode_int(encoding: encoding.base58_check(0), value: -1)
+    == Error(NegativeValue(-1))
 }
 
 // === Bounded decode: cap constants ===
@@ -315,13 +366,13 @@ pub fn int53_max_constant_test() -> Nil {
 // === Bounded decode: Base58 (Bitcoin) ===
 
 pub fn decode_int_base58_bounded_within_test() -> Nil {
-  let encoded = intid.encode_int_base58(42)
+  let assert Ok(encoded) = intid.encode_int_base58(42)
   assert intid.decode_int_base58_bounded(input: encoded, max: intid.int64_max)
     == Ok(42)
 }
 
 pub fn decode_int_base58_bounded_at_cap_test() -> Nil {
-  let encoded = intid.encode_int_base58(intid.int64_max)
+  let assert Ok(encoded) = intid.encode_int_base58(intid.int64_max)
   assert intid.decode_int_base58_bounded(input: encoded, max: intid.int64_max)
     == Ok(intid.int64_max)
 }
@@ -341,13 +392,13 @@ pub fn decode_int_base58_bounded_above_cap_test() -> Nil {
 
 @target(erlang)
 pub fn decode_int_base58_bounded_just_above_cap_test() -> Nil {
-  let encoded = intid.encode_int_base58(intid.int64_max + 1)
+  let assert Ok(encoded) = intid.encode_int_base58(intid.int64_max + 1)
   assert intid.decode_int_base58_bounded(input: encoded, max: intid.int64_max)
     == Error(Overflow)
 }
 
 pub fn decode_int_base58_bounded_int53_cap_test() -> Nil {
-  let encoded = intid.encode_int_base58(intid.int53_max + 1)
+  let assert Ok(encoded) = intid.encode_int_base58(intid.int53_max + 1)
   assert intid.decode_int_base58_bounded(input: encoded, max: intid.int53_max)
     == Error(Overflow)
 }
@@ -368,7 +419,7 @@ pub fn decode_int_base58_bounded_invalid_char_test() -> Nil {
 // === Bounded decode: Base58 (Flickr) ===
 
 pub fn decode_int_base58_flickr_bounded_within_test() -> Nil {
-  let encoded = intid.encode_int_base58_flickr(1234)
+  let assert Ok(encoded) = intid.encode_int_base58_flickr(1234)
   assert intid.decode_int_base58_flickr_bounded(
       input: encoded,
       max: intid.int64_max,
@@ -378,7 +429,7 @@ pub fn decode_int_base58_flickr_bounded_within_test() -> Nil {
 
 @target(erlang)
 pub fn decode_int_base58_flickr_bounded_above_cap_test() -> Nil {
-  let encoded = intid.encode_int_base58_flickr(intid.int64_max + 1)
+  let assert Ok(encoded) = intid.encode_int_base58_flickr(intid.int64_max + 1)
   assert intid.decode_int_base58_flickr_bounded(
       input: encoded,
       max: intid.int64_max,
@@ -389,20 +440,20 @@ pub fn decode_int_base58_flickr_bounded_above_cap_test() -> Nil {
 // === Bounded decode: encoding.base62() ===
 
 pub fn decode_int_base62_bounded_within_test() -> Nil {
-  let encoded = intid.encode_int_base62(2_147_483_647)
+  let assert Ok(encoded) = intid.encode_int_base62(2_147_483_647)
   assert intid.decode_int_base62_bounded(input: encoded, max: intid.int64_max)
     == Ok(2_147_483_647)
 }
 
 @target(erlang)
 pub fn decode_int_base62_bounded_above_cap_test() -> Nil {
-  let encoded = intid.encode_int_base62(intid.int64_max + 1)
+  let assert Ok(encoded) = intid.encode_int_base62(intid.int64_max + 1)
   assert intid.decode_int_base62_bounded(input: encoded, max: intid.int64_max)
     == Error(Overflow)
 }
 
 pub fn decode_int_base62_bounded_int53_within_test() -> Nil {
-  let encoded = intid.encode_int_base62(intid.int53_max)
+  let assert Ok(encoded) = intid.encode_int_base62(intid.int53_max)
   assert intid.decode_int_base62_bounded(input: encoded, max: intid.int53_max)
     == Ok(intid.int53_max)
 }
@@ -410,14 +461,14 @@ pub fn decode_int_base62_bounded_int53_within_test() -> Nil {
 // === Bounded decode: encoding.base36() ===
 
 pub fn decode_int_base36_bounded_within_test() -> Nil {
-  let encoded = intid.encode_int_base36(8_675_309)
+  let assert Ok(encoded) = intid.encode_int_base36(8_675_309)
   assert intid.decode_int_base36_bounded(input: encoded, max: intid.int64_max)
     == Ok(8_675_309)
 }
 
 @target(erlang)
 pub fn decode_int_base36_bounded_above_cap_test() -> Nil {
-  let encoded = intid.encode_int_base36(intid.int64_max + 1)
+  let assert Ok(encoded) = intid.encode_int_base36(intid.int64_max + 1)
   assert intid.decode_int_base36_bounded(input: encoded, max: intid.int64_max)
     == Error(Overflow)
 }
@@ -425,7 +476,7 @@ pub fn decode_int_base36_bounded_above_cap_test() -> Nil {
 // === Bounded decode: Base32 (RFC 4648) ===
 
 pub fn decode_int_base32_rfc4648_bounded_within_test() -> Nil {
-  let encoded = intid.encode_int_base32_rfc4648(1_234_567)
+  let assert Ok(encoded) = intid.encode_int_base32_rfc4648(1_234_567)
   assert intid.decode_int_base32_rfc4648_bounded(
       input: encoded,
       max: intid.int64_max,
@@ -435,7 +486,7 @@ pub fn decode_int_base32_rfc4648_bounded_within_test() -> Nil {
 
 @target(erlang)
 pub fn decode_int_base32_rfc4648_bounded_above_cap_test() -> Nil {
-  let encoded = intid.encode_int_base32_rfc4648(intid.int64_max + 1)
+  let assert Ok(encoded) = intid.encode_int_base32_rfc4648(intid.int64_max + 1)
   assert intid.decode_int_base32_rfc4648_bounded(
       input: encoded,
       max: intid.int64_max,
@@ -446,7 +497,7 @@ pub fn decode_int_base32_rfc4648_bounded_above_cap_test() -> Nil {
 // === Bounded decode: Base32 (Crockford) ===
 
 pub fn decode_int_base32_crockford_bounded_within_test() -> Nil {
-  let encoded = intid.encode_int_base32_crockford(987_654)
+  let assert Ok(encoded) = intid.encode_int_base32_crockford(987_654)
   assert intid.decode_int_base32_crockford_bounded(
       input: encoded,
       max: intid.int64_max,
@@ -456,7 +507,8 @@ pub fn decode_int_base32_crockford_bounded_within_test() -> Nil {
 
 @target(erlang)
 pub fn decode_int_base32_crockford_bounded_above_cap_test() -> Nil {
-  let encoded = intid.encode_int_base32_crockford(intid.int64_max + 1)
+  let assert Ok(encoded) =
+    intid.encode_int_base32_crockford(intid.int64_max + 1)
   assert intid.decode_int_base32_crockford_bounded(
       input: encoded,
       max: intid.int64_max,
@@ -468,11 +520,11 @@ pub fn decode_int_base32_crockford_bounded_above_cap_test() -> Nil {
 
 pub fn encode_int_base32_crockford_check_zero_test() -> Nil {
   // 0 encoded as Crockford "0" then check digit for 0 mod 37 == "0".
-  assert intid.encode_int_base32_crockford_check(0) == "00"
+  assert intid.encode_int_base32_crockford_check(0) == Ok("00")
 }
 
 pub fn decode_int_base32_crockford_check_roundtrip_test() -> Nil {
-  let encoded = intid.encode_int_base32_crockford_check(987_654)
+  let assert Ok(encoded) = intid.encode_int_base32_crockford_check(987_654)
   assert intid.decode_int_base32_crockford_check(encoded) == Ok(987_654)
 }
 
@@ -484,7 +536,7 @@ pub fn decode_int_base32_crockford_check_detects_typo_test() -> Nil {
   // Take a valid checksummed encoding and mutate one body character.
   // The decoder must reject the typo via InvalidChecksum, which is the
   // whole reason callers reach for the `_check` variant.
-  let encoded = intid.encode_int_base32_crockford_check(123_456)
+  let assert Ok(encoded) = intid.encode_int_base32_crockford_check(123_456)
   let body = string_drop_last(encoded)
   let check = string_take_last(encoded)
   let mutated = mutate_first_body_char(body) <> check
@@ -493,7 +545,7 @@ pub fn decode_int_base32_crockford_check_detects_typo_test() -> Nil {
 }
 
 pub fn decode_int_base32_crockford_check_bounded_within_test() -> Nil {
-  let encoded = intid.encode_int_base32_crockford_check(42)
+  let assert Ok(encoded) = intid.encode_int_base32_crockford_check(42)
   assert intid.decode_int_base32_crockford_check_bounded(
       input: encoded,
       max: intid.int64_max,
@@ -503,7 +555,8 @@ pub fn decode_int_base32_crockford_check_bounded_within_test() -> Nil {
 
 @target(erlang)
 pub fn decode_int_base32_crockford_check_bounded_above_cap_test() -> Nil {
-  let encoded = intid.encode_int_base32_crockford_check(intid.int64_max + 1)
+  let assert Ok(encoded) =
+    intid.encode_int_base32_crockford_check(intid.int64_max + 1)
   assert intid.decode_int_base32_crockford_check_bounded(
       input: encoded,
       max: intid.int64_max,
@@ -522,13 +575,13 @@ pub fn decode_int_base32_crockford_check_bounded_above_cap_test() -> Nil {
 
 @target(erlang)
 pub fn encode_int_base58check_zero_roundtrips_test() -> Nil {
-  let encoded = intid.encode_int_base58check(0)
+  let assert Ok(encoded) = intid.encode_int_base58check(0)
   assert intid.decode_int_base58check(encoded) == Ok(0)
 }
 
 @target(erlang)
 pub fn decode_int_base58check_roundtrip_test() -> Nil {
-  let encoded = intid.encode_int_base58check(9_999_999_999)
+  let assert Ok(encoded) = intid.encode_int_base58check(9_999_999_999)
   assert intid.decode_int_base58check(encoded) == Ok(9_999_999_999)
 }
 
@@ -541,14 +594,14 @@ pub fn decode_int_base58check_detects_typo_test() -> Nil {
   // Mutate the first checksum-bearing position. Base58Check's 4-byte
   // SHA-256 suffix means this *must* fail — that is the property the
   // helper exists to guarantee for callers.
-  let encoded = intid.encode_int_base58check(424_242)
+  let assert Ok(encoded) = intid.encode_int_base58check(424_242)
   let mutated = mutate_first_body_char(encoded)
   assert intid.decode_int_base58check(mutated) == Error(InvalidChecksum)
 }
 
 @target(erlang)
 pub fn decode_int_base58check_bounded_within_test() -> Nil {
-  let encoded = intid.encode_int_base58check(1234)
+  let assert Ok(encoded) = intid.encode_int_base58check(1234)
   assert intid.decode_int_base58check_bounded(
       input: encoded,
       max: intid.int64_max,
@@ -558,7 +611,7 @@ pub fn decode_int_base58check_bounded_within_test() -> Nil {
 
 @target(erlang)
 pub fn decode_int_base58check_bounded_above_cap_test() -> Nil {
-  let encoded = intid.encode_int_base58check(intid.int64_max + 1)
+  let assert Ok(encoded) = intid.encode_int_base58check(intid.int64_max + 1)
   assert intid.decode_int_base58check_bounded(
       input: encoded,
       max: intid.int64_max,
@@ -625,24 +678,23 @@ fn decode_job_id(s: String) -> Result(Int, intid.CodecError) {
 pub fn encode_int_facade_matches_per_base_base58_test() -> Nil {
   let direct = intid.encode_int_base58(42)
   assert intid.encode_int(encoding: encoding.base58_bitcoin(), value: 42)
-    == Ok(direct)
+    == direct
 }
 
 pub fn encode_int_facade_matches_per_base_base32_crockford_test() -> Nil {
   let direct = intid.encode_int_base32_crockford(31)
   assert intid.encode_int(encoding: encoding.base32_crockford(), value: 31)
-    == Ok(direct)
+    == direct
 }
 
 pub fn encode_int_facade_matches_per_base_base62_test() -> Nil {
   let direct = intid.encode_int_base62(123_456)
-  assert intid.encode_int(encoding: encoding.base62(), value: 123_456)
-    == Ok(direct)
+  assert intid.encode_int(encoding: encoding.base62(), value: 123_456) == direct
 }
 
 pub fn encode_int_facade_matches_per_base_base16_test() -> Nil {
   let direct = intid.encode_int_base16(255)
-  assert intid.encode_int(encoding: encoding.base16(), value: 255) == Ok(direct)
+  assert intid.encode_int(encoding: encoding.base16(), value: 255) == direct
 }
 
 pub fn encode_int_facade_unsupported_base64_test() -> Nil {
@@ -658,7 +710,7 @@ pub fn encode_int_facade_unsupported_bech32_test() -> Nil {
 }
 
 pub fn decode_int_facade_matches_per_base_base58_test() -> Nil {
-  let encoded = intid.encode_int_base58(42)
+  let assert Ok(encoded) = intid.encode_int_base58(42)
   assert intid.decode_int(encoding: encoding.base58_bitcoin(), value: encoded)
     == Ok(42)
 }

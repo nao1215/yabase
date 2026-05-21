@@ -37,6 +37,16 @@ pub type CodecError {
   /// the encoding's name so the caller can render an actionable
   /// error.
   UnsupportedForInt(encoding_name: String)
+  /// `yabase/intid.encode_int_*` was invoked with a negative `Int`.
+  /// The integer codecs only define a canonical representation for
+  /// non-negative values; previously the sign was silently dropped
+  /// via `int.absolute_value`, which broke the
+  /// `decode(encode(n)) == n` round-trip whenever `n < 0`. The
+  /// encoders now surface the offending input so callers can keep
+  /// or strip the sign at the boundary explicitly (e.g. by using
+  /// a sign-preserving wire format like zigzag, or by mapping the
+  /// negative case to a domain-specific error). (#100)
+  NegativeValue(value: Int)
 }
 
 /// Bech32 encoding variant.
