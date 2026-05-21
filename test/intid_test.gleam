@@ -1,8 +1,8 @@
 import gleam/string
 import yabase/core/encoding
 import yabase/core/error.{
-  InvalidCharacter, InvalidChecksum, InvalidLength, NegativeValue, Overflow,
-  UnsupportedForInt,
+  InvalidCharacter, InvalidChecksum, InvalidLength, NegativeValue, NonCanonical,
+  Overflow, UnsupportedForInt,
 }
 import yabase/intid
 
@@ -228,8 +228,14 @@ pub fn decode_int_base58_empty_test() -> Nil {
   assert intid.decode_int_base58("") == Error(InvalidLength(0))
 }
 
-pub fn decode_int_base58_leading_zero_tolerant_test() -> Nil {
-  assert intid.decode_int_base58("11NH") == intid.decode_int_base58("NH")
+pub fn decode_int_base58_rejects_leading_one_test() -> Nil {
+  // Base58 (Bitcoin) uses `"1"` as the zero character, so `"11NH"`
+  // decodes to the same `Int` as `"NH"` via the byte-roundtrip path
+  // — historically that turned multiple wire strings into aliases
+  // for the same ID. The decoder now rejects the non-canonical form
+  // so each `Int` has exactly one valid encoded representation.
+  // Closes #101.
+  assert intid.decode_int_base58("11NH") == Error(NonCanonical)
 }
 
 pub fn decode_int_base58_roundtrip_test() -> Nil {
