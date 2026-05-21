@@ -204,16 +204,88 @@ pub fn decode_int_base10_bounded(
 /// who need lowercase for interop with `sha256sum`-style tools can
 /// post-process with `string.lowercase` or use `base16.encode_lowercase`
 /// after `int_to_bytes_be` themselves.
+///
+/// ## Byte-aligned vs compact
+///
+/// This function is **byte-aligned**: the output length is always an
+/// even number of hex characters because the encoding pads the
+/// integer's big-endian representation to a whole byte boundary
+/// (`encode_int_base16(1) == "01"`, `encode_int_base16(2025) ==
+/// "07E9"`). This is the right shape for ID interop with
+/// byte-oriented systems (databases, HTTP headers, content-
+/// addressable storage). The other `encode_int_*` functions in this
+/// module are *compact* — they drop leading zero characters
+/// (`encode_int_base58(1) == "2"`, `encode_int_base36(1) == "1"`,
+/// `encode_int_base10(1) == "1"`). Issue #99 surfaced the
+/// asymmetry; if you want the compact form for `base16`, use
+/// `encode_int_base16_compact/1` instead. `decode_int_base16/1`
+/// accepts either form (it does not require an even-length input).
 pub fn encode_int_base16(value: Int) -> String {
   base16.encode(int_to_bytes_be(value))
+}
+
+/// Encode an `Int` as a Base16 (uppercase hexadecimal) string with
+/// leading zero characters stripped — the compact counterpart to
+/// `encode_int_base16/1`.
+///
+/// ## Byte-aligned vs compact
+///
+/// `encode_int_base16/1` is **byte-aligned** (always emits an even
+/// number of hex characters: `encode_int_base16(1) == "01"`,
+/// `encode_int_base16(2025) == "07E9"`). This function is **compact**
+/// — leading `"0"` characters are dropped so the output matches the
+/// shape of the rest of the `encode_int_*` family
+/// (`encode_int_base58(1) == "2"`, `encode_int_base36(1) == "1"`,
+/// `encode_int_base10(1) == "1"`). Examples:
+///
+/// ```gleam
+/// encode_int_base16_compact(0)      // "0"
+/// encode_int_base16_compact(1)      // "1"
+/// encode_int_base16_compact(255)    // "FF"
+/// encode_int_base16_compact(2025)   // "7E9"
+/// encode_int_base16_compact(0xdeadbeef) // "DEADBEEF"
+/// ```
+///
+/// Use this when you want column-aligned mixed-base output or
+/// round-trip-by-text comparisons across the `encode_int_*` family.
+/// Keep `encode_int_base16/1` for byte-oriented sinks where the
+/// even-length contract matters.
+///
+/// `decode_int_base16/1` accepts the compact form unchanged
+/// (`decode_int_base16(encode_int_base16_compact(n)) == Ok(n)`),
+/// because the underlying `base16.decode` is tolerant of any-length
+/// input — odd-length inputs are zero-padded to the next byte
+/// boundary before decoding.
+///
+/// Negative inputs are normalized to `int.absolute_value`; see the
+/// module note on "Negative inputs are silently absolutized".
+///
+/// Added in #99.
+pub fn encode_int_base16_compact(value: Int) -> String {
+  drop_leading_zero_chars(base16.encode(int_to_bytes_be(value)))
 }
 
 /// Decode a Base16 (hexadecimal) string back to an `Int`. Accepts
 /// both uppercase and lowercase input via `base16.decode`'s
 /// case-insensitive alphabet.
+///
+/// Odd-length inputs are accepted and internally zero-padded on the
+/// left to the next byte boundary before being passed to
+/// `base16.decode` (`"1"` is treated as `"01"`, `"7E9"` as
+/// `"07E9"`). This makes the function tolerant of either output
+/// shape from the `encode_int_base16*` family —
+/// `decode_int_base16(encode_int_base16(n)) == Ok(n)` *and*
+/// `decode_int_base16(encode_int_base16_compact(n)) == Ok(n)` both
+/// hold for every non-negative `Int`. The byte-oriented
+/// `base16.decode/1` keeps its strict even-length contract for
+/// callers reaching for the low-level codec directly. (#99)
 pub fn decode_int_base16(input: String) -> Result(Int, CodecError) {
   use input <- result.try(reject_empty(input))
-  base16.decode(input)
+  let padded = case int.is_odd(string.length(input)) {
+    True -> "0" <> input
+    False -> input
+  }
+  base16.decode(padded)
   |> result.map(bytes_to_int)
 }
 
@@ -537,4 +609,19 @@ fn accumulate_bytes(num: Int, acc: BitArray) -> BitArray {
 
 fn bytes_to_int(data: BitArray) -> Int {
   bignum.bytes_to_int(data, 0)
+}
+
+// Drop every leading `"0"` character from `s`. If the entire string
+// is composed of `"0"` characters (the magnitude-zero case), preserve
+// a single `"0"` so the compact form still has at least one digit —
+// matching `encode_int_base10(0) == "0"`,
+// `encode_int_base36(0) == "0"` etc. Used by
+// `encode_int_base16_compact/1` to turn the byte-aligned output of
+// `base16.encode` into the compact form expected by the rest of the
+// `encode_int_*` family. (#99)
+fn drop_leading_zero_chars(s: String) -> String {
+  use <- bool.guard(when: !string.starts_with(s, "0"), return: s)
+  let rest = string.drop_start(s, 1)
+  use <- bool.guard(when: string.is_empty(rest), return: "0")
+  drop_leading_zero_chars(rest)
 }
