@@ -147,7 +147,11 @@ fn decode_loop(
   }
 }
 
-fn extract_bytes_from_queue(queue: Int, nbits: Int, acc: List(Int)) -> List(Int) {
+fn extract_bytes_from_queue(
+  queue: Int,
+  nbits: Int,
+  acc: List(Int),
+) -> List(Int) {
   use <- bool.guard(when: nbits < 8, return: acc)
   extract_bytes_from_queue(bsr(queue, 8), nbits - 8, [band(queue, 255), ..acc])
 }

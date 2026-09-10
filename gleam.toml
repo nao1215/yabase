@@ -3,6 +3,7 @@ version = "0.22.0"
 description = "Unified binary-to-text encoding: base2, base8, base10, base16, base32, base36, base45, base58, base58check, base62, base64, base85, base91, ascii85, z85, bech32, bech32m, multibase"
 licences = ["MIT"]
 repository = { type = "github", user = "nao1215", repo = "yabase" }
+gleam = ">= 1.15.0"
 links = [
   { title = "Examples", href = "https://github.com/nao1215/yabase/tree/main/examples" },
   { title = "Changelog", href = "https://github.com/nao1215/yabase/blob/main/CHANGELOG.md" },
@@ -11,7 +12,7 @@ links = [
 internal_modules = [
   "yabase/internal",
   "yabase/internal/*",
-  "yabase/core/dispatcher",
+  "yabase/dev/*",
 ]
 
 [dependencies]

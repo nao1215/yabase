@@ -65,7 +65,10 @@ pub fn encode(
 /// Use the variant-explicit `encode/3` if you actually need
 /// `Bech32` (BIP 173) — for example when implementing SegWit v0
 /// witness-program addresses.
-pub fn encode_default(hrp: String, data: BitArray) -> Result(String, CodecError) {
+pub fn encode_default(
+  hrp: String,
+  data: BitArray,
+) -> Result(String, CodecError) {
   encode_variant(Bech32mV, hrp, data)
 }
 

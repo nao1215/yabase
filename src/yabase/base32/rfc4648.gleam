@@ -177,7 +177,10 @@ fn finalize_bits(bits: BitArray) -> Result(BitArray, CodecError) {
   extract_bytes(bits, <<>>)
 }
 
-fn extract_bytes(bits: BitArray, acc: BitArray) -> Result(BitArray, CodecError) {
+fn extract_bytes(
+  bits: BitArray,
+  acc: BitArray,
+) -> Result(BitArray, CodecError) {
   case bits {
     <<byte:8, rest:bits>> ->
       extract_bytes(rest, bit_array.append(acc, <<byte:int>>))

@@ -1,5 +1,11 @@
 name: CI
 
+# Two compiler lanes:
+# - floor: the `gleam` requirement in gleam.toml (keep both in sync). It proves the
+#   declared minimum still builds and passes the tests, on every OTP it supports.
+# - latest: floats on 1.x so new compiler warnings, deprecations and formatter changes
+#   surface here first. Format, lint and the release workflow use this lane.
+
 on:
   push:
     branches: [main]
@@ -11,22 +17,22 @@ jobs:
     name: Format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: erlef/setup-beam@v1
         with:
-          otp-version: "27"
-          gleam-version: "1.15"
+          otp-version: "29"
+          gleam-version: "1.x"
       - run: gleam format --check
 
   lint:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: erlef/setup-beam@v1
         with:
-          otp-version: "27"
-          gleam-version: "1.15"
+          otp-version: "29"
+          gleam-version: "1.x"
       - run: gleam deps download
       - run: gleam run -m glinter
       - run: gleam build --warnings-as-errors
@@ -49,13 +55,15 @@ jobs:
       matrix:
         include:
           - otp: "26"
-            gleam: "1.15"
+            gleam: "1.15.0"
           - otp: "27"
-            gleam: "1.15"
+            gleam: "1.15.0"
           - otp: "28"
-            gleam: "1.15"
+            gleam: "1.15.0"
+          - otp: "29"
+            gleam: "1.x"
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: erlef/setup-beam@v1
         with:
           otp-version: ${{ matrix.otp }}
@@ -68,7 +76,7 @@ jobs:
     #   - "18" is the documented minimum supported Node version (see README).
     #     Failures here mean we have to either fix the code or update the
     #     stated support floor — they must not be silently dropped.
-    #   - "22" is current latest-LTS coverage for general confidence.
+    #   - "lts/*" is the current LTS for general confidence.
     name: Test (JavaScript / Node ${{ matrix.node }})
     runs-on: ubuntu-latest
     strategy:
@@ -76,14 +84,14 @@ jobs:
       matrix:
         node:
           - "18"
-          - "22"
+          - "lts/*"
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: erlef/setup-beam@v1
         with:
-          otp-version: "27"
-          gleam-version: "1.15"
-      - uses: actions/setup-node@v6
+          otp-version: "29"
+          gleam-version: "1.x"
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node }}
       - run: gleam deps download
