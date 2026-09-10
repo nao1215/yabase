@@ -318,7 +318,9 @@ fn compress_rounds(
   compress_rounds(#(add32(t1, t2), a, b, c, add32(d, t1), e, f, g), w, i + 1)
 }
 
-fn state_to_bytes(state: #(Int, Int, Int, Int, Int, Int, Int, Int)) -> BitArray {
+fn state_to_bytes(
+  state: #(Int, Int, Int, Int, Int, Int, Int, Int),
+) -> BitArray {
   let #(h0, h1, h2, h3, h4, h5, h6, h7) = state
   <<h0:32, h1:32, h2:32, h3:32, h4:32, h5:32, h6:32, h7:32>>
 }

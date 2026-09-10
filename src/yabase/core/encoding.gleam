@@ -614,7 +614,10 @@ pub fn multibase_name(enc: Encoding) -> String {
 
 /// Lowercase the dispatcher's output for encodings whose multibase
 /// prefix pins lowercase output (currently `Base16` under prefix `f`).
-pub fn normalise_for_multibase_prefix(enc: Encoding, encoded: String) -> String {
+pub fn normalise_for_multibase_prefix(
+  enc: Encoding,
+  encoded: String,
+) -> String {
   case enc {
     Base16 -> string.lowercase(encoded)
     _ -> encoded
