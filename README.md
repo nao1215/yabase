@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/nao1215/yabase/actions/workflows/ci.yml/badge.svg)](https://github.com/nao1215/yabase/actions/workflows/ci.yml)
 [![Hex.pm](https://img.shields.io/hexpm/v/yabase)](https://hex.pm/packages/yabase)
+[![Hex Downloads](https://img.shields.io/hexpm/dt/yabase)](https://hex.pm/packages/yabase)
+[![Hex Docs](https://img.shields.io/badge/hex-docs-ffaff3)](https://hexdocs.pm/yabase/)
 
 ![yabase_logo](https://raw.githubusercontent.com/nao1215/yabase/main/doc/img/yabase_logo_small.png)
 
@@ -15,7 +17,7 @@ Yet Another Base -- a unified, type-safe interface for multiple binary-to-text e
 ## Requirements
 
 - Gleam 1.15 or later
-- Erlang/OTP 26 or later (CI tests OTP 26, 27, 28)
+- Erlang/OTP 26 or later (CI tests OTP 26, 27 and 28 on Gleam 1.15.0, and OTP 29 on the latest Gleam 1.x)
 - Node.js 18 or later (when targeting JavaScript)
 
 ## Supported targets
@@ -41,7 +43,7 @@ The JavaScript lane runs on two Node versions:
 - **Node 18** — the documented minimum supported version. This is
   the support floor: the package is required to work here, and
   regressions on this lane block release.
-- **Node 22** — latest-LTS coverage for general confidence.
+- **Node LTS** (`lts/*`) — the current LTS for general confidence.
 
 The release workflow runs the same matrix; both lanes must pass
 before `gleam publish` runs.

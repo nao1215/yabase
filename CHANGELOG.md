@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- `gleam.toml` now declares `gleam = ">= 1.15.0"`, the oldest compiler that builds and tests the package unchanged (the `[dev_dependencies]` key needs 1.15). CI tests that floor on OTP 26, 27 and 28, and the latest Gleam 1.x on OTP 29.
+- `yabase/dev/gen_readme`, the script that prints the README tables, is now an internal module and no longer appears in the HexDocs API reference.
+
 ## [0.22.0] - 2026-05-21
 
 ### Added

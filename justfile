@@ -29,6 +29,7 @@ docs:
 
 check:
   #!/usr/bin/env bash
+  set -euo pipefail
   gleam format --check .
   gleam run -m glinter
   gleam check
@@ -44,6 +45,7 @@ check:
 
 verify-examples:
   #!/usr/bin/env bash
+  set -euo pipefail
   trap 'rm -f src/yabase/example_*.gleam' EXIT
   for f in examples/*.gleam; do
     mod=$(basename "$f" .gleam)
