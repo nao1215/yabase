@@ -12,13 +12,16 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   format:
     name: Format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: erlef/setup-beam@v1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24.1
         with:
           otp-version: "29"
           gleam-version: "1.x"
@@ -28,8 +31,8 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: erlef/setup-beam@v1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24.1
         with:
           otp-version: "29"
           gleam-version: "1.x"
@@ -63,8 +66,8 @@ jobs:
           - otp: "29"
             gleam: "1.x"
     steps:
-      - uses: actions/checkout@v7
-      - uses: erlef/setup-beam@v1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24.1
         with:
           otp-version: ${{ matrix.otp }}
           gleam-version: ${{ matrix.gleam }}
@@ -86,12 +89,12 @@ jobs:
           - "18"
           - "lts/*"
     steps:
-      - uses: actions/checkout@v7
-      - uses: erlef/setup-beam@v1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24.1
         with:
           otp-version: "29"
           gleam-version: "1.x"
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ matrix.node }}
       - run: gleam deps download
