@@ -8,7 +8,8 @@ import yabase/core/error.{
   type CodecError, InvalidCharacter, InvalidLength, Overflow,
 }
 
-const alphabet = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.-:+=^!/*?&<>()[]{}@%$#"
+const alphabet =
+  "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.-:+=^!/*?&<>()[]{}@%$#"
 
 /// Encode a BitArray to Z85.
 /// Returns Error(InvalidLength) if input length is not a multiple of 4.

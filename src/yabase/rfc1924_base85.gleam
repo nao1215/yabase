@@ -8,7 +8,8 @@ import yabase/core/error.{
   type CodecError, InvalidCharacter, InvalidLength, Overflow,
 }
 
-const alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+-;<=>?@^_`{|}~"
+const alphabet =
+  "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+-;<=>?@^_`{|}~"
 
 /// Maximum value for a decoded 5-character group: 2^32 - 1
 const max_u32 = 4_294_967_295
