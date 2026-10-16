@@ -13,7 +13,8 @@ import gleam/string
 import yabase/core/error.{type CodecError, InvalidCharacter}
 import yabase/core/guard
 
-const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#$%&()*+,./:;<=>?@[]^_`{|}~\""
+const alphabet =
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#$%&()*+,./:;<=>?@[]^_`{|}~\""
 
 /// Encode a BitArray to Base91.
 ///

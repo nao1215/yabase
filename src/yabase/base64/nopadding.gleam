@@ -4,7 +4,8 @@ import gleam/string
 import yabase/base64/standard
 import yabase/core/error.{type CodecError, InvalidCharacter, InvalidLength}
 
-const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+const alphabet =
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 
 /// Encode a BitArray to Base64 without padding.
 pub fn encode(data: BitArray) -> String {

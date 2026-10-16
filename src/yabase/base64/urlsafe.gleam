@@ -7,7 +7,8 @@ import gleam/string
 import yabase/core/error.{type CodecError, InvalidCharacter, InvalidLength}
 import yabase/core/guard
 
-const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+const alphabet =
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
 
 const pad = "="
 

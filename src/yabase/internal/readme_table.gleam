@@ -20,9 +20,11 @@ import yabase/core/encoding.{type Encoding}
 /// Markers used in `README.md` to fence the generated multibase
 /// prefix table. Both this module and the README must agree on these
 /// strings.
-pub const multibase_prefix_table_begin: String = "<!-- BEGIN: multibase-prefix-table -->"
+pub const multibase_prefix_table_begin: String =
+  "<!-- BEGIN: multibase-prefix-table -->"
 
-pub const multibase_prefix_table_end: String = "<!-- END: multibase-prefix-table -->"
+pub const multibase_prefix_table_end: String =
+  "<!-- END: multibase-prefix-table -->"
 
 /// All multibase prefix characters this package recognises, in the
 /// order they appear in `encoding.from_multibase_prefix/1`.
