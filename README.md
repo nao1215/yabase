@@ -531,6 +531,23 @@ just check      # all checks without deps download
 
 Contributions are welcome. See [CONTRIBUTING.md](https://github.com/nao1215/yabase/blob/main/CONTRIBUTING.md) for details.
 
+## Verifying releases
+
+Each GitHub Release attaches the Hex package tarball (`yabase-<version>.tar`),
+`checksums.txt`, a cosign signature bundle (`checksums.txt.sigstore.json`) and
+build provenance (`yabase-<version>.intoto.jsonl`). Download the assets, then:
+
+```sh
+gh attestation verify yabase-<version>.tar --repo nao1215/yabase
+
+cosign verify-blob \
+  --bundle checksums.txt.sigstore.json \
+  --certificate-identity-regexp '^https://github\.com/nao1215/yabase/\.github/workflows/release\.yml@refs/tags/v' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  checksums.txt
+sha256sum --check checksums.txt
+```
+
 ## License
 
 [MIT](https://github.com/nao1215/yabase/blob/main/LICENSE)
