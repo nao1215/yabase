@@ -542,7 +542,7 @@ gh attestation verify yabase-<version>.tar --repo nao1215/yabase
 
 cosign verify-blob \
   --bundle checksums.txt.sigstore.json \
-  --certificate-identity-regexp '^https://github.com/nao1215/yabase/' \
+  --certificate-identity-regexp '^https://github\.com/nao1215/yabase/\.github/workflows/release\.yml@refs/tags/v' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
   checksums.txt
 sha256sum --check checksums.txt
