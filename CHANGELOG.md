@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - GitHub Releases now attach the Hex package tarball, `checksums.txt`, a keyless cosign signature bundle for it and build provenance (`*.intoto.jsonl`). See "Verifying releases" in the README.
 
+### Fixed
+
+- `ascii85.decode` and `adobe_ascii85.decode` report the right position in `InvalidCharacter` and `InvalidLength` after whitespace inside a group. Each space, tab or newline inside a group used to shift every later position one character too early (`"87cU RD]v"` reported the invalid `v` at 7 instead of 8).
+
 ## [0.23.0] - 2026-09-10
 
 ### Changed

@@ -119,9 +119,9 @@ fn decode_groups(
     Ok(#(c1, r1)) ->
       case take_ascii85_group(c1, r1, pos) {
         Error(e) -> Error(e)
-        Ok(#(chars, char_count, rest)) ->
+        Ok(#(chars, char_count, rest, next_pos)) ->
           case char_count < 2 {
-            True -> Error(InvalidLength(pos + char_count))
+            True -> Error(InvalidLength(next_pos))
             False -> {
               let padded = pad_ascii85_chars(chars, 5)
               case decode_5_chars(padded) {
@@ -138,7 +138,7 @@ fn decode_groups(
                           acc,
                           list_to_bit_array(result_bytes, <<>>),
                         ),
-                        pos + char_count,
+                        next_pos,
                       )
                     }
                   }
@@ -153,7 +153,7 @@ fn take_ascii85_group(
   first: String,
   input: String,
   pos: Int,
-) -> Result(#(List(Int), Int, String), CodecError) {
+) -> Result(#(List(Int), Int, String, Int), CodecError) {
   case char_to_ascii85_value(first) {
     Error(Nil) -> Error(InvalidCharacter(first, pos))
     Ok(v) -> collect_group(input, [v], 1, pos + 1)
@@ -165,13 +165,13 @@ fn collect_group(
   acc: List(Int),
   count: Int,
   pos: Int,
-) -> Result(#(List(Int), Int, String), CodecError) {
+) -> Result(#(List(Int), Int, String, Int), CodecError) {
   use <- bool.guard(
     when: count >= 5,
-    return: Ok(#(list.reverse(acc), count, input)),
+    return: Ok(#(list.reverse(acc), count, input, pos)),
   )
   case string.pop_grapheme(input) {
-    Error(Nil) -> Ok(#(list.reverse(acc), count, ""))
+    Error(Nil) -> Ok(#(list.reverse(acc), count, "", pos))
     // Skip whitespace inside a group as well, matching adobe_ascii85.
     // (#59)
     Ok(#(" ", rest)) -> collect_group(rest, acc, count, pos + 1)
