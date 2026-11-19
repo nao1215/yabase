@@ -159,3 +159,18 @@ pub fn decode_skips_whitespace_inside_group_test() -> Nil {
   // 5-char group.
   assert ascii85.decode("9j\nqo^") == Ok(<<"Man ":utf8>>)
 }
+
+pub fn decode_reports_the_position_after_whitespace_inside_a_group_test() -> Nil {
+  // "87cU RD]v": the space is index 4, so the invalid "v" is index 8.
+  assert ascii85.decode("87cU RD]v,\"Ebo80") == Error(InvalidCharacter("v", 8))
+  assert ascii85.decode("87cURD ]i,\"Eb\u{7F}o80")
+    == Error(InvalidCharacter("\u{7F}", 13))
+  assert ascii85.decode("87\ncU\nRD]v") == Error(InvalidCharacter("v", 9))
+}
+
+pub fn decode_reports_the_position_of_a_lone_final_char_after_whitespace_test() -> Nil {
+  // "87cU R" is one group (5 chars + 1 space); the lone final "D" ends
+  // the input at index 7, so the reported length is 7 as for "87cURD".
+  assert ascii85.decode("87cURD") == Error(InvalidLength(6))
+  assert ascii85.decode("87cU RD") == Error(InvalidLength(7))
+}

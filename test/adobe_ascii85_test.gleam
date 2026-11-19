@@ -113,3 +113,11 @@ pub fn roundtrip_aligned_test() -> Nil {
   let data = <<"test1234":utf8>>
   assert adobe_ascii85.decode(adobe_ascii85.encode(data)) == Ok(data)
 }
+
+pub fn decode_reports_the_position_after_whitespace_inside_a_group_test() -> Nil {
+  // Positions count the "<~" prefix: the invalid "v" is index 10.
+  assert adobe_ascii85.decode("<~87cU RD]v,\"Ebo80~>")
+    == Error(InvalidCharacter("v", 10))
+  assert adobe_ascii85.decode("<~87cURD ]i,\"Eb\u{7F}o80~>")
+    == Error(InvalidCharacter("\u{7F}", 15))
+}
