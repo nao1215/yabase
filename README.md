@@ -535,6 +535,15 @@ just check      # all checks without deps download
 
 Contributions are welcome. See [CONTRIBUTING.md](https://github.com/nao1215/yabase/blob/main/CONTRIBUTING.md) for details.
 
+## Testing
+
+| Technique | Bug class caught here |
+|---|---|
+| Examples and unit tests | [Wrong output against published test vectors, accepted invalid input](doc/testing.md#examples-and-unit-tests) |
+| Generated properties | [Encodings that do not round-trip](doc/testing.md#generated-properties) |
+| Differential testing | [Base64, Base16 and SHA-256 that disagree with independent implementations](doc/testing.md#differential-testing) |
+| Mutation testing | [Assertions that miss a changed operator or branch](doc/testing.md#mutation-testing) |
+
 ## Verifying releases
 
 Each GitHub Release attaches the Hex package tarball (`yabase-<version>.tar`),
