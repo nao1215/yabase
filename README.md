@@ -12,46 +12,7 @@
 
 ![yabase_logo](https://raw.githubusercontent.com/nao1215/yabase/main/doc/img/yabase_logo_small.png)
 
-Yet Another Base -- a unified, type-safe interface for multiple binary-to-text encodings in Gleam.
-
-- Encoding schemes are first-class values.
-- Both low-level (direct module) and high-level (unified dispatch) APIs.
-- Multibase prefix support for auto-detection.
-- Pure Gleam implementation, no external dependencies.
-
-## Requirements
-
-- Gleam 1.15 or later
-- Erlang/OTP 26 or later (CI tests OTP 26, 27 and 28 on Gleam 1.15.0, and OTP 29 on the latest Gleam 1.x)
-- Node.js 18 or later (when targeting JavaScript)
-
-## Supported targets
-
-- Erlang (BEAM) — full encoding catalogue.
-- JavaScript — the package compiles for the JavaScript target with
-  no FFI. Encodings whose internals rely on arbitrary-precision
-  integer arithmetic (base32 Crockford, base58, base36 — used in
-  multibase too) inherit JavaScript's `Number.MAX_SAFE_INTEGER`
-  ceiling and may produce incorrect output for inputs that overflow
-  53-bit integers. base16, base64, base91, base32 RFC4648 and
-  ascii85 are JavaScript-safe.
-
-CI runs `gleam test --target javascript` against Node.js to catch
-JavaScript-target regressions on the public codec surface. Tests
-that exercise the bignum-backed codecs above are isolated with
-`@target(erlang)` so they do not run on JavaScript — they remain
-covered on BEAM, but are intentionally skipped on JS rather than
-silently passing or failing.
-
-The JavaScript lane runs on two Node versions:
-
-- **Node 18** — the documented minimum supported version. This is
-  the support floor: the package is required to work here, and
-  regressions on this lane block release.
-- **Node LTS** (`lts/*`) — the current LTS for general confidence.
-
-The release workflow runs the same matrix; both lanes must pass
-before `gleam publish` runs.
+Yet Another Base: binary-to-text encodings for Gleam behind one typed interface. Each encoding is a value you can pass around, multibase prefixes are detected on decode, and the package is pure Gleam with no external dependencies.
 
 ## Install
 
@@ -61,10 +22,9 @@ gleam add yabase
 
 ## Quick start
 
-The simplest entry point is the facade module: one function per
-encoding. `encode_*` returns a plain `String` because the encodings
-covered here cannot fail on a valid `BitArray`; `decode_*` returns
-`Result` because a malformed input is a real error.
+`yabase/facade` has one function per encoding. `encode_*` returns a
+`String`, since these encodings cannot fail on a byte-aligned `BitArray`.
+`decode_*` returns a `Result`.
 
 ```gleam
 import yabase/facade
@@ -78,17 +38,33 @@ pub fn main() {
 }
 ```
 
-That covers the success path. See [Notes for production code](#notes-for-production-code) at the bottom for the lint-policy and error-propagation guidance.
+The README uses `let assert` to keep snippets short. In application code, propagate the decode error instead.
+
+## Requirements
+
+- Gleam 1.15 or later
+- Erlang/OTP 26 or later (CI tests OTP 26, 27 and 28 on Gleam 1.15.0, and OTP 29 on the latest Gleam 1.x)
+- Node.js 18 or later (when targeting JavaScript)
+
+## Supported targets
+
+All encodings work on Erlang. The JavaScript target needs no FFI, but the
+codecs built on big-integer arithmetic (base32 Crockford, base58, base36,
+including their multibase forms) are limited by `Number.MAX_SAFE_INTEGER`
+and can return wrong output for inputs past 53 bits. base16, base64,
+base91, base32 RFC4648 and ascii85 are safe on JavaScript.
+
+CI runs `gleam test --target javascript` on Node 18 (the supported minimum;
+a failure blocks release) and on Node LTS (`lts/*`). Tests for the
+big-integer codecs are marked `@target(erlang)` and run only on BEAM. The
+release workflow runs the same matrix before `gleam publish`.
 
 ## Strictness
 
-The default `decode_base32` and `decode_base64` (and their
-URL-safe / no-padding cousins) are **lenient** — they accept
-non-canonical pad bits per the spec's MAY-relax clause. For
-interop with strict peers (JWT canonical-form check, signature
-verification, RFC-strict gateway), reach for the `_strict`
-siblings. They reject non-canonical pad bits per RFC 4648 §3.5
-with a typed error.
+`decode_base32`, `decode_base64`, and their URL-safe and no-padding
+variants accept non-canonical pad bits, as the spec allows. The `_strict`
+versions reject them with a typed error per RFC 4648 §3.5. Use them for
+input you do not control, such as auth tokens or signed payloads.
 
 ```gleam
 import yabase/facade
@@ -102,29 +78,16 @@ let _strict = facade.decode_base64_strict("TR==")
 // -> Error(NonCanonical)
 ```
 
-Available facade pairs:
-
-- `decode_base32` / `decode_base32_strict` (RFC 4648 §6 + §3.5)
-- `decode_base64` / `decode_base64_strict` (RFC 4648 §4 + §3.5)
-
-Reach into `yabase/base32/rfc4648` / `yabase/base64/standard`
-for the URL-safe / nopadding variants if you need their strict
-forms (`yabase/base64/urlsafe.decode_strict`,
-`yabase/base32/hex.decode_strict`, etc.). The strictness axis
-is independent of the padding axis: `_nopadding` already
-requires pad-free input, but its decoder is also lenient about
-non-canonical trailing bits — pair with `_strict` when both
-properties matter.
-
-Use the strict variants by default for any decoder fed with
-attacker-controlled input (auth tokens, signed payloads,
-multi-tenant API gateways). The lenient default is the right
-shape for friendly clients (config files, internal RPC) where
-the producer is trusted not to ship malformed pad bits.
+Facade pairs: `decode_base32` / `decode_base32_strict` (RFC 4648 §6 + §3.5)
+and `decode_base64` / `decode_base64_strict` (RFC 4648 §4 + §3.5). The
+URL-safe and no-padding strict forms live in the low-level modules
+(`yabase/base64/urlsafe.decode_strict`, `yabase/base32/hex.decode_strict`,
+etc.). `_nopadding` decoders require pad-free input but still accept
+non-canonical trailing bits, so pair them with `_strict` when you need both.
 
 ## Integer IDs
 
-Short URL-safe identifiers — DB autoincrement ids, sequence numbers, hash truncations — usually want `Int -> compact string` rather than `BitArray -> String`. The `yabase/intid` module provides this directly so callers do not have to write the `Int -> big-endian bytes -> trim-leading-zero` shim themselves.
+`yabase/intid` turns an `Int`, such as a database id, into a short URL-safe string and back.
 
 ```gleam
 import yabase/intid
@@ -140,9 +103,9 @@ pub fn main() {
 
 Available: `encode_int_base32_rfc4648`, `encode_int_base32_crockford`, `encode_int_base36`, `encode_int_base58`, `encode_int_base58_flickr`, `encode_int_base62` and their matching `decode_int_*`. All `encode_int_*` functions return `Result(String, CodecError)` and all `decode_int_*` functions return `Result(Int, CodecError)`.
 
-`encode_int_*` emits canonical form. `decode_int_base58` enforces the same canonical form on input: `decode_int_base58("15Q")` returns `Error(NonCanonical)`, only `"5Q"` decodes to `255`, so each `Int` has exactly one valid wire string. This closes the silent-duplicate-ID footgun where `"5Q"`, `"15Q"`, `"115Q"`, … all aliased to the same `Int`. The other `decode_int_*` codecs still accept leading zero characters leniently (`decode_int_base36("0042")` and `decode_int_base36("42")` both return `42`); applying the same canonical-form check to them is tracked separately. Negative inputs to `encode_int_*` are rejected with `Error(NegativeValue(value))` — the integer codecs only define a canonical representation for non-negative values, so silently dropping the sign would break the `decode(encode(n)) == n` round-trip for `n < 0`. Map negatives to a sign-preserving wire format (e.g. zigzag) or to a domain-specific error at the boundary.
+`decode_int_base58` accepts only the canonical form: `"5Q"` decodes to `255`, and `decode_int_base58("15Q")` returns `Error(NonCanonical)`, so one `Int` has one string. The other `decode_int_*` codecs still accept leading zeros (`decode_int_base36("0042")` and `decode_int_base36("42")` both return `42`). `encode_int_*` rejects negative numbers with `Error(NegativeValue(value))`; map them to something like zigzag first.
 
-`decode_int_*` accepts inputs of any length, so the decoded `Int` is an unbounded Erlang bignum. If the value flows into a fixed-width sink (SQLite `INTEGER`, Postgres `bigserial`, MySQL `BIGINT`, or a JS `number`), use the matching `decode_int_*_bounded(input:, max:)` to get `Error(Overflow)` instead of a downstream crash. Common caps are exported as `intid.int64_max` (signed 64-bit, `2^63 - 1`) and `intid.int53_max` (`Number.MAX_SAFE_INTEGER`).
+`decode_int_*` can return an `Int` of any size. Before storing it in a fixed-width column (SQLite `INTEGER`, Postgres `bigserial`, MySQL `BIGINT`) or a JS `number`, use `decode_int_*_bounded(input:, max:)`, which returns `Error(Overflow)` past `max`. `intid.int64_max` (`2^63 - 1`) and `intid.int53_max` (`Number.MAX_SAFE_INTEGER`) are provided.
 
 ```gleam
 import yabase/intid
@@ -188,8 +151,7 @@ Big-integer encodings (Base8, Base10, Base36, Base58, Base62, Crockford Base32) 
 
 ### Checksum-bearing
 
-These encodings carry metadata (version bytes, checksums, HRP) and the metadata
-is part of the `Encoding` value:
+The version byte or HRP is part of the `Encoding` value:
 
 | Encoding | Module | `Encoding` constructor | Description |
 |----------|--------|-----------------------|-------------|
@@ -197,7 +159,7 @@ is part of the `Encoding` value:
 | Bech32 | `yabase/bech32` | `encoding.bech32(hrp)` | BIP 173: byte-payload encoding (HRP + 8-to-5 conversion + checksum), not SegWit address validation |
 | Bech32m | `yabase/bech32` | `encoding.bech32m(hrp)` | BIP 350: improved checksum constant, same byte-payload API |
 
-Both fit the unified `yabase.encode` / `yabase.decode` shape:
+They work with `yabase.encode` / `yabase.decode`:
 
 ```gleam
 import yabase
@@ -207,24 +169,17 @@ let assert Ok(_encoded) =
   yabase.encode(encoding.bech32("bc"), <<0xDE, 0xAD, 0xBE, 0xEF>>)
 ```
 
-`yabase.decode` rejects any wire whose embedded checksum-bearing
-metadata (Base58Check version, Bech32 HRP / variant) does not match
-what the caller declared on the `Encoding` value. The low-level
-modules (`yabase/base58check.decode`, `yabase/bech32.decode`) remain
-available when the caller needs to inspect the embedded metadata
-directly.
+`yabase.decode` rejects input whose Base58Check version or Bech32 HRP and
+variant differ from the `Encoding` value. To read that metadata from the
+input instead, use `yabase/base58check.decode` or `yabase/bech32.decode`.
 
 ## API layers
 
-yabase provides three API layers:
-
-- **Start with `yabase/facade`** -- one function per encoding, no type parameters. Covers most use cases.
-- **Use the unified API (`yabase`)** when you need to select an encoding at runtime (e.g. user config, multibase auto-detection).
-- **Use low-level modules** (`yabase/base64/standard`, etc.) when you need full control over a specific codec.
+Start with `yabase/facade` (shown in the quick start). Use `yabase` with an
+`Encoding` value when the encoding is chosen at runtime, and the low-level
+modules such as `yabase/base64/standard` for one specific codec.
 
 ### 1. Low-level modules (direct usage)
-
-Each encoding is accessible directly:
 
 ```gleam
 import yabase/base64/standard
@@ -248,55 +203,28 @@ let assert Ok(_decoded) =
   yabase.decode(encoding.base32_clockwork(), encoded)
 ```
 
-### 3. Facade (developer-friendly shortcuts)
+## Return types of `encode`
 
-```gleam
-import yabase/facade
-
-let encoded = facade.encode_base64(<<"Hello":utf8>>)
-let assert Ok(_decoded) = facade.decode_base64(encoded)
-```
-
-## Codec ergonomics: `encode` return-type asymmetry
-
-The per-module `encode` family is **not uniform**:
+Most per-module `encode` functions return `String`; four return `Result`:
 
 | Codec | `encode` signature |
 | --- | --- |
 | `base2`, `base8`, `base10`, `base16`, `base32/{rfc4648, hex, crockford, clockwork, zbase32}`, `base36`, `base45`, `base62`, `base64/{standard, urlsafe, nopadding, urlsafe_nopadding, dq}`, `base91`, `base58/{bitcoin, flickr}`, `ascii85`, `adobe_ascii85` | `fn(BitArray) -> String` |
-| **`z85`, `rfc1924_base85`** | **`fn(BitArray) -> Result(String, CodecError)`** |
-| **`base58check`** | **`fn(Int, BitArray) -> Result(String, CodecError)`** |
-| **`bech32`** | **`fn(String, BitArray, Bech32Variant) -> Result(String, CodecError)`** |
+| `z85`, `rfc1924_base85` | `fn(BitArray) -> Result(String, CodecError)` |
+| `base58check` | `fn(Int, BitArray) -> Result(String, CodecError)` |
+| `bech32` | `fn(String, BitArray, Bech32Variant) -> Result(String, CodecError)` |
 
-The four `Result`-returning codecs have genuine encode-time
-preconditions:
+`z85` and `rfc1924_base85` need a length that is a multiple of 4 bytes,
+`base58check` needs a version in `0..=255`, and `bech32` validates the HRP
+and variant. These four return an error for input that is not a whole
+number of bytes; every other codec panics on it through
+`yabase/core/guard.assert_byte_aligned` (see #64).
 
-- `z85` / `rfc1924_base85` require the input length to be a
-  multiple of 4 bytes
-- `base58check` requires the version byte to be in `0..=255`
-- `bech32` validates the human-readable part (HRP) and the
-  variant
-- All four also reject sub-byte input via the same
-  precondition path used for the constraint above.
-
-Every other codec rejects sub-byte input (`bit_array.bit_size %
-8 != 0`) by panicking via
-`yabase/core/guard.assert_byte_aligned` (see #64) — a
-programmer-error path, not a runtime-input path. With that,
-sub-byte input is uniformly rejected across the codec family;
-only the *shape* of the rejection differs.
-
-If you need a uniform `Result(String, _)` shape across every
-codec — e.g. for property-test tooling like
-[`metamon`](https://github.com/nao1215/metamon)'s
-`forall_round_trip` — use the **unified API**
-(`yabase.encode`) at the top of this README. It always returns
-`Result(String, CodecError)` and absorbs the per-module
-asymmetry behind a single `Encoding` ADT dispatch.
+For one `Result(String, CodecError)` shape across all codecs, for example
+in [`metamon`](https://github.com/nao1215/metamon)'s `forall_round_trip`,
+use `yabase.encode`.
 
 ### Multibase support
-
-Prefix-based encoding and auto-detection:
 
 ```gleam
 import yabase
@@ -318,10 +246,8 @@ let _data = encoding.decoded_data(d)
 
 ### Selecting codecs by target
 
-`yabase/core/encoding` exposes machine-readable target capability
-helpers so callers that pick an encoding at runtime — multibase
-auto-detection, user-configurable codec choice, or any list-of-options
-UI — can branch on JavaScript safety without scraping the README.
+When the encoding is chosen at runtime, `encoding.supports_target` tells
+you whether it is safe on JavaScript.
 
 ```gleam
 import yabase/core/encoding.{type Decoded}
@@ -348,25 +274,16 @@ pub fn safe_decode_for_javascript(
 }
 ```
 
-On the BEAM target every encoding is supported, so
-`encoding.supports_target(_, encoding.target_erlang())` is always
-`True`. The boolean only narrows on `target_javascript()`. The
-matching `encoding.is_javascript_safe/1` is the same check as a
-direct `Bool` if you do not need a `Target` value.
-
-For `intid` callers who decode an `Int` rather than a `BitArray`,
-use `intid.decode_int_*_bounded(..., max: intid.int53_max)` when the
-value is going to flow into a JavaScript `number`. The unbounded
-decoders return Erlang bignums, which silently lose precision once
-serialized for a JavaScript consumer.
+`encoding.supports_target(_, encoding.target_erlang())` is always `True`.
+`encoding.is_javascript_safe/1` is the same check without a `Target` value.
+For `intid`, decode with `intid.decode_int_*_bounded(..., max: intid.int53_max)`
+when the value goes to a JavaScript `number`.
 
 ### Multibase prefix coverage
 
-yabase supports the following [multibase](https://github.com/multiformats/multibase) prefixes.
-"encode + decode" means `encode_multibase` emits this prefix and `decode_multibase` recognizes it.
-"decode only" means `decode_multibase` recognizes the prefix but `encode_multibase` uses the canonical form named in parentheses.
+[Multibase](https://github.com/multiformats/multibase) prefixes. "decode only" prefixes are accepted by `decode_multibase`, while `encode_multibase` emits the prefix in parentheses.
 
-The table below is generated from `yabase/core/encoding`. To regenerate it, run `just gen-readme` and replace the fenced block. CI fails if the README drifts from the source-of-truth functions (`multibase_prefix`, `from_multibase_prefix`, `multibase_name`).
+The table comes from `yabase/core/encoding`; regenerate it with `just gen-readme`. CI fails if it differs from `multibase_prefix`, `from_multibase_prefix`, and `multibase_name`.
 
 <!-- BEGIN: multibase-prefix-table -->
 
@@ -402,7 +319,7 @@ The `c` and `t` decoder lanes also accept unpadded input (`b` / `B`, `v` / `V`);
 
 ### Bech32 / Bech32m (BIP 173, BIP 350)
 
-Byte-payload convenience API. Takes raw bytes, handles 8-to-5-bit conversion internally, and produces the checksummed Bech32 string. Does not validate SegWit address semantics (witness version, program length):
+Takes raw bytes and does the 8-to-5-bit conversion and checksum. It does not validate SegWit addresses (witness version, program length).
 
 ```gleam
 import yabase/bech32
@@ -461,7 +378,7 @@ let assert Ok(_decoded) = base58check.decode(encoded)
 
 ## Error handling
 
-Encode and decode functions that can fail return `Result(_, CodecError)`. The concrete return types vary by API:
+Functions that can fail return `Result(_, CodecError)`:
 
 | Function | Return type |
 |----------|-------------|
@@ -476,7 +393,7 @@ Encode and decode functions that can fail return `Result(_, CodecError)`. The co
 | `base58check.encode` | `Result(String, CodecError)` |
 | `base58check.decode` | `Result(Base58CheckDecoded, CodecError)` |
 
-The `CodecError` type provides specific error information:
+`CodecError` variants:
 
 | Variant | Returned from | Meaning |
 |---------|---------------|---------|
@@ -490,7 +407,7 @@ The `CodecError` type provides specific error information:
 
 ## Examples
 
-The [`examples/`](examples/) directory contains runnable use-case examples:
+Runnable programs in [`examples/`](examples/):
 
 | File | Use case |
 |------|----------|
@@ -500,27 +417,9 @@ The [`examples/`](examples/) directory contains runnable use-case examples:
 | `bitcoin_bech32.gleam` | Bech32/Bech32m address framing (BIP 173 / BIP 350) |
 | `multibase_auto_detect.gleam` | Prefix-based encoding auto-detection for content-addressed systems |
 
-## Notes for production code
-
-The Quick start uses `let assert Ok(_decoded)` because that keeps the
-README snippet readable. Real applications should propagate the error
-instead.
-
-**Why not `let assert` on encode?** yabase's own `gleam.toml`
-enables glinter's `assert_ok_pattern = "error"` rule, so the
-recommended shape in production code is to avoid `let assert
-Ok(_)` for cases that cannot meaningfully fail. The facade
-returns plain `String` for infallible encodings and only the
-decode side is `Result`-shaped — there `let assert` is fine in a
-README snippet but real code should propagate the error. If you
-need to pick an encoding at runtime, see the unified API in
-[API layers](#api-layers); `yabase.encode` is `Result`-shaped
-for every variant because the `Encoding` ADT erases per-variant
-error possibilities.
-
 ## Development
 
-This project uses [mise](https://mise.jdx.dev/) to manage Gleam and Erlang versions, and [just](https://just.systems/) as a task runner.
+[mise](https://mise.jdx.dev/) installs Gleam and Erlang, and [just](https://just.systems/) runs the tasks.
 
 ```sh
 mise install    # install Gleam and Erlang
@@ -533,7 +432,7 @@ just check      # all checks without deps download
 
 ## Contributing
 
-Contributions are welcome. See [CONTRIBUTING.md](https://github.com/nao1215/yabase/blob/main/CONTRIBUTING.md) for details.
+See [CONTRIBUTING.md](https://github.com/nao1215/yabase/blob/main/CONTRIBUTING.md) for details.
 
 ## Testing
 
