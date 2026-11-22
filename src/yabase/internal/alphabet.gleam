@@ -179,9 +179,27 @@ pub fn to_string(symbols: List(Int)) -> String {
 
 /// Join chunks of symbol bytes into a string. The chunks hold only
 /// alphabet symbols, which are ASCII.
-fn chunks_to_string(chunks: List(BitArray)) -> String {
+pub fn chunks_to_string(chunks: List(BitArray)) -> String {
   case bit_array.to_string(bit_array.concat(chunks)) {
     Ok(text) -> text
     Error(Nil) -> ""
+  }
+}
+
+/// Characters (graphemes) in `input`, whose bytes are `bytes`. ASCII
+/// without CR has one character per byte, so only other input needs the
+/// slower `string.length`.
+pub fn character_count(input: String, bytes: BitArray) -> Int {
+  case plain_ascii(bytes) {
+    True -> bit_array.byte_size(bytes)
+    False -> string.length(input)
+  }
+}
+
+fn plain_ascii(bytes: BitArray) -> Bool {
+  case bytes {
+    <<byte, rest:bytes>> if byte < 128 && byte != 13 -> plain_ascii(rest)
+    <<_, _:bytes>> -> False
+    _ -> True
   }
 }

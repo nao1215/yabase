@@ -57,3 +57,15 @@ pub fn base64_family_round_trips_100_kb_test() -> Nil {
     100_000,
   )
 }
+
+pub fn base85_family_round_trips_100_kb_test() -> Nil {
+  round_trips(
+    [
+      encoding.base85_btoa(),
+      encoding.base85_adobe(),
+      encoding.base85_z85(),
+      encoding.base85_rfc1924(),
+    ],
+    100_000,
+  )
+}

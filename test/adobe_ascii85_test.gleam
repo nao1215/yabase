@@ -121,3 +121,9 @@ pub fn decode_reports_the_position_after_whitespace_inside_a_group_test() -> Nil
   assert adobe_ascii85.decode("<~87cURD ]i,\"Eb\u{7F}o80~>")
     == Error(InvalidCharacter("\u{7F}", 15))
 }
+
+pub fn decode_skips_crlf_like_btoa_test() -> Nil {
+  // CR LF used to arrive as one "\r\n" grapheme that the Adobe decoder did
+  // not list as whitespace, so wrapped PDF streams were rejected.
+  assert adobe_ascii85.decode("<~9jqo^\r\nBl~>") == Ok(<<"Man i":utf8>>)
+}
