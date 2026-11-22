@@ -39,7 +39,9 @@ const bech32m_const = 0x2bc830a3
 ///   `Error(InvalidHrp("HRP must be lowercase"))` rather than silently
 ///   normalized, so the input is never quietly mutated. Lowercase the
 ///   value at the call site if you started from a mixed-case identifier.
-/// data: raw bytes (8-to-5 bit conversion is done internally).
+/// data: raw bytes (8-to-5 bit conversion is done internally). Input that
+///   is not a whole number of bytes is rejected with
+///   `Error(InvalidLength(bit_size))`.
 pub fn encode(
   variant: Bech32Variant,
   hrp: String,
@@ -133,6 +135,10 @@ fn encode_variant(
           case validate_hrp(hrp, 0) {
             Error(e) -> Error(e)
             Ok(Nil) -> {
+              use <- bool.guard(
+                when: bit_array.bit_size(data) % 8 != 0,
+                return: Error(InvalidLength(bit_array.bit_size(data))),
+              )
               let data_values = bytes_to_5bit_groups(data)
               let checksum_const = case variant {
                 Bech32V -> bech32_const

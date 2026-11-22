@@ -2,6 +2,7 @@
 /// Alphabet: 0-9, a-z, A-Z, ., -, :, +, =, ^, !, /, *, ?, &, <, >, (, ), [, ], {, }, @, %, $, #
 /// Input length for encode MUST be a multiple of 4.
 import gleam/bit_array
+import gleam/bool
 import gleam/list
 import gleam/string
 import yabase/core/error.{
@@ -12,8 +13,12 @@ const alphabet =
   "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.-:+=^!/*?&<>()[]{}@%$#"
 
 /// Encode a BitArray to Z85.
-/// Returns Error(InvalidLength) if input length is not a multiple of 4.
+/// Returns Error(InvalidLength(byte length)) if the input length is not a
+/// multiple of 4, and Error(InvalidLength(bit size)) if it is not a whole
+/// number of bytes.
 pub fn encode(data: BitArray) -> Result(String, CodecError) {
+  let bits = bit_array.bit_size(data)
+  use <- bool.guard(when: bits % 8 != 0, return: Error(InvalidLength(bits)))
   let len = bit_array.byte_size(data)
   case len % 4 {
     0 ->

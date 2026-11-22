@@ -3,6 +3,7 @@
 /// Encodes 16 bytes (128 bits) into 20 characters.
 /// Can also encode arbitrary data in 4-byte groups like Z85.
 import gleam/bit_array
+import gleam/bool
 import gleam/string
 import yabase/core/error.{
   type CodecError, InvalidCharacter, InvalidLength, Overflow,
@@ -15,8 +16,12 @@ const alphabet =
 const max_u32 = 4_294_967_295
 
 /// Encode a BitArray to RFC 1924 Base85.
-/// Input length must be a multiple of 4 bytes.
+/// Input length must be a multiple of 4 bytes; otherwise the result is
+/// Error(InvalidLength(byte length)), or Error(InvalidLength(bit size))
+/// when the input is not a whole number of bytes.
 pub fn encode(data: BitArray) -> Result(String, CodecError) {
+  let bits = bit_array.bit_size(data)
+  use <- bool.guard(when: bits % 8 != 0, return: Error(InvalidLength(bits)))
   let len = bit_array.byte_size(data)
   case len % 4 {
     0 ->

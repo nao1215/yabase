@@ -15,9 +15,12 @@ import yabase/internal/sha256
 const symbols = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 
 /// Encode a version byte (0..255) and payload to Base58Check.
-/// Returns Error(Overflow) if version is outside 0..255.
+/// Returns Error(Overflow) if version is outside 0..255, and
+/// Error(InvalidLength(bits)) if the payload is not a whole number of bytes.
 pub fn encode(version: Int, payload: BitArray) -> Result(String, CodecError) {
   use <- bool.guard(when: version < 0 || version > 255, return: Error(Overflow))
+  let bits = bit_array.bit_size(payload)
+  use <- bool.guard(when: bits % 8 != 0, return: Error(InvalidLength(bits)))
   let versioned = bit_array.append(<<version:int>>, payload)
   let checksum = compute_checksum(versioned)
   let full = bit_array.append(versioned, checksum)
