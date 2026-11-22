@@ -2,13 +2,16 @@
 /// Alphabet: 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:
 import gleam/bit_array
 import gleam/list
-import gleam/string
-import yabase/core/error.{
-  type CodecError, InvalidCharacter, InvalidLength, Overflow,
-}
+import yabase/core/error.{type CodecError, InvalidLength, Overflow}
 import yabase/core/guard
+import yabase/internal/alphabet.{type Alphabet}
 
-const alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:"
+fn base45() -> Alphabet {
+  alphabet.new(
+    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:",
+    alphabet.CaseSensitive,
+  )
+}
 
 /// Encode a BitArray to Base45.
 ///
@@ -16,132 +19,89 @@ const alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:"
 /// `yabase/core/guard.assert_byte_aligned`.
 pub fn encode(data: BitArray) -> String {
   guard.assert_byte_aligned(data)
-  encode_pairs(data, [])
-  |> list.reverse
-  |> string.join("")
+  encode_loop(data, base45(), [])
 }
 
-fn encode_pairs(data: BitArray, acc: List(String)) -> List(String) {
+fn encode_loop(data: BitArray, alphabet: Alphabet, acc: List(Int)) -> String {
   case data {
-    <<a:8, b:8, rest:bits>> -> {
-      let value = a * 256 + b
-      let first_digit = value % 45
-      let second_digit = { value / 45 } % 45
-      let third_digit = value / 45 / 45
-      encode_pairs(rest, [
-        string_char_at(alphabet, third_digit),
-        string_char_at(alphabet, second_digit),
-        string_char_at(alphabet, first_digit),
+    <<value:16, rest:bytes>> ->
+      encode_loop(rest, alphabet, [
+        alphabet.symbol(alphabet, value / 2025),
+        alphabet.symbol(alphabet, value / 45 % 45),
+        alphabet.symbol(alphabet, value % 45),
         ..acc
       ])
-    }
-    <<a:8>> -> {
-      let first_digit = a % 45
-      let second_digit = a / 45
+    <<value>> ->
       [
-        string_char_at(alphabet, second_digit),
-        string_char_at(alphabet, first_digit),
+        alphabet.symbol(alphabet, value / 45),
+        alphabet.symbol(alphabet, value % 45),
         ..acc
       ]
-    }
-    _ -> acc
+      |> list.reverse
+      |> alphabet.to_string
+    _ -> alphabet.to_string(list.reverse(acc))
   }
 }
 
 /// Decode a Base45 string to a BitArray.
 pub fn decode(input: String) -> Result(BitArray, CodecError) {
-  let len = string.length(input)
-  case len % 3 {
-    1 -> Error(InvalidLength(len))
-    _ -> decode_groups(input, <<>>, 0)
+  let bytes = bit_array.from_string(input)
+  let length = alphabet.character_count(input, bytes)
+  case length % 3 {
+    1 -> Error(InvalidLength(length))
+    _ -> decode_loop(bytes, bytes, base45(), 0, [])
   }
 }
 
-fn decode_groups(
-  input: String,
-  acc: BitArray,
-  pos: Int,
+fn decode_loop(
+  input: BitArray,
+  rest: BitArray,
+  alphabet: Alphabet,
+  offset: Int,
+  acc: List(BitArray),
 ) -> Result(BitArray, CodecError) {
-  case take_chars(input, 3) {
-    #(Error(Nil), _) -> Ok(acc)
-    #(Ok([c, d, e]), rest) ->
-      case char_value(c), char_value(d), char_value(e) {
-        Ok(vc), Ok(vd), Ok(ve) -> {
-          let value = vc + vd * 45 + ve * 45 * 45
-          case value > 65_535 {
-            True -> Error(Overflow)
-            False -> {
-              let high = value / 256
-              let low = value % 256
-              decode_groups(
-                rest,
-                bit_array.append(acc, <<high:int, low:int>>),
-                pos + 3,
-              )
-            }
-          }
-        }
-        Error(Nil), _, _ -> Error(InvalidCharacter(c, pos))
-        _, Error(Nil), _ -> Error(InvalidCharacter(d, pos + 1))
-        _, _, Error(Nil) -> Error(InvalidCharacter(e, pos + 2))
+  case rest {
+    <<c, d, e, rest:bytes>> ->
+      case digits([c, d, e], alphabet, offset, 0, 1) {
+        Ok(value) if value > 65_535 -> Error(Overflow)
+        Ok(value) ->
+          decode_loop(input, rest, alphabet, offset + 3, [<<value:16>>, ..acc])
+        Error(bad) ->
+          Error(alphabet.invalid_character(alphabet, input, bad, bad))
       }
-    #(Ok([c, d]), _rest) ->
-      case char_value(c), char_value(d) {
-        Ok(vc), Ok(vd) -> {
-          let value = vc + vd * 45
-          case value > 255 {
-            True -> Error(Overflow)
-            False -> Ok(bit_array.append(acc, <<value:int>>))
-          }
-        }
-        Error(Nil), _ -> Error(InvalidCharacter(c, pos))
-        _, Error(Nil) -> Error(InvalidCharacter(d, pos + 1))
+    <<c, d>> ->
+      case digits([c, d], alphabet, offset, 0, 1) {
+        Ok(value) if value > 255 -> Error(Overflow)
+        Ok(value) -> Ok(bit_array.concat(list.reverse([<<value>>, ..acc])))
+        Error(bad) ->
+          Error(alphabet.invalid_character(alphabet, input, bad, bad))
       }
-    _ -> Ok(acc)
+    _ -> Ok(bit_array.concat(list.reverse(acc)))
   }
 }
 
-fn take_chars(input: String, n: Int) -> #(Result(List(String), Nil), String) {
-  take_chars_acc(input, n, [])
-}
-
-fn take_chars_acc(
-  input: String,
-  n: Int,
-  acc: List(String),
-) -> #(Result(List(String), Nil), String) {
-  case n {
-    0 -> #(Ok(list.reverse(acc)), input)
-    _ ->
-      case string.pop_grapheme(input) {
-        Error(Nil) ->
-          case acc {
-            [] -> #(Error(Nil), "")
-            _ -> #(Ok(list.reverse(acc)), "")
-          }
-        Ok(#(c, rest)) -> take_chars_acc(rest, n - 1, [c, ..acc])
+/// The value of base-45 digits written least significant first, or the
+/// offset of the first byte that is not a symbol.
+fn digits(
+  group: List(Int),
+  alphabet: Alphabet,
+  offset: Int,
+  value: Int,
+  weight: Int,
+) -> Result(Int, Int) {
+  case group {
+    [] -> Ok(value)
+    [byte, ..rest] ->
+      case alphabet.lookup(alphabet, byte) {
+        alphabet.Value(digit) ->
+          digits(
+            rest,
+            alphabet,
+            offset + 1,
+            value + digit * weight,
+            weight * 45,
+          )
+        alphabet.Ignored | alphabet.Invalid -> Error(offset)
       }
-  }
-}
-
-fn char_value(c: String) -> Result(Int, Nil) {
-  find_index(alphabet, c, 0)
-}
-
-fn find_index(haystack: String, needle: String, idx: Int) -> Result(Int, Nil) {
-  case string.pop_grapheme(haystack) {
-    Error(Nil) -> Error(Nil)
-    Ok(#(c, rest)) ->
-      case c == needle {
-        True -> Ok(idx)
-        False -> find_index(rest, needle, idx + 1)
-      }
-  }
-}
-
-fn string_char_at(s: String, index: Int) -> String {
-  case string.drop_start(s, index) |> string.pop_grapheme {
-    Ok(#(c, _)) -> c
-    Error(Nil) -> ""
   }
 }

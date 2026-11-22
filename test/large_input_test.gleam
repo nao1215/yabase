@@ -69,3 +69,10 @@ pub fn base85_family_round_trips_100_kb_test() -> Nil {
     100_000,
   )
 }
+
+pub fn other_codecs_round_trip_100_kb_test() -> Nil {
+  round_trips(
+    [encoding.base45(), encoding.base91(), encoding.base64_dq()],
+    100_000,
+  )
+}

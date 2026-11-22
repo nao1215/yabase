@@ -65,7 +65,7 @@ pub fn decode(input: String) -> Result(BitArray, CodecError) {
     Ok(Nil) -> {
       let len = list.length(graphemes)
       case len % 4 {
-        0 -> decode_graphemes(graphemes, <<>>, 0)
+        0 -> decode_graphemes(graphemes, [], 0)
         _ -> Error(InvalidLength(len))
       }
     }
@@ -96,11 +96,11 @@ fn is_alphabet(c: String) -> Bool {
 
 fn decode_graphemes(
   chars: List(String),
-  acc: BitArray,
+  acc: List(BitArray),
   pos: Int,
 ) -> Result(BitArray, CodecError) {
   case chars {
-    [] -> Ok(acc)
+    [] -> Ok(finish(acc))
     [c1, c2, c3, c4, ..rest] ->
       case c3 == dq_pad && c4 == dq_pad {
         True ->
@@ -108,7 +108,7 @@ fn decode_graphemes(
             [] ->
               case dq_value_of(c1), dq_value_of(c2) {
                 Ok(v1), Ok(v2) ->
-                  Ok(bit_array.append(acc, <<{ v1 * 4 + v2 / 16 }:int>>))
+                  Ok(finish([<<{ v1 * 4 + v2 / 16 }:int>>, ..acc]))
                 Error(_), _ -> Error(InvalidCharacter(c1, pos))
                 _, Error(_) -> Error(InvalidCharacter(c2, pos + 1))
               }
@@ -123,7 +123,7 @@ fn decode_graphemes(
                     Ok(v1), Ok(v2), Ok(v3) -> {
                       let b1 = v1 * 4 + v2 / 16
                       let b2 = { v2 % 16 } * 16 + v3 / 4
-                      Ok(bit_array.append(acc, <<b1:int, b2:int>>))
+                      Ok(finish([<<b1:int, b2:int>>, ..acc]))
                     }
                     Error(_), _, _ -> Error(InvalidCharacter(c1, pos))
                     _, Error(_), _ -> Error(InvalidCharacter(c2, pos + 1))
@@ -144,7 +144,7 @@ fn decode_graphemes(
                   let b3 = { v3 % 4 } * 64 + v4
                   decode_graphemes(
                     rest,
-                    bit_array.append(acc, <<b1:int, b2:int, b3:int>>),
+                    [<<b1:int, b2:int, b3:int>>, ..acc],
                     pos + 4,
                   )
                 }
@@ -157,6 +157,10 @@ fn decode_graphemes(
       }
     remaining -> Error(InvalidLength(pos + list.length(remaining)))
   }
+}
+
+fn finish(chunks: List(BitArray)) -> BitArray {
+  bit_array.concat(list.reverse(chunks))
 }
 
 fn dq_char_at(index: Int) -> String {
