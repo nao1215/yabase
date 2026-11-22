@@ -2,12 +2,14 @@
 //// input went through string.uppercase / string.lowercase, so U+0131
 //// (dotless i) passed as "I" and U+212A (Kelvin sign) passed as "k".
 
+import gleam/string
 import yabase/base32/clockwork
 import yabase/base32/crockford
 import yabase/base32/hex
 import yabase/base32/rfc4648
 import yabase/base32/zbase32
 import yabase/base36
+import yabase/bech32
 import yabase/core/error.{InvalidCharacter}
 
 pub fn rfc4648_rejects_dotless_i_test() -> Nil {
@@ -39,4 +41,12 @@ pub fn ascii_letters_still_fold_test() -> Nil {
   assert rfc4648.decode("mzxw6ytboi======") == Ok(<<"foobar":utf8>>)
   assert zbase32.decode("YK") == zbase32.decode("yk")
   assert base36.decode("K") == Ok(<<20>>)
+}
+
+pub fn bech32_rejects_kelvin_sign_before_case_folding_test() -> Nil {
+  let assert Ok(encoded) = bech32.encode_default("k", <<1, 2, 3>>)
+  let invalid = "\u{212A}" <> string.uppercase(string.drop_start(encoded, 1))
+  assert bech32.decode(invalid) == Error(InvalidCharacter("\u{212A}", 0))
+  let assert Ok(_) = bech32.decode(string.uppercase(encoded))
+  Nil
 }
