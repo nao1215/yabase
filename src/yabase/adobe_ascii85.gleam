@@ -1,5 +1,5 @@
 /// Adobe Ascii85 encoding (used in PDF/PostScript).
-/// Same encoding as btoa Ascii85 but wrapped in <~ ~> delimiters.
+/// Uses <~ ~> delimiters and does not support btoa's 'y' space shortcut.
 /// All-zero 4-byte groups encode as 'z'.
 import gleam/bool
 import gleam/string

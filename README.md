@@ -74,12 +74,10 @@ let _strict = facade.decode_base64_strict("TR==")
 // -> Error(NonCanonical)
 ```
 
-Facade pairs: `decode_base32` / `decode_base32_strict` (RFC 4648 §6 + §3.5)
-and `decode_base64` / `decode_base64_strict` (RFC 4648 §4 + §3.5). The
-URL-safe and no-padding strict forms live in the low-level modules
-(`yabase/base64/urlsafe.decode_strict`, `yabase/base32/hex.decode_strict`,
-etc.). `_nopadding` decoders require pad-free input but still accept
-non-canonical trailing bits, so pair them with `_strict` when you need both.
+Strict decoders are available as `yabase/base16.decode_strict`,
+`yabase/base32/rfc4648.decode_strict` and `yabase/base64/standard.decode_strict`.
+The facade exposes `decode_base32_strict` and `decode_base64_strict`.
+The URL-safe, no-padding and Base32 Hex modules have no strict decoder.
 
 ## Integer IDs
 
@@ -99,9 +97,9 @@ pub fn main() {
 
 Available: `encode_int_base32_rfc4648`, `encode_int_base32_crockford`, `encode_int_base36`, `encode_int_base58`, `encode_int_base58_flickr`, `encode_int_base62` and their matching `decode_int_*`. All `encode_int_*` functions return `Result(String, CodecError)` and all `decode_int_*` functions return `Result(Int, CodecError)`.
 
-`decode_int_base58` accepts only the canonical form: `"5Q"` decodes to `255`, and `decode_int_base58("15Q")` returns `Error(NonCanonical)`, so one `Int` has one string. The other `decode_int_*` codecs still accept leading zeros (`decode_int_base36("0042")` and `decode_int_base36("42")` both return `42`). `encode_int_*` rejects negative numbers with `Error(NegativeValue(value))`; map them to something like zigzag first.
+`decode_int_*` accepts canonical text and rejects extra leading zeros, alternate letter case and Crockford aliases with `Error(NonCanonical)`. Base16 accepts both its byte-aligned and compact encoder outputs; Base58Check requires a minimal non-empty payload. `encode_int_*` rejects negative numbers with `Error(NegativeValue(value))`; map them to something like zigzag first.
 
-`decode_int_*` can return an `Int` of any size. Before storing it in a fixed-width column (SQLite `INTEGER`, Postgres `bigserial`, MySQL `BIGINT`) or a JS `number`, use `decode_int_*_bounded(input:, max:)`, which returns `Error(Overflow)` past `max`. `intid.int64_max` (`2^63 - 1`) and `intid.int53_max` (`Number.MAX_SAFE_INTEGER`) are provided.
+On Erlang, `decode_int_*` can return an `Int` of any size. On JavaScript, integer encoders and decoders return `Error(Overflow)` above `Number.MAX_SAFE_INTEGER`. Before storing an ID in a fixed-width column, use `decode_int_*_bounded(input:, max:)`. `intid.int64_max` is `2^63 - 1` on Erlang and `2^53 - 1` on JavaScript; `intid.int53_max` is `2^53 - 1` on both.
 
 ```gleam
 import yabase/intid

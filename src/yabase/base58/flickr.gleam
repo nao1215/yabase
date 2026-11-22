@@ -1,6 +1,6 @@
 /// Base58 encoding (Flickr alphabet).
 /// Alphabet: 123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ
-/// Same as Bitcoin but with swapped upper/lower case.
+/// The lowercase letters precede the uppercase letters.
 import yabase/core/error.{type CodecError}
 import yabase/core/guard
 import yabase/internal/alphabet

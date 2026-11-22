@@ -1,7 +1,6 @@
-/// RFC 1924 Base85 encoding.
-/// Uses a specific 85-character alphabet designed for IPv6 addresses.
-/// Encodes 16 bytes (128 bits) into 20 characters.
-/// Can also encode arbitrary data in 4-byte groups like Z85.
+/// Base85 using the RFC 1924 alphabet in 4-byte groups, compatible with
+/// git and Python b85 for whole groups. This is not RFC 1924's single
+/// 128-bit IPv6 number format.
 import gleam/bit_array
 import gleam/bool
 import yabase/core/error.{type CodecError, InvalidLength}
