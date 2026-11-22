@@ -8,7 +8,6 @@ pub fn bitcoin_encode_empty_test() -> Nil {
   assert bitcoin.encode(<<>>) == ""
 }
 
-@target(erlang)
 pub fn bitcoin_encode_hello_test() -> Nil {
   assert bitcoin.encode(<<"Hello World":utf8>>) == "JxF12TrwUP45BMd"
 }
@@ -21,7 +20,6 @@ pub fn bitcoin_decode_empty_test() -> Nil {
   assert bitcoin.decode("") == Ok(<<>>)
 }
 
-@target(erlang)
 pub fn bitcoin_decode_hello_test() -> Nil {
   assert bitcoin.decode("JxF12TrwUP45BMd") == Ok(<<"Hello World":utf8>>)
 }
@@ -46,7 +44,6 @@ pub fn bitcoin_decode_invalid_char_l_test() -> Nil {
   assert bitcoin.decode("l") == Error(InvalidCharacter("l", 0))
 }
 
-@target(erlang)
 pub fn bitcoin_roundtrip_test() -> Nil {
   let data = <<"Hello, World!":utf8>>
   assert bitcoin.decode(bitcoin.encode(data)) == Ok(data)
@@ -76,14 +73,12 @@ pub fn flickr_encode_empty_test() -> Nil {
   assert flickr.encode(<<>>) == ""
 }
 
-@target(erlang)
 pub fn flickr_encode_hello_test() -> Nil {
   let encoded = flickr.encode(<<"Hello World":utf8>>)
   // Flickr swaps upper/lowercase relative to Bitcoin
   assert encoded == "iXf12sRWto45bmC"
 }
 
-@target(erlang)
 pub fn flickr_decode_hello_test() -> Nil {
   assert flickr.decode("iXf12sRWto45bmC") == Ok(<<"Hello World":utf8>>)
 }
@@ -92,7 +87,6 @@ pub fn flickr_decode_invalid_char_zero_test() -> Nil {
   assert flickr.decode("0") == Error(InvalidCharacter("0", 0))
 }
 
-@target(erlang)
 pub fn flickr_roundtrip_test() -> Nil {
   let data = <<"Hello, World!":utf8>>
   assert flickr.decode(flickr.encode(data)) == Ok(data)
@@ -132,13 +126,11 @@ pub fn bitcoin_flickr_same_data_test() -> Nil {
 
 // === Cross-reference vectors (paulmillr/scure-base) ===
 
-@target(erlang)
 pub fn scure_hello_world_test() -> Nil {
   assert bitcoin.encode(<<"hello world":utf8>>) == "StV1DL6CwTryKyV"
   assert bitcoin.decode("StV1DL6CwTryKyV") == Ok(<<"hello world":utf8>>)
 }
 
-@target(erlang)
 pub fn scure_hello_world_excl_test() -> Nil {
   assert bitcoin.encode(<<"Hello World!":utf8>>) == "2NEpo7TZRRrLZSi2U"
   assert bitcoin.decode("2NEpo7TZRRrLZSi2U") == Ok(<<"Hello World!":utf8>>)
@@ -149,7 +141,6 @@ pub fn scure_leading_zeros_test() -> Nil {
   assert bitcoin.decode("11233QC4") == Ok(<<0, 0, 0x28, 0x7f, 0xb4, 0xcd>>)
 }
 
-@target(erlang)
 pub fn scure_quick_brown_fox_test() -> Nil {
   let data = <<"The quick brown fox jumps over the lazy dog.":utf8>>
   assert bitcoin.encode(data)
@@ -161,7 +152,6 @@ pub fn scure_short_bytes_test() -> Nil {
   assert bitcoin.decode("ABnLTmg") == Ok(<<0x51, 0x6b, 0x6f, 0xcd, 0x0f>>)
 }
 
-@target(erlang)
 pub fn scure_leading_zeros_hello_test() -> Nil {
   assert bitcoin.encode(<<0, 0, "hello world":utf8>>) == "11StV1DL6CwTryKyV"
   assert bitcoin.decode("11StV1DL6CwTryKyV") == Ok(<<0, 0, "hello world":utf8>>)

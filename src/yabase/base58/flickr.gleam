@@ -3,9 +3,10 @@
 /// Same as Bitcoin but with swapped upper/lower case.
 import yabase/core/error.{type CodecError}
 import yabase/core/guard
+import yabase/internal/alphabet
 import yabase/internal/bignum
 
-const alphabet = "123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ"
+const symbols = "123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ"
 
 /// Encode a BitArray to Base58 (Flickr).
 ///
@@ -13,14 +14,10 @@ const alphabet = "123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ"
 /// `yabase/core/guard.assert_byte_aligned`.
 pub fn encode(data: BitArray) -> String {
   guard.assert_byte_aligned(data)
-  bignum.encode(data, 58, alphabet)
+  bignum.encode(data, alphabet.new(symbols, alphabet.CaseSensitive))
 }
 
 /// Decode a Base58 string (Flickr alphabet) to a BitArray.
 pub fn decode(input: String) -> Result(BitArray, CodecError) {
-  bignum.decode(input, 58, "1", char_value)
-}
-
-fn char_value(c: String) -> Result(Int, Nil) {
-  bignum.find_index(alphabet, c, 0)
+  bignum.decode(input, alphabet.new(symbols, alphabet.CaseSensitive))
 }

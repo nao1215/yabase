@@ -82,7 +82,6 @@ import yabase/core/error.{
   type CodecError as CoreCodecError, InvalidChecksum, InvalidLength,
   NegativeValue, NonCanonical, Overflow, UnsupportedForInt,
 }
-import yabase/internal/bignum
 
 /// Issue #74: every `decode_int_*` function in this module returns
 /// `Result(Int, CodecError)`. Without this re-export, callers who only
@@ -653,7 +652,14 @@ fn accumulate_bytes(num: Int, acc: BitArray) -> BitArray {
 }
 
 fn bytes_to_int(data: BitArray) -> Int {
-  bignum.bytes_to_int(data, 0)
+  bytes_to_int_loop(data, 0)
+}
+
+fn bytes_to_int_loop(data: BitArray, acc: Int) -> Int {
+  case data {
+    <<byte, rest:bytes>> -> bytes_to_int_loop(rest, acc * 256 + byte)
+    _ -> acc
+  }
 }
 
 // Drop every leading `"0"` character from `s`. If the entire string

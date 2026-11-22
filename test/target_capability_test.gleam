@@ -33,23 +33,18 @@ pub fn js_safe_base85_all_variants_test() -> Nil {
   assert encoding.is_javascript_safe(encoding.base85_z85()) == True
 }
 
-pub fn js_unsafe_bignum_codecs_test() -> Nil {
-  // Bignum-backed codecs lose precision past Number.MAX_SAFE_INTEGER
-  // on JavaScript.
-  assert encoding.is_javascript_safe(encoding.base8()) == False
-  assert encoding.is_javascript_safe(encoding.base10()) == False
-  assert encoding.is_javascript_safe(encoding.base36()) == False
-  assert encoding.is_javascript_safe(encoding.base62()) == False
-}
-
-pub fn js_unsafe_base32_crockford_variants_test() -> Nil {
-  assert encoding.is_javascript_safe(encoding.base32_crockford()) == False
-  assert encoding.is_javascript_safe(encoding.base32_crockford_check()) == False
-}
-
-pub fn js_unsafe_base58_variants_test() -> Nil {
-  assert encoding.is_javascript_safe(encoding.base58_bitcoin()) == False
-  assert encoding.is_javascript_safe(encoding.base58_flickr()) == False
+pub fn js_safe_radix_codecs_test() -> Nil {
+  // The radix codecs convert through limbs below 2^53, so they are
+  // correct on JavaScript too.
+  assert encoding.is_javascript_safe(encoding.base8()) == True
+  assert encoding.is_javascript_safe(encoding.base10()) == True
+  assert encoding.is_javascript_safe(encoding.base36()) == True
+  assert encoding.is_javascript_safe(encoding.base62()) == True
+  assert encoding.is_javascript_safe(encoding.base32_crockford()) == True
+  assert encoding.is_javascript_safe(encoding.base32_crockford_check()) == True
+  assert encoding.is_javascript_safe(encoding.base58_bitcoin()) == True
+  assert encoding.is_javascript_safe(encoding.base58_flickr()) == True
+  assert encoding.is_javascript_safe(encoding.base58_check(0)) == True
 }
 
 // === supports_target ===
@@ -74,17 +69,16 @@ pub fn supports_javascript_byte_oriented_test() -> Nil {
   assert encoding.supports_target(encoding.base91(), js) == True
 }
 
-pub fn supports_javascript_rejects_bignum_codecs_test() -> Nil {
+pub fn supports_javascript_radix_codecs_test() -> Nil {
   let js = encoding.target_javascript()
-  assert encoding.supports_target(encoding.base8(), js) == False
-  assert encoding.supports_target(encoding.base10(), js) == False
-  assert encoding.supports_target(encoding.base36(), js) == False
-  assert encoding.supports_target(encoding.base62(), js) == False
-  assert encoding.supports_target(encoding.base58_bitcoin(), js) == False
-  assert encoding.supports_target(encoding.base58_flickr(), js) == False
-  assert encoding.supports_target(encoding.base32_crockford(), js) == False
-  assert encoding.supports_target(encoding.base32_crockford_check(), js)
-    == False
+  assert encoding.supports_target(encoding.base8(), js) == True
+  assert encoding.supports_target(encoding.base10(), js) == True
+  assert encoding.supports_target(encoding.base36(), js) == True
+  assert encoding.supports_target(encoding.base62(), js) == True
+  assert encoding.supports_target(encoding.base58_bitcoin(), js) == True
+  assert encoding.supports_target(encoding.base58_flickr(), js) == True
+  assert encoding.supports_target(encoding.base32_crockford(), js) == True
+  assert encoding.supports_target(encoding.base32_crockford_check(), js) == True
 }
 
 // === supports_target / is_javascript_safe agreement ===

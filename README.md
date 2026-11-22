@@ -48,15 +48,11 @@ The README uses `let assert` to keep snippets short. In application code, propag
 
 ## Supported targets
 
-All encodings work on Erlang. The JavaScript target needs no FFI, but the
-codecs built on big-integer arithmetic (base32 Crockford, base58, base36,
-including their multibase forms) are limited by `Number.MAX_SAFE_INTEGER`
-and can return wrong output for inputs past 53 bits. base16, base64,
-base91, base32 RFC4648 and ascii85 are safe on JavaScript.
+All encodings give the same output on Erlang and JavaScript, for inputs of
+any size. The JavaScript target needs no FFI.
 
 CI runs `gleam test --target javascript` on Node 18 (the supported minimum;
-a failure blocks release) and on Node LTS (`lts/*`). Tests for the
-big-integer codecs are marked `@target(erlang)` and run only on BEAM. The
+a failure blocks release) and on Node LTS (`lts/*`). The
 release workflow runs the same matrix before `gleam publish`.
 
 ## Strictness
@@ -246,8 +242,8 @@ let _data = encoding.decoded_data(d)
 
 ### Selecting codecs by target
 
-When the encoding is chosen at runtime, `encoding.supports_target` tells
-you whether it is safe on JavaScript.
+`encoding.supports_target` now returns `True` for every encoding on both
+targets; code that branches on it keeps working.
 
 ```gleam
 import yabase/core/encoding.{type Decoded}
@@ -262,10 +258,6 @@ pub fn safe_decode_for_javascript(
       let enc = encoding.decoded_encoding(decoded)
       case encoding.supports_target(enc, js) {
         True -> Ok(decoded)
-        // Auto-detected codec (e.g. base58btc, base36) is bignum-backed
-        // and may produce wrong output past Number.MAX_SAFE_INTEGER on
-        // the JavaScript target — reject rather than return a silently
-        // corrupt payload.
         False -> Error(Nil)
       }
     }

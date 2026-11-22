@@ -86,7 +86,6 @@ pub fn registry_h_base32z_test() -> Nil {
   assert decoded == data
 }
 
-@target(erlang)
 pub fn registry_k_base36_test() -> Nil {
   let data = <<"yes mani !":utf8>>
   let assert Ok(encoded) = multibase.encode_with_prefix(encoding.base36(), data)
@@ -98,7 +97,6 @@ pub fn registry_k_base36_test() -> Nil {
   assert decoded == data
 }
 
-@target(erlang)
 pub fn registry_z_base58btc_test() -> Nil {
   let data = <<"yes mani !":utf8>>
   let assert Ok(encoded) =
@@ -111,7 +109,6 @@ pub fn registry_z_base58btc_test() -> Nil {
   assert decoded == data
 }
 
-@target(erlang)
 pub fn registry_upper_z_base58flickr_test() -> Nil {
   let data = <<"yes mani !":utf8>>
   let assert Ok(encoded) =
@@ -394,21 +391,18 @@ pub fn spec_basic_base32z_test() -> Nil {
   assert d == data
 }
 
-@target(erlang)
 pub fn spec_basic_base36_test() -> Nil {
   let data = <<"yes mani !":utf8>>
   let assert Ok(d) = multibase.decode_bytes("k2lcpzo5yikidynfl")
   assert d == data
 }
 
-@target(erlang)
 pub fn spec_basic_base58btc_test() -> Nil {
   let data = <<"yes mani !":utf8>>
   let assert Ok(d) = multibase.decode_bytes("z7paNL19xttacUY")
   assert d == data
 }
 
-@target(erlang)
 pub fn spec_basic_base58flickr_test() -> Nil {
   let data = <<"yes mani !":utf8>>
   let assert Ok(d) = multibase.decode_bytes("Z7Pznk19XTTzBtx")
@@ -446,21 +440,18 @@ pub fn spec_leading_zero_base16_test() -> Nil {
   assert d == data
 }
 
-@target(erlang)
 pub fn spec_leading_zero_base36_test() -> Nil {
   let data = <<0, "yes mani !":utf8>>
   let assert Ok(d) = multibase.decode_bytes("k02lcpzo5yikidynfl")
   assert d == data
 }
 
-@target(erlang)
 pub fn spec_leading_zero_base58btc_test() -> Nil {
   let data = <<0, "yes mani !":utf8>>
   let assert Ok(d) = multibase.decode_bytes("z17paNL19xttacUY")
   assert d == data
 }
 
-@target(erlang)
 pub fn spec_leading_zero_base58flickr_test() -> Nil {
   let data = <<0, "yes mani !":utf8>>
   let assert Ok(d) = multibase.decode_bytes("Z17Pznk19XTTzBtx")
@@ -480,14 +471,12 @@ pub fn spec_two_leading_zeros_base16_test() -> Nil {
   assert d == data
 }
 
-@target(erlang)
 pub fn spec_two_leading_zeros_base58btc_test() -> Nil {
   let data = <<0, 0, "yes mani !":utf8>>
   let assert Ok(d) = multibase.decode_bytes("z117paNL19xttacUY")
   assert d == data
 }
 
-@target(erlang)
 pub fn spec_two_leading_zeros_base36_test() -> Nil {
   let data = <<0, 0, "yes mani !":utf8>>
   let assert Ok(d) = multibase.decode_bytes("k002lcpzo5yikidynfl")
