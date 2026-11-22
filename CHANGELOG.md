@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Base8, Base10, Base36, Base58 (Bitcoin and Flickr), Base62, Crockford Base32 and Base58Check now preserve all bytes on JavaScript beyond the safe integer range and terminate for inputs larger than 128 bytes. Leading zero bytes and Crockford checksums are preserved on both targets.
+- Base2 decoding no longer overflows the JavaScript stack on large inputs.
+- Z85 and RFC 1924 Base85 decoders reject non-ASCII suffixes that could previously be ignored when the grapheme count was a multiple of five.
+- Case-insensitive ASCII codecs, including Bech32 and Crockford check symbols, reject Unicode characters that case-fold into alphabet characters. Invalid-character errors preserve the full offending grapheme and its position.
+- Adobe Ascii85 now accepts CRLF whitespace consistently with the other supported ASCII whitespace, including inside groups.
+- Corrected the RFC 1924 alphabet's 4-byte grouping description, the Flickr alphabet order, Crockford examples and check alphabet, Adobe's lack of the 'y' shortcut, integer Base16 documentation and the compilable integer-error example. The README now links only to strict decoders that exist.
+
+### Changed
+
+- Multibase prefix `7` now encodes and decodes 3-bit groups according to the multibase specification; `"yes mani !"` encodes as `7362625631006654133464440102`. The standalone `yabase/base8` numeric format is unchanged.
+- Multibase prefixes `c` and `t` now emit lowercase Base32 and Base32 Hex payloads.
+- Z85, RFC 1924 Base85, Base58Check and Bech32 encoders return `InvalidLength(bit_size)` for input that is not a whole number of bytes, instead of silently dropping bits. Whole-byte Z85 and RFC 1924 length errors still report byte length.
+- All `intid.decode_int_*` functions now reject extra leading zeros, alternate letter case and Crockford aliases with `NonCanonical`. Base16 still accepts the byte-aligned and compact encoder outputs, and Base58Check accepts any version in the version-agnostic helper but requires a minimal non-empty payload. JavaScript integer encoders and decoders now return `Overflow` above `2^53 - 1`; Erlang integers remain arbitrary precision.
+- `intid.int64_max` remains an `Int` constant and is `2^63 - 1` on Erlang; on JavaScript it is capped at `2^53 - 1`, the largest exactly representable integer. JavaScript builds now pass and enforce `--warnings-as-errors` in CI.
+- `is_javascript_safe` and `supports_target` now return `True` for every encoding on both targets after replacing whole-number radix conversion with bounded limbs.
+- Base2, Base16, the Base32 and Base64 bit-group codecs, the Base85 family, Base45, Base91 and Base64 DQ decode through linear loops that join output once. SHA-256 and Bech32 checksums use standard bitwise operations, reducing checksum overhead.
+- README generation helpers now live in `dev/` and are excluded from the published library sources. `just gen-readme` continues to print the table, and `dev/benchmark.sh` measures 10 KB and 100 KB decoding on both targets.
+
 ## [0.24.0] - 2026-11-19
 
 ### Changed
