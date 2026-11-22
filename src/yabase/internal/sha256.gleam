@@ -1,7 +1,8 @@
 /// Pure Gleam SHA-256 implementation.
 /// Used only for checksum computation in Base58Check.
 import gleam/bit_array
-import gleam/bool
+import gleam/int
+import gleam/list
 
 /// Compute SHA-256 hash of data. Returns a 32-byte BitArray.
 pub fn hash(data: BitArray) -> BitArray {
@@ -26,7 +27,7 @@ fn initial_hash() -> #(Int, Int, Int, Int, Int, Int, Int, Int) {
 }
 
 // Round constants (first 32 bits of fractional parts of cube roots of first 64 primes)
-fn k(i: Int) -> Int {
+fn round_constant(i: Int) -> Int {
   case i {
     0 -> 0x428a2f98
     1 -> 0x71374491
@@ -96,200 +97,137 @@ fn k(i: Int) -> Int {
   }
 }
 
-fn mask32(n: Int) -> Int {
-  let mask = 0xFFFFFFFF
-  case n >= 0 {
-    True -> int_and(n, mask)
-    False -> int_and(n + mask + 1, mask)
+// JavaScript bitwise operators return signed 32-bit values. Normalize sums
+// modulo 2^32, and mask sign extension when shifting right.
+fn mask32(value: Int) -> Int {
+  let remainder = value % 4_294_967_296
+  case remainder < 0 {
+    True -> remainder + 4_294_967_296
+    False -> remainder
   }
 }
 
-fn int_and(a: Int, b: Int) -> Int {
-  do_int_and(a, b, 0, 1)
+fn shift_right(value: Int, amount: Int) -> Int {
+  int.bitwise_and(
+    int.bitwise_shift_right(value, amount),
+    int.bitwise_shift_right(0x7FFFFFFF, amount - 1),
+  )
 }
 
-fn do_int_and(a: Int, b: Int, result: Int, bit: Int) -> Int {
-  use <- bool.guard(when: bit > 0xFFFFFFFF, return: result)
-  let bit_set = case { a / bit } % 2 == 1 && { b / bit } % 2 == 1 {
-    True -> bit
-    False -> 0
-  }
-  do_int_and(a, b, result + bit_set, bit * 2)
+fn rotate_right(value: Int, amount: Int) -> Int {
+  int.bitwise_or(
+    shift_right(value, amount),
+    int.bitwise_shift_left(
+      int.bitwise_and(value, int.bitwise_shift_left(1, amount) - 1),
+      32 - amount,
+    ),
+  )
 }
 
-fn int_or(a: Int, b: Int) -> Int {
-  do_int_or(a, b, 0, 1)
-}
-
-fn do_int_or(a: Int, b: Int, result: Int, bit: Int) -> Int {
-  use <- bool.guard(when: bit > 0xFFFFFFFF, return: result)
-  let bit_set = case { a / bit } % 2 == 1 || { b / bit } % 2 == 1 {
-    True -> bit
-    False -> 0
-  }
-  do_int_or(a, b, result + bit_set, bit * 2)
-}
-
-fn int_xor(a: Int, b: Int) -> Int {
-  do_int_xor(a, b, 0, 1)
-}
-
-fn do_int_xor(a: Int, b: Int, result: Int, bit: Int) -> Int {
-  use <- bool.guard(when: bit > 0xFFFFFFFF, return: result)
-  let a_bit = { a / bit } % 2
-  let b_bit = { b / bit } % 2
-  let bit_set = case a_bit != b_bit {
-    True -> bit
-    False -> 0
-  }
-  do_int_xor(a, b, result + bit_set, bit * 2)
-}
-
-fn int_not(a: Int) -> Int {
-  int_xor(a, 0xFFFFFFFF)
-}
-
-fn shr(n: Int, amount: Int) -> Int {
-  do_shr(mask32(n), amount)
-}
-
-fn do_shr(n: Int, amount: Int) -> Int {
-  case amount {
-    0 -> n
-    _ -> do_shr(n / 2, amount - 1)
-  }
-}
-
-fn rotr(n: Int, amount: Int) -> Int {
-  let masked = mask32(n)
-  int_or(shr(masked, amount), mask32(shl(masked, 32 - amount)))
-}
-
-fn shl(n: Int, amount: Int) -> Int {
-  do_shl(n, amount)
-}
-
-fn do_shl(n: Int, amount: Int) -> Int {
-  case amount {
-    0 -> n
-    _ -> do_shl(n * 2, amount - 1)
-  }
-}
-
-fn add32(a: Int, b: Int) -> Int {
-  mask32(a + b)
+fn add32(left: Int, right: Int) -> Int {
+  mask32(left + right)
 }
 
 // SHA-256 functions
-fn ch(x: Int, y: Int, z: Int) -> Int {
-  int_xor(int_and(x, y), int_and(int_not(x), z))
+fn choose(x: Int, y: Int, z: Int) -> Int {
+  int.bitwise_exclusive_or(
+    int.bitwise_and(x, y),
+    int.bitwise_and(int.bitwise_not(x), z),
+  )
 }
 
-fn maj(x: Int, y: Int, z: Int) -> Int {
-  int_xor(int_xor(int_and(x, y), int_and(x, z)), int_and(y, z))
+fn majority(x: Int, y: Int, z: Int) -> Int {
+  int.bitwise_exclusive_or(
+    int.bitwise_exclusive_or(int.bitwise_and(x, y), int.bitwise_and(x, z)),
+    int.bitwise_and(y, z),
+  )
 }
 
 fn big_sigma0(x: Int) -> Int {
-  int_xor(int_xor(rotr(x, 2), rotr(x, 13)), rotr(x, 22))
+  int.bitwise_exclusive_or(
+    int.bitwise_exclusive_or(rotate_right(x, 2), rotate_right(x, 13)),
+    rotate_right(x, 22),
+  )
 }
 
 fn big_sigma1(x: Int) -> Int {
-  int_xor(int_xor(rotr(x, 6), rotr(x, 11)), rotr(x, 25))
+  int.bitwise_exclusive_or(
+    int.bitwise_exclusive_or(rotate_right(x, 6), rotate_right(x, 11)),
+    rotate_right(x, 25),
+  )
 }
 
 fn small_sigma0(x: Int) -> Int {
-  int_xor(int_xor(rotr(x, 7), rotr(x, 18)), shr(x, 3))
+  int.bitwise_exclusive_or(
+    int.bitwise_exclusive_or(rotate_right(x, 7), rotate_right(x, 18)),
+    shift_right(x, 3),
+  )
 }
 
 fn small_sigma1(x: Int) -> Int {
-  int_xor(int_xor(rotr(x, 17), rotr(x, 19)), shr(x, 10))
+  int.bitwise_exclusive_or(
+    int.bitwise_exclusive_or(rotate_right(x, 17), rotate_right(x, 19)),
+    shift_right(x, 10),
+  )
 }
 
 // Message padding: append 1 bit, pad zeros, append 64-bit big-endian length
 fn pad_message(data: BitArray) -> BitArray {
-  let bit_len = bit_array.byte_size(data) * 8
-  let high = bit_len / 4_294_967_296
-  let low = bit_len % 4_294_967_296
-  // Append 0x80 byte
-  let with_one = bit_array.append(data, <<0x80>>)
-  // Pad to 56 mod 64 bytes
-  let padded = pad_zeros(with_one)
-  // Append full 64-bit big-endian length (FIPS 180-4 Section 5.1.1)
-  bit_array.append(padded, <<high:32, low:32>>)
+  let bit_length = bit_array.byte_size(data) * 8
+  let high = bit_length / 4_294_967_296
+  let low = bit_length % 4_294_967_296
+  let zeros = { 55 - bit_array.byte_size(data) % 64 + 64 } % 64
+  bit_array.concat([data, <<0x80>>, <<0:size(zeros * 8)>>, <<high:32, low:32>>])
 }
 
-fn pad_zeros(data: BitArray) -> BitArray {
-  case bit_array.byte_size(data) % 64 {
-    56 -> data
-    _ -> pad_zeros(bit_array.append(data, <<0>>))
-  }
-}
-
-// Process 512-bit (64-byte) blocks.
-//
-// Issue #20: the previous `<<block:bytes-size(64), rest:bits>>`
-// pattern triggered a JavaScript-target compile warning
-// ("Truncated bit array segment ... 64-bit long int, but on the
-// JavaScript target numbers have at most 52 bits"). Whether or
-// not that was a Gleam-compiler false positive, the warning fired
-// on every clean compile of any project depending on this package
-// from the JS target. Switch to `bit_array.slice` so the split is
-// expressed in stdlib terms — no segment-pattern parsing, no
-// warning, identical runtime behaviour on both targets. The
-// double `case` on slice results never falls through to the `_, _`
-// arm because the surrounding `total >= 64` guard guarantees both
-// slices succeed; the arm exists only to keep the function total
-// without resorting to `let assert`.
 fn process_blocks(
   data: BitArray,
   state: #(Int, Int, Int, Int, Int, Int, Int, Int),
 ) -> #(Int, Int, Int, Int, Int, Int, Int, Int) {
-  let total = bit_array.byte_size(data)
-  case total >= 64 {
-    False -> state
-    True ->
-      case bit_array.slice(data, 0, 64), bit_array.slice(data, 64, total - 64) {
-        Ok(block), Ok(rest) -> {
-          let schedule = parse_block(block)
-          let new_state = compress(state, schedule)
-          process_blocks(rest, new_state)
-        }
-        _, _ -> state
-      }
+  case data {
+    <<block:bytes-size(64), rest:bytes>> ->
+      process_blocks(rest, compress(state, parse_block(block)))
+    _ -> state
   }
 }
 
 // Parse 64-byte block into 16 32-bit words, then expand to 64 words
 fn parse_block(block: BitArray) -> List(Int) {
-  let w16 = parse_words(block, [])
-  expand_schedule(w16, 16)
+  let words = parse_words(block, [])
+  expand_schedule(words, 16)
 }
 
-fn parse_words(data: BitArray, acc: List(Int)) -> List(Int) {
+fn parse_words(data: BitArray, words: List(Int)) -> List(Int) {
   case data {
-    <<w:32, rest:bits>> -> parse_words(rest, list_append(acc, [w]))
-    _ -> acc
+    <<word:32, rest:bytes>> -> parse_words(rest, [word, ..words])
+    _ -> words
   }
 }
 
-fn expand_schedule(w: List(Int), i: Int) -> List(Int) {
-  use <- bool.guard(when: i >= 64, return: w)
-  let w2 = list_at(w, i - 2)
-  let w7 = list_at(w, i - 7)
-  let w15 = list_at(w, i - 15)
-  let w16 = list_at(w, i - 16)
-  let new_w = add32(add32(small_sigma1(w2), w7), add32(small_sigma0(w15), w16))
-  expand_schedule(list_append(w, [new_w]), i + 1)
+// The newest word is at the head, so all four lookups have fixed offsets.
+fn expand_schedule(words: List(Int), count: Int) -> List(Int) {
+  case count, words {
+    64, _ -> list.reverse(words)
+    _, [_, word2, _, _, _, _, word7, _, _, _, _, _, _, _, word15, word16, ..] -> {
+      let word =
+        add32(
+          add32(small_sigma1(word2), word7),
+          add32(small_sigma0(word15), word16),
+        )
+      expand_schedule([word, ..words], count + 1)
+    }
+    _, _ -> list.reverse(words)
+  }
 }
 
 // 64-round compression function
 fn compress(
   state: #(Int, Int, Int, Int, Int, Int, Int, Int),
-  w: List(Int),
+  words: List(Int),
 ) -> #(Int, Int, Int, Int, Int, Int, Int, Int) {
   let #(h0, h1, h2, h3, h4, h5, h6, h7) = state
   let #(a, b, c, d, e, f, g, h) =
-    compress_rounds(#(h0, h1, h2, h3, h4, h5, h6, h7), w, 0)
+    compress_rounds(#(h0, h1, h2, h3, h4, h5, h6, h7), words, 0)
   #(
     add32(h0, a),
     add32(h1, b),
@@ -303,19 +241,27 @@ fn compress(
 }
 
 fn compress_rounds(
-  vars: #(Int, Int, Int, Int, Int, Int, Int, Int),
-  w: List(Int),
-  i: Int,
+  state: #(Int, Int, Int, Int, Int, Int, Int, Int),
+  words: List(Int),
+  round: Int,
 ) -> #(Int, Int, Int, Int, Int, Int, Int, Int) {
-  use <- bool.guard(when: i >= 64, return: vars)
-  let #(a, b, c, d, e, f, g, h) = vars
-  let t1 =
-    add32(
-      add32(h, big_sigma1(e)),
-      add32(ch(e, f, g), add32(k(i), list_at(w, i))),
-    )
-  let t2 = add32(big_sigma0(a), maj(a, b, c))
-  compress_rounds(#(add32(t1, t2), a, b, c, add32(d, t1), e, f, g), w, i + 1)
+  case words {
+    [] -> state
+    [word, ..rest] -> {
+      let #(a, b, c, d, e, f, g, h) = state
+      let temp1 =
+        add32(
+          add32(h, big_sigma1(e)),
+          add32(choose(e, f, g), add32(round_constant(round), word)),
+        )
+      let temp2 = add32(big_sigma0(a), majority(a, b, c))
+      compress_rounds(
+        #(add32(temp1, temp2), a, b, c, add32(d, temp1), e, f, g),
+        rest,
+        round + 1,
+      )
+    }
+  }
 }
 
 fn state_to_bytes(
@@ -323,19 +269,4 @@ fn state_to_bytes(
 ) -> BitArray {
   let #(h0, h1, h2, h3, h4, h5, h6, h7) = state
   <<h0:32, h1:32, h2:32, h3:32, h4:32, h5:32, h6:32, h7:32>>
-}
-
-fn list_at(l: List(Int), index: Int) -> Int {
-  case l, index {
-    [h, ..], 0 -> h
-    [_, ..rest], n -> list_at(rest, n - 1)
-    [], _ -> 0
-  }
-}
-
-fn list_append(l: List(a), items: List(a)) -> List(a) {
-  case l {
-    [] -> items
-    [h, ..t] -> [h, ..list_append(t, items)]
-  }
 }

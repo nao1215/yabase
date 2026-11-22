@@ -198,7 +198,7 @@ pub fn decode_base58(input: String) -> Result(BitArray, CodecError) {
   base58_bitcoin.decode(input)
 }
 
-/// Encode a BitArray to Base58 (Flickr alphabet). Same as Bitcoin but with swapped case.
+/// Encode a BitArray to Base58 (Flickr alphabet). Lowercase letters precede uppercase letters.
 pub fn encode_base58_flickr(data: BitArray) -> String {
   base58_flickr.encode(data)
 }

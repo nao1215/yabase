@@ -259,15 +259,8 @@ pub fn bech32m(hrp: String) -> Encoding {
 }
 
 // ---------------------------------------------------------------------------
-// Target capabilities.
-//
-// Some encodings produce correct results regardless of compilation
-// target; others rely on arbitrary-precision integer arithmetic and
-// cannot represent inputs larger than `Number.MAX_SAFE_INTEGER` on
-// JavaScript. The README explains the underlying constraint, but
-// callers that need to *select* an encoding at runtime (multibase
-// auto-detection, user-configurable codec choice) must be able to
-// branch on this property programmatically.
+// Target capabilities. Every encoding gives the same result on Erlang and
+// JavaScript; these functions stay for callers that already branch on them.
 // ---------------------------------------------------------------------------
 
 /// A Gleam compilation target. Construct with `target_erlang/0` or
@@ -290,47 +283,25 @@ pub fn target_javascript() -> Target {
 /// True if the encoding produces correct results on the JavaScript
 /// target for inputs of any size.
 ///
-/// Encodings whose internals rely on arbitrary-precision integer
-/// arithmetic (`base8`, `base10`, `base32` Crockford / CrockfordCheck,
-/// `base36`, `base58` Bitcoin / Flickr, `base62`) inherit JavaScript's
-/// `Number.MAX_SAFE_INTEGER` (2^53 - 1) ceiling and may produce
-/// incorrect output for inputs that represent integers above that
-/// bound — this returns `False` for them.
-///
-/// Byte-oriented encodings (`base2`, `base16`, `base32` RFC4648 /
-/// Hex / Clockwork / ZBase32, `base45`, `base64` *, `base85` *,
-/// `base91`) are correct on both targets — this returns `True` for
-/// them.
-pub fn is_javascript_safe(enc: Encoding) -> Bool {
-  case enc {
-    Base2 | Base16 | Base45 | Base91 -> True
-    Base8 | Base10 | Base36 | Base62 -> False
-    Base32(variant) ->
-      case variant {
-        RFC4648 | Hex | Clockwork | ZBase32 -> True
-        Crockford | CrockfordCheck -> False
-      }
-    Base58(_) -> False
-    Base58Check(_) -> False
-    Base64(_) -> True
-    Base85(_) -> True
-    Bech32(_, _) -> True
-  }
+/// Every encoding does: the radix codecs (`base8`, `base10`, `base36`,
+/// `base58`, `base62`, Crockford, Base58Check) convert through limbs that
+/// stay below 2^53 instead of one big `Int`, so this always returns `True`.
+pub fn is_javascript_safe(_encoding: Encoding) -> Bool {
+  True
 }
 
 /// True if the encoding works correctly on the given target.
 ///
-/// All encodings work on the Erlang target (BEAM has bignum
-/// integers). On JavaScript, this delegates to `is_javascript_safe/1`.
+/// Every encoding works on both targets, so this always returns `True`.
 ///
 /// Useful for filtering an `Encoding` value picked at runtime — for
 /// example, after `multibase.decode` auto-detects the encoding from
 /// a prefix supplied by an untrusted source — before running the
 /// decoded payload through downstream logic.
-pub fn supports_target(enc: Encoding, target: Target) -> Bool {
+pub fn supports_target(encoding: Encoding, target: Target) -> Bool {
   case target {
     Erlang -> True
-    JavaScript -> is_javascript_safe(enc)
+    JavaScript -> is_javascript_safe(encoding)
   }
 }
 
@@ -374,8 +345,8 @@ pub type IntCodec {
 /// Map an `Encoding` to the tag describing how `yabase/intid` should
 /// handle it. Internal to the package — exposed because `intid` lives
 /// in a separate module but needs to branch on the opaque variant.
-pub fn int_codec(enc: Encoding) -> IntCodec {
-  case enc {
+pub fn int_codec(encoding: Encoding) -> IntCodec {
+  case encoding {
     Base10 -> IntBase10
     Base16 -> IntBase16
     Base32(RFC4648) -> IntBase32Rfc4648
@@ -411,8 +382,11 @@ pub fn int_codec(enc: Encoding) -> IntCodec {
 // ---------------------------------------------------------------------------
 
 /// Encode data using the specified encoding.
-pub fn encode(enc: Encoding, data: BitArray) -> Result(String, CodecError) {
-  case enc {
+pub fn encode(
+  encoding: Encoding,
+  data: BitArray,
+) -> Result(String, CodecError) {
+  case encoding {
     Base2 -> Ok(base2.encode(data))
     Base8 -> Ok(base8.encode(data))
     Base10 -> Ok(base10.encode(data))
@@ -444,8 +418,11 @@ pub fn encode(enc: Encoding, data: BitArray) -> Result(String, CodecError) {
 }
 
 /// Decode a string using the specified encoding.
-pub fn decode_as(enc: Encoding, value: String) -> Result(BitArray, CodecError) {
-  case enc {
+pub fn decode_as(
+  encoding: Encoding,
+  value: String,
+) -> Result(BitArray, CodecError) {
+  case encoding {
     Base2 -> base2.decode(value)
     Base8 -> base8.decode(value)
     Base10 -> base10.decode(value)
@@ -501,12 +478,13 @@ fn decode_bech32_with_metadata(
   expected_variant: Bech32Variant,
 ) -> Result(BitArray, CodecError) {
   case bech32_module.decode(value) {
-    Ok(Bech32Decoded(hrp: h, data: d, variant: v)) ->
-      case h == expected_hrp {
-        False -> Error(InvalidHrp("expected " <> expected_hrp <> ", got " <> h))
+    Ok(Bech32Decoded(hrp:, data:, variant:)) ->
+      case hrp == expected_hrp {
+        False ->
+          Error(InvalidHrp("expected " <> expected_hrp <> ", got " <> hrp))
         True ->
-          case v == expected_variant {
-            True -> Ok(d)
+          case variant == expected_variant {
+            True -> Ok(data)
             False -> Error(InvalidChecksum)
           }
       }
@@ -519,8 +497,8 @@ fn decode_bech32_with_metadata(
 // ---------------------------------------------------------------------------
 
 /// Map an `Encoding` to its official multibase prefix character.
-pub fn multibase_prefix(enc: Encoding) -> Result(String, Nil) {
-  case enc {
+pub fn multibase_prefix(encoding: Encoding) -> Result(String, Nil) {
+  case encoding {
     Base2 -> Ok("0")
     Base8 -> Ok("7")
     Base10 -> Ok("9")
@@ -579,8 +557,8 @@ pub fn from_multibase_prefix(prefix: String) -> Result(Encoding, Nil) {
 }
 
 /// Human-readable name for an `Encoding`.
-pub fn multibase_name(enc: Encoding) -> String {
-  case enc {
+pub fn multibase_name(encoding: Encoding) -> String {
+  case encoding {
     Base2 -> "base2"
     Base8 -> "base8"
     Base10 -> "base10"
@@ -613,13 +591,37 @@ pub fn multibase_name(enc: Encoding) -> String {
 }
 
 /// Lowercase the dispatcher's output for encodings whose multibase
-/// prefix pins lowercase output (currently `Base16` under prefix `f`).
+/// prefix pins a lowercase payload: `f` (Base16), `c` (Base32 RFC 4648,
+/// padded) and `t` (Base32 Hex, padded).
 pub fn normalise_for_multibase_prefix(
-  enc: Encoding,
+  encoding: Encoding,
   encoded: String,
 ) -> String {
-  case enc {
-    Base16 -> string.lowercase(encoded)
-    _ -> encoded
+  case encoding {
+    Base16 | Base32(RFC4648) | Base32(Hex) -> string.lowercase(encoded)
+    Base2
+    | Base8
+    | Base10
+    | Base32(Crockford)
+    | Base32(CrockfordCheck)
+    | Base32(Clockwork)
+    | Base32(ZBase32)
+    | Base36
+    | Base45
+    | Base58(Bitcoin)
+    | Base58(Flickr)
+    | Base58Check(_)
+    | Base62
+    | Base64(Standard)
+    | Base64(UrlSafe)
+    | Base64(NoPadding)
+    | Base64(UrlSafeNoPadding)
+    | Base64(DQ)
+    | Base85(Btoa)
+    | Base85(Adobe)
+    | Base85(Rfc1924)
+    | Base85(Z85)
+    | Base91
+    | Bech32(_, _) -> encoded
   }
 }

@@ -25,6 +25,7 @@ import yabase/base36
 import yabase/base45
 import yabase/base58/bitcoin as base58_bitcoin
 import yabase/base58/flickr as base58_flickr
+import yabase/base58check
 import yabase/base62
 import yabase/base64/dq
 import yabase/base64/nopadding
@@ -33,6 +34,10 @@ import yabase/base64/urlsafe
 import yabase/base64/urlsafe_nopadding
 import yabase/base8
 import yabase/base91
+import yabase/bech32
+import yabase/core/error
+import yabase/rfc1924_base85
+import yabase/z85
 
 const byte_aligned: BitArray = <<0xAB>>
 
@@ -130,4 +135,29 @@ pub fn empty_input_is_byte_aligned_test() {
   // thing this test pins is that the guard does not interfere.
   base16.encode(<<>>) |> should.equal("")
   base2.encode(<<>>) |> should.equal("")
+}
+
+// The encoders that already return a Result reject sub-byte input with
+// InvalidLength(bit size) instead of dropping the trailing bits.
+
+pub fn z85_rejects_sub_byte_input_test() -> Nil {
+  assert z85.encode(<<1:size(28)>>) == Error(error.InvalidLength(28))
+  assert z85.encode(<<1, 2, 3, 4, 5:size(4)>>) == Error(error.InvalidLength(36))
+}
+
+pub fn rfc1924_rejects_sub_byte_input_test() -> Nil {
+  assert rfc1924_base85.encode(<<1:size(28)>>) == Error(error.InvalidLength(28))
+}
+
+pub fn base58check_rejects_sub_byte_payload_test() -> Nil {
+  assert base58check.encode(0, <<5:size(3)>>) == Error(error.InvalidLength(3))
+}
+
+pub fn bech32_rejects_sub_byte_data_test() -> Nil {
+  assert bech32.encode(error.Bech32m, "a", <<0xFF, 0:size(1)>>)
+    == Error(error.InvalidLength(9))
+  assert bech32.encode(error.Bech32, "bc", <<1:size(3)>>)
+    == Error(error.InvalidLength(3))
+  assert bech32.encode_default("a", <<1:size(3)>>)
+    == Error(error.InvalidLength(3))
 }

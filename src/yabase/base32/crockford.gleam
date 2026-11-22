@@ -7,139 +7,82 @@
 /// Case-insensitive decoding. `O`→`0`, `I`/`L`→`1` on decode.
 /// Hyphens ignored. No padding.
 ///
-/// **Big-integer shape, NOT byte-aligned (issue #22).** This module
-/// treats the input `BitArray` as a big-endian unsigned integer and
-/// emits the base-32 representation of that integer with leading
-/// zeros stripped. The output length therefore depends on the
-/// numeric magnitude of the input, not on the input's byte length:
-/// 5 random bytes whose top byte is `0x00` round-trip to a
-/// 7-character string, while 5 random bytes whose top byte is
-/// `0xFF` round-trip to an 8-character string.
-///
-/// If you want **fixed-length, byte-aligned** Base32 output (the
-/// shape callers usually expect from "Base32" — same as ULID /
-/// NanoID / Stripe-style IDs), use [`yabase/base32/rfc4648`](./rfc4648.html)
-/// instead. RFC 4648 emits exactly `ceil(byte_count * 8 / 5)`
-/// characters of output for any input, and pads to a multiple of 8
-/// when needed.
-///
-/// This module is the right pick when you want Crockford's
-/// human-typeable alphabet *and* the bignum semantics — for example
-/// when encoding a numeric ID that already fits the base-32
-/// integer model.
+/// Treats the non-zero suffix as a big-endian unsigned integer and
+/// preserves each leading zero byte as one '0' character. For example,
+/// `encode(<<0, 255, 255, 255, 255>>) == "03ZZZZZZ"`.
+/// Use `yabase/base32/rfc4648` for fixed-width 5-bit groups with padding.
+import gleam/bit_array
 import gleam/string
 import yabase/core/error.{type CodecError, InvalidChecksum, InvalidLength}
 import yabase/core/guard
+import yabase/internal/alphabet
 import yabase/internal/bignum
 
-const alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
+const symbols = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
+
+const check_symbols = "0123456789ABCDEFGHJKMNPQRSTVWXYZ*~$=U"
+
+fn crockford_alphabet() -> alphabet.Alphabet {
+  alphabet.with_extras(
+    symbols:,
+    folding: alphabet.FoldToUpper,
+    aliases: [#("O", 0), #("I", 1), #("L", 1)],
+    ignore: "-",
+  )
+}
 
 /// Encode a BitArray to a Crockford Base32 string (bignum shape).
 ///
-/// The input is treated as a big-endian unsigned integer and
-/// converted to base 32 using Crockford's alphabet, with leading
-/// zero digits stripped. As a result the output length **varies
-/// with the numeric magnitude** of the input, not with its byte
-/// length — see the module-level docstring for the implications
-/// (issue #22).
-///
-/// If you want fixed-length 8-character output for every 5-byte
-/// input (the byte-aligned framing ULID / NanoID expect), use
-/// [`yabase/base32/rfc4648.encode`](../rfc4648.html#encode)
-/// instead.
+/// Preserves leading zero bytes as '0' characters; the remaining length
+/// depends on the numeric magnitude. For fixed-width groups, use
+/// [`yabase/base32/rfc4648.encode`](./rfc4648.html#encode).
 pub fn encode(data: BitArray) -> String {
   guard.assert_byte_aligned(data)
-  bignum.encode(data, 32, alphabet)
+  bignum.encode(data, crockford_alphabet())
 }
 
 /// Decode a Crockford Base32 string to a BitArray.
 /// Accepts hyphens (ignored). O->0, I/L->1. Case-insensitive.
 pub fn decode(input: String) -> Result(BitArray, CodecError) {
-  let cleaned =
-    string.uppercase(input)
-    |> string.replace("-", "")
-  bignum.decode(cleaned, 32, "0", char_to_value)
+  bignum.decode(input, crockford_alphabet())
 }
 
 /// Encode a BitArray to Crockford Base32 with a check symbol appended.
 /// The check symbol is computed as the numeric value of the data mod 37,
-/// mapped to the 37-character check alphabet (0-9A-Z plus *~$=U).
+/// mapped to the 32-character Crockford alphabet followed by *~$=U.
 pub fn encode_check(data: BitArray) -> String {
-  let encoded = encode(data)
-  let num = bignum.bytes_to_int(data, 0)
-  let check_index = num % 37
-  encoded <> string_char_at(check_alphabet, check_index)
+  encode(data) <> check_symbol(data)
 }
 
 /// Decode a Crockford Base32 string with check symbol verification.
 /// The last character is the check symbol; the rest is the encoded data.
 /// Returns Error(InvalidChecksum) if the check symbol does not match.
 pub fn decode_check(input: String) -> Result(BitArray, CodecError) {
-  let len = string.length(input)
-  case len < 1 {
+  let length = string.length(input)
+  case length < 1 {
     True -> Error(InvalidLength(0))
     False -> {
-      let body = string.slice(input, 0, len - 1)
-      let check_char = string.uppercase(string.slice(input, len - 1, 1))
+      let body = string.slice(input, 0, length - 1)
+      let check = string.slice(input, length - 1, 1)
+      let check = case bit_array.from_string(check) {
+        <<_>> -> string.uppercase(check)
+        _ -> check
+      }
       case decode(body) {
-        Error(e) -> Error(e)
-        Ok(data) -> {
-          let num = bignum.bytes_to_int(data, 0)
-          let expected_index = num % 37
-          let expected_char = string_char_at(check_alphabet, expected_index)
-          case check_char == expected_char {
+        Error(error) -> Error(error)
+        Ok(data) ->
+          case check == check_symbol(data) {
             True -> Ok(data)
             False -> Error(InvalidChecksum)
           }
-        }
       }
     }
   }
 }
 
-const check_alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ*~$=U"
-
-fn char_to_value(c: String) -> Result(Int, Nil) {
-  case c {
-    "0" | "O" -> Ok(0)
-    "1" | "I" | "L" -> Ok(1)
-    "2" -> Ok(2)
-    "3" -> Ok(3)
-    "4" -> Ok(4)
-    "5" -> Ok(5)
-    "6" -> Ok(6)
-    "7" -> Ok(7)
-    "8" -> Ok(8)
-    "9" -> Ok(9)
-    "A" -> Ok(10)
-    "B" -> Ok(11)
-    "C" -> Ok(12)
-    "D" -> Ok(13)
-    "E" -> Ok(14)
-    "F" -> Ok(15)
-    "G" -> Ok(16)
-    "H" -> Ok(17)
-    "J" -> Ok(18)
-    "K" -> Ok(19)
-    "M" -> Ok(20)
-    "N" -> Ok(21)
-    "P" -> Ok(22)
-    "Q" -> Ok(23)
-    "R" -> Ok(24)
-    "S" -> Ok(25)
-    "T" -> Ok(26)
-    "V" -> Ok(27)
-    "W" -> Ok(28)
-    "X" -> Ok(29)
-    "Y" -> Ok(30)
-    "Z" -> Ok(31)
-    _ -> Error(Nil)
-  }
-}
-
-fn string_char_at(s: String, index: Int) -> String {
-  case string.drop_start(s, index) |> string.pop_grapheme {
-    Ok(#(char, _)) -> char
-    Error(Nil) -> ""
-  }
+fn check_symbol(data: BitArray) -> String {
+  let check_alphabet = alphabet.new(check_symbols, alphabet.FoldToUpper)
+  alphabet.to_string([
+    alphabet.symbol(check_alphabet, bignum.remainder(data, 37)),
+  ])
 }

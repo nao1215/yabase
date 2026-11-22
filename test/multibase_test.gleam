@@ -1,7 +1,9 @@
 import gleam/string
+import yabase
 import yabase/core/encoding
 import yabase/core/error.{
-  InvalidCharacter, UnsupportedMultibaseEncoding, UnsupportedPrefix,
+  InvalidCharacter, InvalidLength, UnsupportedMultibaseEncoding,
+  UnsupportedPrefix,
 }
 import yabase/core/multibase
 
@@ -86,7 +88,6 @@ pub fn registry_h_base32z_test() -> Nil {
   assert decoded == data
 }
 
-@target(erlang)
 pub fn registry_k_base36_test() -> Nil {
   let data = <<"yes mani !":utf8>>
   let assert Ok(encoded) = multibase.encode_with_prefix(encoding.base36(), data)
@@ -98,7 +99,6 @@ pub fn registry_k_base36_test() -> Nil {
   assert decoded == data
 }
 
-@target(erlang)
 pub fn registry_z_base58btc_test() -> Nil {
   let data = <<"yes mani !":utf8>>
   let assert Ok(encoded) =
@@ -111,7 +111,6 @@ pub fn registry_z_base58btc_test() -> Nil {
   assert decoded == data
 }
 
-@target(erlang)
 pub fn registry_upper_z_base58flickr_test() -> Nil {
   let data = <<"yes mani !":utf8>>
   let assert Ok(encoded) =
@@ -394,21 +393,18 @@ pub fn spec_basic_base32z_test() -> Nil {
   assert d == data
 }
 
-@target(erlang)
 pub fn spec_basic_base36_test() -> Nil {
   let data = <<"yes mani !":utf8>>
   let assert Ok(d) = multibase.decode_bytes("k2lcpzo5yikidynfl")
   assert d == data
 }
 
-@target(erlang)
 pub fn spec_basic_base58btc_test() -> Nil {
   let data = <<"yes mani !":utf8>>
   let assert Ok(d) = multibase.decode_bytes("z7paNL19xttacUY")
   assert d == data
 }
 
-@target(erlang)
 pub fn spec_basic_base58flickr_test() -> Nil {
   let data = <<"yes mani !":utf8>>
   let assert Ok(d) = multibase.decode_bytes("Z7Pznk19XTTzBtx")
@@ -446,21 +442,18 @@ pub fn spec_leading_zero_base16_test() -> Nil {
   assert d == data
 }
 
-@target(erlang)
 pub fn spec_leading_zero_base36_test() -> Nil {
   let data = <<0, "yes mani !":utf8>>
   let assert Ok(d) = multibase.decode_bytes("k02lcpzo5yikidynfl")
   assert d == data
 }
 
-@target(erlang)
 pub fn spec_leading_zero_base58btc_test() -> Nil {
   let data = <<0, "yes mani !":utf8>>
   let assert Ok(d) = multibase.decode_bytes("z17paNL19xttacUY")
   assert d == data
 }
 
-@target(erlang)
 pub fn spec_leading_zero_base58flickr_test() -> Nil {
   let data = <<0, "yes mani !":utf8>>
   let assert Ok(d) = multibase.decode_bytes("Z17Pznk19XTTzBtx")
@@ -480,16 +473,67 @@ pub fn spec_two_leading_zeros_base16_test() -> Nil {
   assert d == data
 }
 
-@target(erlang)
 pub fn spec_two_leading_zeros_base58btc_test() -> Nil {
   let data = <<0, 0, "yes mani !":utf8>>
   let assert Ok(d) = multibase.decode_bytes("z117paNL19xttacUY")
   assert d == data
 }
 
-@target(erlang)
 pub fn spec_two_leading_zeros_base36_test() -> Nil {
   let data = <<0, 0, "yes mani !":utf8>>
   let assert Ok(d) = multibase.decode_bytes("k002lcpzo5yikidynfl")
   assert d == data
+}
+
+// basic.csv encode side: base8 is RFC 4648-style 3-bit groups, and the
+// lowercase base32 prefixes carry a lowercase payload.
+pub fn spec_basic_base8_encode_test() -> Nil {
+  assert multibase.encode_with_prefix(encoding.base8(), <<"yes mani !":utf8>>)
+    == Ok("7362625631006654133464440102")
+}
+
+pub fn spec_basic_base8_decode_test() -> Nil {
+  assert multibase.decode_bytes("7362625631006654133464440102")
+    == Ok(<<"yes mani !":utf8>>)
+}
+
+pub fn spec_leading_zero_base8_test() -> Nil {
+  assert multibase.encode_with_prefix(encoding.base8(), <<0, "yes mani !":utf8>>)
+    == Ok("7000745453462015530267151100204")
+  assert multibase.decode_bytes("7000745453462015530267151100204")
+    == Ok(<<0, "yes mani !":utf8>>)
+}
+
+pub fn multibase_base8_rejects_dangling_digit_test() -> Nil {
+  // 4 digits hold 12 bits: one byte plus 4 bits, more than the 3-bit
+  // remainder a real encoding can leave.
+  assert multibase.decode_bytes("71234") == Error(InvalidLength(4))
+}
+
+pub fn standalone_base8_keeps_number_shape_test() -> Nil {
+  // Only the multibase prefix "7" uses 3-bit groups; yabase/base8 and
+  // encoding.encode keep treating the input as one number.
+  assert yabase.encode(encoding.base8(), <<"yes mani !":utf8>>)
+    == Ok("171312714403326055632220041")
+}
+
+pub fn spec_basic_base32pad_encode_test() -> Nil {
+  assert multibase.encode_with_prefix(encoding.base32_rfc4648(), <<
+      "yes mani !":utf8,
+    >>)
+    == Ok("cpfsxgidnmfxgsibb")
+}
+
+pub fn spec_basic_base32hexpad_encode_test() -> Nil {
+  assert multibase.encode_with_prefix(encoding.base32_hex(), <<
+      "yes mani !":utf8,
+    >>)
+    == Ok("tf5in683dc5n6i811")
+}
+
+pub fn multibase_decoded_base8_reports_base8_test() -> Nil {
+  let assert Ok(decoded) =
+    yabase.decode_multibase("7362625631006654133464440102")
+  assert encoding.decoded_encoding(decoded) == encoding.base8()
+  assert encoding.decoded_data(decoded) == <<"yes mani !":utf8>>
 }
