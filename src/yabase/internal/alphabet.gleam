@@ -8,7 +8,6 @@
 import gleam/bit_array
 import gleam/dict.{type Dict}
 import gleam/list
-import gleam/result
 import gleam/string
 import yabase/core/error.{type CodecError, InvalidCharacter}
 
@@ -139,25 +138,39 @@ pub fn invalid_character(
   offset: Int,
   position: Int,
 ) -> CodecError {
-  InvalidCharacter(
-    report(character_at(input, offset), alphabet.folding),
-    position,
-  )
+  let #(character, consumed) = character_at(input, offset)
+  // The ASCII prefix of a combining grapheme may be an ignored hyphen.
+  // Such a byte was never included in the caller's character position.
+  let counted = case bit_array.from_string(character) {
+    <<byte, _:bytes>> if consumed > 0 ->
+      case lookup(alphabet, byte) {
+        Ignored -> 0
+        Value(_) | Invalid -> consumed
+      }
+    _ -> consumed
+  }
+  InvalidCharacter(report(character, alphabet.folding), position - counted)
 }
 
-fn character_at(input: BitArray, offset: Int) -> String {
-  let found = {
-    use rest <- result.try(bit_array.slice(
-      input,
-      offset,
-      bit_array.byte_size(input) - offset,
-    ))
-    use text <- result.try(bit_array.to_string(rest))
-    string.pop_grapheme(text)
+// A combining character can belong to the preceding ASCII symbol. Only
+// errors take this grapheme path; successful decoding still scans bytes.
+fn character_at(input: BitArray, offset: Int) -> #(String, Int) {
+  case bit_array.to_string(input) {
+    Ok(text) -> find_character(string.to_graphemes(text), offset)
+    Error(Nil) -> #("", 0)
   }
-  case found {
-    Ok(#(character, _)) -> character
-    Error(Nil) -> ""
+}
+
+fn find_character(characters: List(String), offset: Int) -> #(String, Int) {
+  case characters {
+    [] -> #("", 0)
+    [character, ..rest] -> {
+      let size = bit_array.byte_size(bit_array.from_string(character))
+      case offset < size {
+        True -> #(character, offset)
+        False -> find_character(rest, offset - size)
+      }
+    }
   }
 }
 

@@ -123,7 +123,8 @@ fn decode_groups_loop(
         Error(bad) ->
           Error(alphabet.invalid_character(alphabet, input, bad, bad))
       }
-    _ -> Ok(bit_array.concat(list.reverse(acc)))
+    <<>> -> Ok(bit_array.concat(list.reverse(acc)))
+    _ -> Error(alphabet.invalid_character(alphabet, input, offset, offset))
   }
 }
 
