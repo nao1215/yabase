@@ -1,16 +1,22 @@
 /// Base64 encoding without padding.
 /// Same as standard Base64 but padding characters are stripped.
-import gleam/string
-import yabase/base64/standard
-import yabase/core/error.{type CodecError, InvalidCharacter, InvalidLength}
+import yabase/core/error.{type CodecError}
+import yabase/core/guard
+import yabase/internal/alphabet
+import yabase/internal/bitgroup
 
-const alphabet =
+const symbols =
   "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 
 /// Encode a BitArray to Base64 without padding.
 pub fn encode(data: BitArray) -> String {
-  standard.encode(data)
-  |> string.replace("=", "")
+  guard.assert_byte_aligned(data)
+  bitgroup.encode(
+    data,
+    6,
+    alphabet.new(symbols, alphabet.CaseSensitive),
+    bitgroup.Unpadded,
+  )
 }
 
 /// Decode a Base64 string (without padding) to a BitArray.
@@ -21,37 +27,9 @@ pub fn encode(data: BitArray) -> String {
 /// before the length check so a whitespace byte does not surface as
 /// a misleading `InvalidLength`.
 pub fn decode(input: String) -> Result(BitArray, CodecError) {
-  case validate_alphabet(input, 0) {
-    Error(e) -> Error(e)
-    Ok(Nil) -> {
-      let len = string.length(input)
-      case len % 4 {
-        1 -> Error(InvalidLength(len))
-        _ -> {
-          let padded = add_padding(input)
-          standard.decode(padded)
-        }
-      }
-    }
-  }
-}
-
-fn validate_alphabet(input: String, pos: Int) -> Result(Nil, CodecError) {
-  case string.pop_grapheme(input) {
-    Error(Nil) -> Ok(Nil)
-    Ok(#(c, rest)) ->
-      case string.contains(alphabet, c) {
-        True -> validate_alphabet(rest, pos + 1)
-        False -> Error(InvalidCharacter(c, pos))
-      }
-  }
-}
-
-fn add_padding(input: String) -> String {
-  let remainder = string.length(input) % 4
-  case remainder {
-    2 -> input <> "=="
-    3 -> input <> "="
-    _ -> input
-  }
+  bitgroup.decode_unpadded(
+    input,
+    6,
+    alphabet.new(symbols, alphabet.CaseSensitive),
+  )
 }

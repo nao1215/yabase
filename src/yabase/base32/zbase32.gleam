@@ -2,13 +2,12 @@
 /// Human-oriented alphabet optimized for readability.
 /// Alphabet: ybndrfg8ejkmcpqxot1uwisza345h769
 /// No padding.
-import gleam/bit_array
-import gleam/list
-import gleam/string
-import yabase/core/error.{type CodecError, InvalidCharacter, InvalidLength}
+import yabase/core/error.{type CodecError}
 import yabase/core/guard
+import yabase/internal/alphabet
+import yabase/internal/bitgroup
 
-const alphabet = "ybndrfg8ejkmcpqxot1uwisza345h769"
+const symbols = "ybndrfg8ejkmcpqxot1uwisza345h769"
 
 /// Encode a BitArray to z-base-32 (no padding).
 ///
@@ -16,23 +15,12 @@ const alphabet = "ybndrfg8ejkmcpqxot1uwisza345h769"
 /// `yabase/core/guard.assert_byte_aligned`.
 pub fn encode(data: BitArray) -> String {
   guard.assert_byte_aligned(data)
-  encode_bits(data, [])
-  |> list.reverse
-  |> string.join("")
-}
-
-fn encode_bits(data: BitArray, acc: List(String)) -> List(String) {
-  case data {
-    <<a:5, rest:bits>> -> {
-      let char = string_char_at(alphabet, a)
-      encode_bits(rest, [char, ..acc])
-    }
-    <<a:4>> -> [string_char_at(alphabet, a * 2), ..acc]
-    <<a:3>> -> [string_char_at(alphabet, a * 4), ..acc]
-    <<a:2>> -> [string_char_at(alphabet, a * 8), ..acc]
-    <<a:1>> -> [string_char_at(alphabet, a * 16), ..acc]
-    _ -> acc
-  }
+  bitgroup.encode(
+    data,
+    5,
+    alphabet.new(symbols, alphabet.FoldToLower),
+    bitgroup.Unpadded,
+  )
 }
 
 /// Decode a z-base-32 string to a BitArray.
@@ -44,74 +32,9 @@ fn encode_bits(data: BitArray, acc: List(String)) -> List(String) {
 /// misleading `InvalidLength` when the real fault is an
 /// out-of-alphabet byte.
 pub fn decode(input: String) -> Result(BitArray, CodecError) {
-  let lower = string.lowercase(input)
-  case validate_alphabet(lower, 0) {
-    Error(e) -> Error(e)
-    Ok(Nil) -> {
-      let len = string.length(lower)
-      case len % 8 {
-        1 | 3 | 6 -> Error(InvalidLength(len))
-        _ -> decode_chars(lower, <<>>, 0)
-      }
-    }
-  }
-}
-
-fn validate_alphabet(input: String, pos: Int) -> Result(Nil, CodecError) {
-  case string.pop_grapheme(input) {
-    Error(Nil) -> Ok(Nil)
-    Ok(#(c, rest)) ->
-      case char_to_value(c) {
-        Ok(_) -> validate_alphabet(rest, pos + 1)
-        Error(Nil) -> Error(InvalidCharacter(c, pos))
-      }
-  }
-}
-
-fn decode_chars(
-  input: String,
-  acc: BitArray,
-  pos: Int,
-) -> Result(BitArray, CodecError) {
-  case string.pop_grapheme(input) {
-    Error(Nil) -> extract_bytes(acc, <<>>)
-    Ok(#(c, rest)) ->
-      case char_to_value(c) {
-        Error(Nil) -> Error(InvalidCharacter(c, pos))
-        Ok(val) -> decode_chars(rest, bit_array.append(acc, <<val:5>>), pos + 1)
-      }
-  }
-}
-
-fn extract_bytes(
-  bits: BitArray,
-  acc: BitArray,
-) -> Result(BitArray, CodecError) {
-  case bits {
-    <<byte:8, rest:bits>> ->
-      extract_bytes(rest, bit_array.append(acc, <<byte:int>>))
-    _ -> Ok(acc)
-  }
-}
-
-fn char_to_value(c: String) -> Result(Int, Nil) {
-  find_index(alphabet, c, 0)
-}
-
-fn find_index(haystack: String, needle: String, idx: Int) -> Result(Int, Nil) {
-  case string.pop_grapheme(haystack) {
-    Error(Nil) -> Error(Nil)
-    Ok(#(ch, rest)) ->
-      case ch == needle {
-        True -> Ok(idx)
-        False -> find_index(rest, needle, idx + 1)
-      }
-  }
-}
-
-fn string_char_at(s: String, index: Int) -> String {
-  case string.drop_start(s, index) |> string.pop_grapheme {
-    Ok(#(c, _)) -> c
-    Error(Nil) -> ""
-  }
+  bitgroup.decode_unpadded(
+    input,
+    5,
+    alphabet.new(symbols, alphabet.FoldToLower),
+  )
 }

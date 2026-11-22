@@ -1,10 +1,13 @@
 /// Base2 encoding (binary string representation).
 /// Each byte is represented as 8 characters of "0" and "1".
-import gleam/bool
-import gleam/list
-import gleam/string
-import yabase/core/error.{type CodecError, InvalidCharacter, InvalidLength}
+import yabase/core/error.{type CodecError}
 import yabase/core/guard
+import yabase/internal/alphabet
+import yabase/internal/bitgroup
+
+fn binary() -> alphabet.Alphabet {
+  alphabet.new("01", alphabet.CaseSensitive)
+}
 
 /// Encode a BitArray to a binary string (e.g. <<0x41>> -> "01000001").
 ///
@@ -14,86 +17,11 @@ import yabase/core/guard
 /// `yabase/core/guard.assert_byte_aligned`.
 pub fn encode(data: BitArray) -> String {
   guard.assert_byte_aligned(data)
-  encode_bytes(data, [])
-  |> list.reverse
-  |> string.join("")
-}
-
-fn encode_bytes(data: BitArray, acc: List(String)) -> List(String) {
-  case data {
-    <<byte:8, rest:bits>> ->
-      encode_bytes(rest, [encode_byte(byte, 7, ""), ..acc])
-    <<>> -> acc
-    _ ->
-      // Non-byte-aligned tail: should not happen with normal BitArray input.
-      // Encode remaining bits would require padding semantics not defined
-      // for Base2, so we treat this as unreachable.
-      acc
-  }
-}
-
-fn encode_byte(byte: Int, bit: Int, acc: String) -> String {
-  use <- bool.guard(when: bit < 0, return: acc)
-  let digit = case byte / pow2(bit) % 2 {
-    1 -> "1"
-    _ -> "0"
-  }
-  encode_byte(byte, bit - 1, acc <> digit)
-}
-
-fn pow2(n: Int) -> Int {
-  case n {
-    0 -> 1
-    1 -> 2
-    2 -> 4
-    3 -> 8
-    4 -> 16
-    5 -> 32
-    6 -> 64
-    7 -> 128
-    _ -> 1
-  }
+  bitgroup.encode(data, 1, binary(), bitgroup.Unpadded)
 }
 
 /// Decode a binary string to a BitArray.
 /// Input length must be a multiple of 8. Only "0" and "1" are valid.
 pub fn decode(input: String) -> Result(BitArray, CodecError) {
-  let len = string.length(input)
-  case len % 8 {
-    0 -> decode_chars(input, <<>>, 0)
-    _ -> Error(InvalidLength(len))
-  }
-}
-
-fn decode_chars(
-  input: String,
-  acc: BitArray,
-  pos: Int,
-) -> Result(BitArray, CodecError) {
-  case string.length(input) {
-    0 -> Ok(acc)
-    _ -> decode_byte(input, acc, pos, 0, 0)
-  }
-}
-
-fn decode_byte(
-  input: String,
-  acc: BitArray,
-  pos: Int,
-  byte: Int,
-  count: Int,
-) -> Result(BitArray, CodecError) {
-  case count >= 8 {
-    True -> decode_chars(input, <<acc:bits, byte:8>>, pos)
-    False ->
-      case string.pop_grapheme(input) {
-        Error(Nil) -> Ok(<<acc:bits, byte:8>>)
-        Ok(#(c, rest)) ->
-          case c {
-            "0" -> decode_byte(rest, acc, pos + 1, byte * 2, count + 1)
-            "1" -> decode_byte(rest, acc, pos + 1, byte * 2 + 1, count + 1)
-            _ -> Error(InvalidCharacter(c, pos))
-          }
-      }
-  }
+  bitgroup.decode_exact(input, 1, binary())
 }
