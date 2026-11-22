@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.25.0] - 2026-11-22
+
 ### Fixed
 
 - Base8, Base10, Base36, Base58 (Bitcoin and Flickr), Base62, Crockford Base32 and Base58Check now preserve all bytes on JavaScript beyond the safe integer range and terminate for inputs larger than 128 bytes. Leading zero bytes and Crockford checksums are preserved on both targets.
