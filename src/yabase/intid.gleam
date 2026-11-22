@@ -12,10 +12,10 @@
 //// "1"`, the alphabet's zero character; `encode_int_base58(58) ==
 //// "21"`, no leading `"1"`).
 ////
-//// `decode_int_*` is tolerant of leading zero characters
-//// (`decode_int_base58("0042")` and `decode_int_base58("42")` both
-//// return the same `Int`), so input from external sources that
-//// zero-pads is accepted without ceremony.
+//// `decode_int_*` requires canonical text and rejects extra leading zero
+//// characters, alternate letter case and Crockford aliases with
+//// `Error(NonCanonical)`. Base16 accepts both its byte-aligned and compact
+//// encoder outputs. Base58Check requires a minimal non-empty payload.
 ////
 //// `decode_int_*` rejects the empty string with
 //// `Error(InvalidLength(0))` rather than treating it as zero. Callers
@@ -40,10 +40,20 @@
 //// boundary:
 ////
 //// ```gleam
-//// case intid.encode_int_base32_crockford(n) {
-////   Ok(s) -> Ok(s)
-////   Error(intid.NegativeValue(_)) -> Error(MyDomainError.NegativeId(n))
-////   Error(other) -> Error(MyDomainError.CodecFailed(other))
+//// import yabase/core/error
+//// import yabase/intid
+////
+//// pub type IdError {
+////   NegativeId(Int)
+////   CodecFailed(error.CodecError)
+//// }
+////
+//// pub fn encode_id(n: Int) -> Result(String, IdError) {
+////   case intid.encode_int_base32_crockford(n) {
+////     Ok(s) -> Ok(s)
+////     Error(error.NegativeValue(_)) -> Error(NegativeId(n))
+////     Error(other) -> Error(CodecFailed(other))
+////   }
 //// }
 //// ```
 ////
@@ -56,14 +66,17 @@
 //// unbounded `decode_int_*` result into one of those columns
 //// crashes the driver as soon as a user supplies a slightly-too-long
 //// string. For the same reason, JavaScript-target callers cap at
-//// 53 bits (`Number.MAX_SAFE_INTEGER`).
+//// 53 bits (`Number.MAX_SAFE_INTEGER`); JavaScript encoders and decoders
+//// return `Error(Overflow)` before an unsafe value can be rounded.
 ////
 //// Use `decode_int_*_bounded(input:, max:)` whenever the decoded value
 //// flows into a fixed-width sink. The bounded variants return
 //// `Error(Overflow)` if the decoded `Int` exceeds `max`. Common caps
-//// are exported as `int64_max` (signed 64-bit, `2^63 - 1`) and
+//// are exported as `int64_max` (`2^63 - 1` on Erlang, capped at
+//// `2^53 - 1` on JavaScript) and
 //// `int53_max` (JS-safe integer, `2^53 - 1`).
 
+import gleam/bit_array
 import gleam/bool
 import gleam/int
 import gleam/result
@@ -93,11 +106,17 @@ import yabase/core/error.{
 pub type CodecError =
   CoreCodecError
 
+@target(erlang)
 /// Largest value that fits in a signed 64-bit integer (`2^63 - 1`).
 /// Use as the `max` argument to `decode_int_*_bounded` when the
 /// decoded value flows into a column declared `BIGINT` (Postgres,
 /// MySQL) or `INTEGER` (SQLite).
 pub const int64_max: Int = 9_223_372_036_854_775_807
+
+@target(javascript)
+/// JavaScript caps integer IDs at its largest exactly representable integer
+/// (`2^53 - 1`), even when the backing store supports signed 64-bit values.
+pub const int64_max: Int = 9_007_199_254_740_991
 
 /// Largest value that round-trips losslessly through a JavaScript
 /// `number` (`2^53 - 1`, `Number.MAX_SAFE_INTEGER`). Use as the
@@ -117,9 +136,7 @@ pub fn encode_int_base32_rfc4648(value: Int) -> Result(String, CodecError) {
 
 /// Decode a Base32 (RFC 4648) string back to an `Int`.
 pub fn decode_int_base32_rfc4648(input: String) -> Result(Int, CodecError) {
-  use input <- result.try(reject_empty(input))
-  base32_rfc4648.decode(input)
-  |> result.map(bytes_to_int)
+  decode_canonical(input, base32_rfc4648.decode, encode_int_base32_rfc4648)
 }
 
 /// Decode a Base32 (RFC 4648) string back to an `Int`, rejecting
@@ -142,9 +159,7 @@ pub fn encode_int_base32_crockford(value: Int) -> Result(String, CodecError) {
 
 /// Decode a Crockford Base32 string back to an `Int`.
 pub fn decode_int_base32_crockford(input: String) -> Result(Int, CodecError) {
-  use input <- result.try(reject_empty(input))
-  base32_crockford.decode(input)
-  |> result.map(bytes_to_int)
+  decode_canonical(input, base32_crockford.decode, encode_int_base32_crockford)
 }
 
 /// Decode a Crockford Base32 string back to an `Int`, rejecting
@@ -174,9 +189,7 @@ pub fn encode_int_base10(value: Int) -> Result(String, CodecError) {
 
 /// Decode a Base10 (decimal) string back to an `Int`.
 pub fn decode_int_base10(input: String) -> Result(Int, CodecError) {
-  use input <- result.try(reject_empty(input))
-  base10.decode(input)
-  |> result.map(bytes_to_int)
+  decode_canonical(input, base10.decode, encode_int_base10)
 }
 
 /// Decode a Base10 (decimal) string back to an `Int`, rejecting
@@ -197,8 +210,7 @@ pub fn decode_int_base10_bounded(
 /// the rest of the `encode_int_*` family. The output uses the
 /// canonical RFC 4648 §8 uppercase alphabet (`0-9 A-F`) — callers
 /// who need lowercase for interop with `sha256sum`-style tools can
-/// post-process with `string.lowercase` or use `base16.encode_lowercase`
-/// after `int_to_bytes_be` themselves.
+/// post-process with `string.lowercase`.
 ///
 /// ## Byte-aligned vs compact
 ///
@@ -253,9 +265,8 @@ pub fn encode_int_base16(value: Int) -> Result(String, CodecError) {
 /// `decode_int_base16/1` accepts the compact form unchanged
 /// (`decode_int_base16(encode_int_base16_compact(n) |> result.unwrap_or(""))`
 /// round-trips for every non-negative `Int`), because the
-/// underlying `base16.decode` is tolerant of any-length input —
-/// odd-length inputs are zero-padded to the next byte boundary
-/// before decoding.
+/// integer decoder pads odd-length input to a byte boundary before
+/// calling `base16.decode`, whose input must have even length.
 ///
 /// Returns `Error(NegativeValue(value))` for negative inputs; see
 /// the module note on "Negative inputs are rejected".
@@ -266,9 +277,9 @@ pub fn encode_int_base16_compact(value: Int) -> Result(String, CodecError) {
   drop_leading_zero_chars(base16.encode(bytes))
 }
 
-/// Decode a Base16 (hexadecimal) string back to an `Int`. Accepts
-/// both uppercase and lowercase input via `base16.decode`'s
-/// case-insensitive alphabet.
+/// Decode a canonical uppercase Base16 string back to an `Int`.
+/// Accepts the byte-aligned and compact encoder outputs; extra leading
+/// zeros and alternate letter case return `Error(NonCanonical)`.
 ///
 /// Odd-length inputs are accepted and internally zero-padded on the
 /// left to the next byte boundary before being passed to
@@ -286,8 +297,14 @@ pub fn decode_int_base16(input: String) -> Result(Int, CodecError) {
     True -> "0" <> input
     False -> input
   }
-  base16.decode(padded)
-  |> result.map(bytes_to_int)
+  use bytes <- result.try(base16.decode(padded))
+  use value <- result.try(bytes_to_int(bytes))
+  use aligned <- result.try(encode_int_base16(value))
+  use compact <- result.try(encode_int_base16_compact(value))
+  case input == aligned || input == compact {
+    True -> Ok(value)
+    False -> Error(NonCanonical)
+  }
 }
 
 /// Decode a Base16 (hexadecimal) string back to an `Int`, rejecting
@@ -310,9 +327,7 @@ pub fn encode_int_base36(value: Int) -> Result(String, CodecError) {
 
 /// Decode a Base36 string back to an `Int`.
 pub fn decode_int_base36(input: String) -> Result(Int, CodecError) {
-  use input <- result.try(reject_empty(input))
-  base36.decode(input)
-  |> result.map(bytes_to_int)
+  decode_canonical(input, base36.decode, encode_int_base36)
 }
 
 /// Decode a Base36 string back to an `Int`, rejecting values
@@ -352,14 +367,7 @@ pub fn encode_int_base58(value: Int) -> Result(String, CodecError) {
 /// which is the canonical encoding of `0`. Any other input that
 /// starts with `"1"` is `Error(NonCanonical)`. Closes #101.
 pub fn decode_int_base58(input: String) -> Result(Int, CodecError) {
-  use input <- result.try(reject_empty(input))
-  use bytes <- result.try(base58_bitcoin.decode(input))
-  let value = bytes_to_int(bytes)
-  use canonical <- result.try(encode_int_base58(value))
-  case canonical == input {
-    True -> Ok(value)
-    False -> Error(NonCanonical)
-  }
+  decode_canonical(input, base58_bitcoin.decode, encode_int_base58)
 }
 
 /// Decode a Base58 (Bitcoin alphabet) string back to an `Int`,
@@ -382,9 +390,7 @@ pub fn encode_int_base58_flickr(value: Int) -> Result(String, CodecError) {
 
 /// Decode a Base58 (Flickr alphabet) string back to an `Int`.
 pub fn decode_int_base58_flickr(input: String) -> Result(Int, CodecError) {
-  use input <- result.try(reject_empty(input))
-  base58_flickr.decode(input)
-  |> result.map(bytes_to_int)
+  decode_canonical(input, base58_flickr.decode, encode_int_base58_flickr)
 }
 
 /// Decode a Base58 (Flickr alphabet) string back to an `Int`,
@@ -421,9 +427,11 @@ pub fn encode_int_base32_crockford_check(
 pub fn decode_int_base32_crockford_check(
   input: String,
 ) -> Result(Int, CodecError) {
-  use input <- result.try(reject_empty(input))
-  base32_crockford.decode_check(input)
-  |> result.map(bytes_to_int)
+  decode_canonical(
+    input,
+    base32_crockford.decode_check,
+    encode_int_base32_crockford_check,
+  )
 }
 
 /// Decode a checksummed Crockford Base32 string back to an `Int`,
@@ -464,10 +472,8 @@ pub fn encode_int_base58check(value: Int) -> Result(String, CodecError) {
 /// `yabase/base58check.decode/1` directly.
 pub fn decode_int_base58check(input: String) -> Result(Int, CodecError) {
   use input <- result.try(reject_empty(input))
-  case base58check.decode(input) {
-    Error(e) -> Error(e)
-    Ok(decoded) -> Ok(bytes_to_int(decoded.payload))
-  }
+  use decoded <- result.try(base58check.decode(input))
+  canonical_payload(decoded.payload)
 }
 
 /// Decode a Base58Check string back to an `Int`, rejecting payload
@@ -492,9 +498,7 @@ pub fn encode_int_base62(value: Int) -> Result(String, CodecError) {
 
 /// Decode a Base62 string back to an `Int`.
 pub fn decode_int_base62(input: String) -> Result(Int, CodecError) {
-  use input <- result.try(reject_empty(input))
-  base62.decode(input)
-  |> result.map(bytes_to_int)
+  decode_canonical(input, base62.decode, encode_int_base62)
 }
 
 /// Decode a Base62 string back to an `Int`, rejecting values
@@ -603,7 +607,7 @@ fn decode_int_base58check_with_version(
   use input <- result.try(reject_empty(input))
   use decoded <- result.try(base58check.decode(input))
   case decoded.version == version {
-    True -> Ok(bytes_to_int(decoded.payload))
+    True -> canonical_payload(decoded.payload)
     False -> Error(InvalidChecksum)
   }
 }
@@ -635,30 +639,34 @@ fn bound_check(value: Int, max: Int) -> Result(Int, CodecError) {
 // bytes required to represent its magnitude.
 fn int_to_bytes_be(value: Int) -> Result(BitArray, CodecError) {
   use <- bool.guard(when: value < 0, return: Error(NegativeValue(value)))
+  use Nil <- result.try(check_target_range(value))
   case value {
     0 -> Ok(<<0>>)
-    _ -> Ok(accumulate_bytes(value, <<>>))
+    _ -> Ok(accumulate_bytes(value, []))
   }
 }
 
-fn accumulate_bytes(num: Int, acc: BitArray) -> BitArray {
+fn accumulate_bytes(num: Int, acc: List(BitArray)) -> BitArray {
   case num {
-    0 -> acc
+    0 -> bit_array.concat(acc)
     _ -> {
       let byte = num % 256
-      accumulate_bytes(num / 256, <<byte, acc:bits>>)
+      accumulate_bytes(num / 256, [<<byte>>, ..acc])
     }
   }
 }
 
-fn bytes_to_int(data: BitArray) -> Int {
+fn bytes_to_int(data: BitArray) -> Result(Int, CodecError) {
   bytes_to_int_loop(data, 0)
 }
 
-fn bytes_to_int_loop(data: BitArray, acc: Int) -> Int {
+fn bytes_to_int_loop(data: BitArray, acc: Int) -> Result(Int, CodecError) {
   case data {
-    <<byte, rest:bytes>> -> bytes_to_int_loop(rest, acc * 256 + byte)
-    _ -> acc
+    <<byte, rest:bytes>> -> {
+      use Nil <- result.try(check_target_range(acc * 256 + byte))
+      bytes_to_int_loop(rest, acc * 256 + byte)
+    }
+    _ -> Ok(acc)
   }
 }
 
@@ -675,4 +683,39 @@ fn drop_leading_zero_chars(s: String) -> String {
   let rest = string.drop_start(s, 1)
   use <- bool.guard(when: string.is_empty(rest), return: "0")
   drop_leading_zero_chars(rest)
+}
+
+@target(erlang)
+fn check_target_range(_value: Int) -> Result(Nil, CodecError) {
+  Ok(Nil)
+}
+
+@target(javascript)
+fn check_target_range(value: Int) -> Result(Nil, CodecError) {
+  use <- bool.guard(when: value > int53_max, return: Error(Overflow))
+  Ok(Nil)
+}
+
+fn decode_canonical(
+  input: String,
+  decode: fn(String) -> Result(BitArray, CodecError),
+  encode: fn(Int) -> Result(String, CodecError),
+) -> Result(Int, CodecError) {
+  use input <- result.try(reject_empty(input))
+  use bytes <- result.try(decode(input))
+  use value <- result.try(bytes_to_int(bytes))
+  use canonical <- result.try(encode(value))
+  case input == canonical {
+    True -> Ok(value)
+    False -> Error(NonCanonical)
+  }
+}
+
+fn canonical_payload(bytes: BitArray) -> Result(Int, CodecError) {
+  use value <- result.try(bytes_to_int(bytes))
+  use canonical <- result.try(int_to_bytes_be(value))
+  case bytes == canonical {
+    True -> Ok(value)
+    False -> Error(NonCanonical)
+  }
 }

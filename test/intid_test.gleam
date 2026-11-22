@@ -1,4 +1,5 @@
 import gleam/string
+import yabase/base58/bitcoin
 import yabase/core/encoding
 import yabase/core/error.{
   InvalidCharacter, InvalidChecksum, InvalidLength, NegativeValue, NonCanonical,
@@ -56,9 +57,8 @@ pub fn decode_int_base32_crockford_empty_test() -> Nil {
   assert intid.decode_int_base32_crockford("") == Error(InvalidLength(0))
 }
 
-pub fn decode_int_base32_crockford_leading_zero_tolerant_test() -> Nil {
-  assert intid.decode_int_base32_crockford("0042")
-    == intid.decode_int_base32_crockford("42")
+pub fn decode_int_base32_crockford_rejects_leading_zeros_test() -> Nil {
+  assert intid.decode_int_base32_crockford("0042") == Error(NonCanonical)
 }
 
 pub fn decode_int_base32_crockford_roundtrip_test() -> Nil {
@@ -93,12 +93,8 @@ pub fn decode_int_base10_round_trip_test() -> Nil {
   assert intid.decode_int_base10(encoded) == Ok(8_675_309)
 }
 
-pub fn decode_int_base10_leading_zero_tolerant_test() -> Nil {
-  // The byte-roundtrip path treats leading zero characters as
-  // leading 0x00 bytes, which still decode to the same integer
-  // value — matching the behaviour of `decode_int_base36` for
-  // `"0042"` vs `"42"`.
-  assert intid.decode_int_base10("0042") == intid.decode_int_base10("42")
+pub fn decode_int_base10_rejects_leading_zeros_test() -> Nil {
+  assert intid.decode_int_base10("0042") == Error(NonCanonical)
 }
 
 pub fn decode_int_base10_invalid_char_test() -> Nil {
@@ -142,11 +138,9 @@ pub fn decode_int_base16_round_trip_test() -> Nil {
   assert intid.decode_int_base16(encoded) == Ok(8_675_309)
 }
 
-pub fn decode_int_base16_case_insensitive_test() -> Nil {
-  // base16.decode accepts both cases; intid surfaces the same
-  // lenient read behaviour.
-  assert intid.decode_int_base16("DEADBEEF")
-    == intid.decode_int_base16("deadbeef")
+pub fn decode_int_base16_requires_uppercase_test() -> Nil {
+  assert intid.decode_int_base16("deadbeef") == Error(NonCanonical)
+  assert intid.decode_int_base16("DEADBEEF") == Ok(0xDEADBEEF)
 }
 
 pub fn decode_int_base16_invalid_char_test() -> Nil {
@@ -158,8 +152,8 @@ pub fn decode_int_base16_bounded_within_max_test() -> Nil {
 }
 
 pub fn decode_int_base16_bounded_at_max_test() -> Nil {
-  // Hex requires even-length input; "00FF" zero-pads to 4 chars.
-  assert intid.decode_int_base16_bounded(input: "00FF", max: 255) == Ok(255)
+  // The canonical encoding equals the inclusive bound.
+  assert intid.decode_int_base16_bounded(input: "FF", max: 255) == Ok(255)
 }
 
 pub fn decode_int_base16_bounded_overflow_test() -> Nil {
@@ -189,8 +183,8 @@ pub fn decode_int_base36_empty_test() -> Nil {
   assert intid.decode_int_base36("") == Error(InvalidLength(0))
 }
 
-pub fn decode_int_base36_leading_zero_tolerant_test() -> Nil {
-  assert intid.decode_int_base36("0042") == intid.decode_int_base36("42")
+pub fn decode_int_base36_rejects_leading_zeros_test() -> Nil {
+  assert intid.decode_int_base36("0042") == Error(NonCanonical)
 }
 
 pub fn decode_int_base36_roundtrip_test() -> Nil {
@@ -293,8 +287,8 @@ pub fn decode_int_base62_roundtrip_test() -> Nil {
   assert intid.decode_int_base62(encoded) == Ok(2_147_483_647)
 }
 
-pub fn decode_int_base62_leading_zero_tolerant_test() -> Nil {
-  assert intid.decode_int_base62("00abc") == intid.decode_int_base62("abc")
+pub fn decode_int_base62_rejects_leading_zeros_test() -> Nil {
+  assert intid.decode_int_base62("0042") == Error(NonCanonical)
 }
 
 // === Cross-cutting: negative inputs return Error(NegativeValue(_)) (#100) ===
@@ -359,6 +353,7 @@ pub fn encode_int_facade_base58check_negative_returns_error_test() -> Nil {
 
 // === Bounded decode: cap constants ===
 
+@target(erlang)
 pub fn int64_max_constant_test() -> Nil {
   // 2^63 - 1
   assert intid.int64_max == 9_223_372_036_854_775_807
@@ -417,7 +412,7 @@ pub fn decode_int_base58_bounded_just_above_cap_test() -> Nil {
 }
 
 pub fn decode_int_base58_bounded_int53_cap_test() -> Nil {
-  let assert Ok(encoded) = intid.encode_int_base58(intid.int53_max + 1)
+  let encoded = bitcoin.encode(<<0x20, 0, 0, 0, 0, 0, 0>>)
   assert intid.decode_int_base58_bounded(input: encoded, max: intid.int53_max)
     == Error(Overflow)
 }
@@ -787,4 +782,9 @@ pub fn decode_int_facade_base58check_version_mismatch_test() -> Nil {
     intid.encode_int(encoding: encoding.base58_check(5), value: 42)
   assert intid.decode_int(encoding: encoding.base58_check(0), value: s)
     == Error(InvalidChecksum)
+}
+
+@target(javascript)
+pub fn int64_max_is_capped_at_js_safe_integer_test() -> Nil {
+  assert intid.int64_max == intid.int53_max
 }

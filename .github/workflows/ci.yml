@@ -114,5 +114,5 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - run: gleam deps download
-      - run: gleam build --target javascript
+      - run: gleam build --warnings-as-errors --target javascript
       - run: gleam test --target javascript

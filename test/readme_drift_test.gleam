@@ -1,9 +1,8 @@
 import gleam/bool
 import gleam/string
+import readme_table
 import simplifile
-import yabase/internal/readme_table
 
-@target(erlang)
 /// The README declares a fenced section for the multibase prefix
 /// table. The bytes between BEGIN/END must equal what
 /// `readme_table.multibase_prefix_table/0` returns. If a contributor
@@ -11,10 +10,7 @@ import yabase/internal/readme_table
 /// this test will fail until the README is regenerated (via
 /// `just gen-readme`).
 ///
-/// BEAM-only: the test reads `README.md` from the working directory,
-/// which is meaningful only in a development checkout. Running this
-/// on the JavaScript target would just exercise simplifile's Node.js
-/// path with no extra coverage.
+/// Read the checkout on both targets to verify the generated table.
 pub fn multibase_prefix_table_matches_readme_test() -> Nil {
   let assert Ok(readme) = simplifile.read("README.md")
 
