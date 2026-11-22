@@ -21,16 +21,16 @@ import yabase/internal/bitgroup
 
 /// Encode data with a multibase prefix.
 pub fn encode_with_prefix(
-  enc: Encoding,
+  encoding: Encoding,
   data: BitArray,
 ) -> Result(String, CodecError) {
-  case encoding.multibase_prefix(enc) {
+  case encoding.multibase_prefix(encoding) {
     Error(Nil) ->
-      Error(UnsupportedMultibaseEncoding(encoding.multibase_name(enc)))
+      Error(UnsupportedMultibaseEncoding(encoding.multibase_name(encoding)))
     Ok(prefix) ->
-      encode_payload(enc, data)
+      encode_payload(encoding, data)
       |> result.map(fn(encoded) {
-        prefix <> encoding.normalise_for_multibase_prefix(enc, encoded)
+        prefix <> encoding.normalise_for_multibase_prefix(encoding, encoded)
       })
   }
 }
@@ -38,23 +38,26 @@ pub fn encode_with_prefix(
 // Multibase base8 (prefix "7") writes 3-bit groups like RFC 4648 does for
 // base32, while `yabase/base8` treats its input as one number. Only the
 // multibase path uses the bit-group form.
-fn encode_payload(enc: Encoding, data: BitArray) -> Result(String, CodecError) {
-  case enc == encoding.base8() {
+fn encode_payload(
+  encoding: Encoding,
+  data: BitArray,
+) -> Result(String, CodecError) {
+  case encoding == encoding.base8() {
     True -> {
       guard.assert_byte_aligned(data)
       Ok(bitgroup.encode(data, 3, octal(), bitgroup.Unpadded))
     }
-    False -> encoding.encode(enc, data)
+    False -> encoding.encode(encoding, data)
   }
 }
 
 fn decode_payload(
-  enc: Encoding,
+  encoding: Encoding,
   payload: String,
 ) -> Result(BitArray, CodecError) {
-  case enc == encoding.base8() {
+  case encoding == encoding.base8() {
     True -> bitgroup.decode_unpadded(payload, 3, octal())
-    False -> encoding.decode_as(enc, payload)
+    False -> encoding.decode_as(encoding, payload)
   }
 }
 
@@ -69,9 +72,9 @@ pub fn decode(value: String) -> Result(Decoded, CodecError) {
     Ok(#(prefix, rest)) ->
       case encoding.from_multibase_prefix(prefix) {
         Error(Nil) -> Error(UnsupportedPrefix(prefix))
-        Ok(enc) ->
-          decode_payload(enc, rest)
-          |> result.map(fn(data) { encoding.make_decoded(enc, data) })
+        Ok(encoding) ->
+          decode_payload(encoding, rest)
+          |> result.map(fn(data) { encoding.make_decoded(encoding, data) })
       }
   }
 }
@@ -83,7 +86,7 @@ pub fn decode_bytes(value: String) -> Result(BitArray, CodecError) {
     Ok(#(prefix, rest)) ->
       case encoding.from_multibase_prefix(prefix) {
         Error(Nil) -> Error(UnsupportedPrefix(prefix))
-        Ok(enc) -> decode_payload(enc, rest)
+        Ok(encoding) -> decode_payload(encoding, rest)
       }
   }
 }

@@ -62,7 +62,7 @@ verify-readme:
 # runs in CI and fails if the README falls out of sync with the
 # source-of-truth functions in `yabase/core/encoding`).
 gen-readme:
-  gleam run -m yabase/dev/gen_readme
+  gleam run -m gen_readme
 
 ci: deps check
 

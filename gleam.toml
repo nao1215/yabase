@@ -12,7 +12,6 @@ links = [
 internal_modules = [
   "yabase/internal",
   "yabase/internal/*",
-  "yabase/dev/*",
 ]
 
 [dependencies]

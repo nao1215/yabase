@@ -33,28 +33,17 @@ pub fn decode(input: String) -> Result(Base58CheckDecoded, CodecError) {
   case bignum.decode(input, alphabet.new(symbols, alphabet.CaseSensitive)) {
     Error(e) -> Error(e)
     Ok(bytes) -> {
-      let len = bit_array.byte_size(bytes)
-      case len < 5 {
-        True -> Error(InvalidLength(len))
-        False -> {
-          let payload_len = len - 5
-          case bytes {
-            <<
-              version:8,
-              payload:bytes-size(payload_len),
-              checksum:bytes-size(4),
-            >> -> {
-              let versioned = bit_array.append(<<version:int>>, payload)
-              let expected = compute_checksum(versioned)
-              case checksum == expected {
-                True ->
-                  Ok(Base58CheckDecoded(version: version, payload: payload))
-                False -> Error(InvalidChecksum)
-              }
-            }
-            _ -> Error(InvalidLength(len))
+      let length = bit_array.byte_size(bytes)
+      let payload_length = length - 5
+      case bytes {
+        <<version, payload:bytes-size(payload_length), checksum:bytes-size(4)>> -> {
+          let expected = compute_checksum(<<version, payload:bits>>)
+          case checksum == expected {
+            True -> Ok(Base58CheckDecoded(version:, payload:))
+            False -> Error(InvalidChecksum)
           }
         }
+        _ -> Error(InvalidLength(length))
       }
     }
   }

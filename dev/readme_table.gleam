@@ -78,13 +78,14 @@ pub fn multibase_prefix_table() -> String {
 fn rows(prefixes: List(#(String, Encoding)), acc: String) -> String {
   case prefixes {
     [] -> acc
-    [#(prefix, enc), ..rest] -> rows(rest, acc <> render_row(prefix, enc))
+    [#(prefix, encoding), ..rest] ->
+      rows(rest, acc <> render_row(prefix, encoding))
   }
 }
 
-fn render_row(prefix: String, enc: Encoding) -> String {
-  let name = encoding.multibase_name(enc)
-  let support = case encoding.multibase_prefix(enc) {
+fn render_row(prefix: String, encoding: Encoding) -> String {
+  let name = encoding.multibase_name(encoding)
+  let support = case encoding.multibase_prefix(encoding) {
     Ok(canonical) ->
       case canonical == prefix {
         True -> "encode + decode"
