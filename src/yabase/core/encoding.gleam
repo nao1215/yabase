@@ -584,13 +584,29 @@ pub fn multibase_name(enc: Encoding) -> String {
 }
 
 /// Lowercase the dispatcher's output for encodings whose multibase
-/// prefix pins lowercase output (currently `Base16` under prefix `f`).
+/// prefix pins a lowercase payload: `f` (Base16), `c` (Base32 RFC 4648,
+/// padded) and `t` (Base32 Hex, padded).
 pub fn normalise_for_multibase_prefix(
-  enc: Encoding,
+  encoding: Encoding,
   encoded: String,
 ) -> String {
-  case enc {
-    Base16 -> string.lowercase(encoded)
-    _ -> encoded
+  case encoding {
+    Base16 | Base32(RFC4648) | Base32(Hex) -> string.lowercase(encoded)
+    Base2
+    | Base8
+    | Base10
+    | Base32(Crockford)
+    | Base32(CrockfordCheck)
+    | Base32(Clockwork)
+    | Base32(ZBase32)
+    | Base36
+    | Base45
+    | Base58(_)
+    | Base58Check(_)
+    | Base62
+    | Base64(_)
+    | Base85(_)
+    | Base91
+    | Bech32(_, _) -> encoded
   }
 }
