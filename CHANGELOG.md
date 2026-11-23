@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.26.0] - 2026-11-23
+
 ### Changed
 
 - Breaking: consolidate the public API in `yabase`. `encode(data, using:)`, `decode(value, using:)`, `encode_multibase(data, using:)` and `decode_multibase(value)` replace the old root argument order, `core/encoding.encode` / `decode_as`, `core/multibase.encode_with_prefix` / `decode` / `decode_bytes`, codec-level `encode` / `decode`, and all `facade.encode_*` / `decode_*` shortcuts. Every encoder returns `Result(String, CodecError)` and rejects partial bytes with `UnalignedInput(bit_size)`.
