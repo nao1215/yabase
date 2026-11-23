@@ -19,29 +19,45 @@
 ////   - every value's canonical encoding round-trips (the strict
 ////     check does not regress the success path)
 
-import yabase/core/error.{NonCanonical}
-import yabase/intid
+import gleam/option
+import yabase.{NonCanonical}
 
 pub fn decode_int_base58_rejects_single_leading_one_test() -> Nil {
   // `"5Q"` is the canonical encoding of `255`. Prepending one `"1"`
   // is the smallest possible non-canonical input, and the one the
   // issue's repro called out by name.
-  assert intid.decode_int_base58("15Q") == Error(NonCanonical)
+  assert yabase.decode_int(
+      "15Q",
+      using: yabase.Base58Bitcoin,
+      up_to: option.None,
+    )
+    == Error(NonCanonical)
 }
 
 pub fn decode_int_base58_rejects_multiple_leading_ones_test() -> Nil {
   // Two and three leading `"1"` characters must be rejected with
   // the same error — the previous behaviour silently accepted any
   // count, so the regression is best pinned with several lengths.
-  assert intid.decode_int_base58("115Q") == Error(NonCanonical)
-  assert intid.decode_int_base58("1115Q") == Error(NonCanonical)
+  assert yabase.decode_int(
+      "115Q",
+      using: yabase.Base58Bitcoin,
+      up_to: option.None,
+    )
+    == Error(NonCanonical)
+  assert yabase.decode_int(
+      "1115Q",
+      using: yabase.Base58Bitcoin,
+      up_to: option.None,
+    )
+    == Error(NonCanonical)
 }
 
 pub fn decode_int_base58_accepts_canonical_zero_test() -> Nil {
   // `"1"` alone is the canonical encoding of `0`. The single
   // leading `"1"` is therefore valid; the rule is "no *extra*
   // leading `"1"`s", not "no leading `"1"` at all".
-  assert intid.decode_int_base58("1") == Ok(0)
+  assert yabase.decode_int("1", using: yabase.Base58Bitcoin, up_to: option.None)
+    == Ok(0)
 }
 
 pub fn decode_int_base58_rejects_double_one_for_zero_test() -> Nil {
@@ -49,14 +65,29 @@ pub fn decode_int_base58_rejects_double_one_for_zero_test() -> Nil {
   // leading zero bytes -> integer 0). The canonical encoding of
   // `0` is `"1"`, so `"11"` and any longer all-`"1"` string is
   // now `Error(NonCanonical)`.
-  assert intid.decode_int_base58("11") == Error(NonCanonical)
-  assert intid.decode_int_base58("111") == Error(NonCanonical)
+  assert yabase.decode_int(
+      "11",
+      using: yabase.Base58Bitcoin,
+      up_to: option.None,
+    )
+    == Error(NonCanonical)
+  assert yabase.decode_int(
+      "111",
+      using: yabase.Base58Bitcoin,
+      up_to: option.None,
+    )
+    == Error(NonCanonical)
 }
 
 pub fn decode_int_base58_accepts_canonical_encoding_test() -> Nil {
   // The canonical encoding of `255` is `"5Q"` — no leading `"1"`,
   // no padding. The strict decoder accepts it unchanged.
-  assert intid.decode_int_base58("5Q") == Ok(255)
+  assert yabase.decode_int(
+      "5Q",
+      using: yabase.Base58Bitcoin,
+      up_to: option.None,
+    )
+    == Ok(255)
 }
 
 pub fn decode_int_base58_round_trip_canonical_test() -> Nil {
@@ -67,8 +98,13 @@ pub fn decode_int_base58_round_trip_canonical_test() -> Nil {
   // ceiling so the bounded variants do not need their own
   // round-trip suite for these constants.
   let round_trip = fn(n: Int) -> Nil {
-    let assert Ok(encoded) = intid.encode_int_base58(n)
-    assert intid.decode_int_base58(encoded) == Ok(n)
+    let assert Ok(encoded) = yabase.encode_int(n, using: yabase.Base58Bitcoin)
+    assert yabase.decode_int(
+        encoded,
+        using: yabase.Base58Bitcoin,
+        up_to: option.None,
+      )
+      == Ok(n)
   }
   round_trip(0)
   round_trip(1)
@@ -87,13 +123,21 @@ pub fn decode_int_base58_bounded_rejects_leading_one_test() -> Nil {
   // reach for when they care about ID uniqueness most (database
   // lookups, idempotency keys) — exactly the use case that
   // motivated #101.
-  assert intid.decode_int_base58_bounded(input: "15Q", max: intid.int64_max)
+  assert yabase.decode_int(
+      "15Q",
+      using: yabase.Base58Bitcoin,
+      up_to: option.Some(yabase.int64_max),
+    )
     == Error(NonCanonical)
 }
 
 pub fn decode_int_base58_bounded_accepts_canonical_test() -> Nil {
   // Mirror of the above on the success path: a canonical input
   // within range still decodes through the bounded variant.
-  assert intid.decode_int_base58_bounded(input: "5Q", max: intid.int64_max)
+  assert yabase.decode_int(
+      "5Q",
+      using: yabase.Base58Bitcoin,
+      up_to: option.Some(yabase.int64_max),
+    )
     == Ok(255)
 }

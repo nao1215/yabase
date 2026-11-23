@@ -1,29 +1,26 @@
-import yabase/base58check
-import yabase/core/error.{
-  InvalidCharacter, InvalidChecksum, InvalidLength, Overflow,
-}
+import yabase.{InvalidCharacter, InvalidChecksum, InvalidLength}
 
 // --- Roundtrip ---
 
 pub fn roundtrip_version0_test() -> Nil {
   let payload = <<1, 2, 3, 4, 5>>
-  let assert Ok(encoded) = base58check.encode(0, payload)
-  let assert Ok(decoded) = base58check.decode(encoded)
+  let assert Ok(encoded) = yabase.encode(payload, using: yabase.Base58Check(0))
+  let assert Ok(decoded) = yabase.decode_base58check(encoded)
   assert decoded.version == 0
   assert decoded.payload == payload
 }
 
 pub fn roundtrip_version5_test() -> Nil {
   let payload = <<0xde, 0xad, 0xbe, 0xef>>
-  let assert Ok(encoded) = base58check.encode(5, payload)
-  let assert Ok(decoded) = base58check.decode(encoded)
+  let assert Ok(encoded) = yabase.encode(payload, using: yabase.Base58Check(5))
+  let assert Ok(decoded) = yabase.decode_base58check(encoded)
   assert decoded.version == 5
   assert decoded.payload == payload
 }
 
 pub fn roundtrip_empty_payload_test() -> Nil {
-  let assert Ok(encoded) = base58check.encode(0, <<>>)
-  let assert Ok(decoded) = base58check.decode(encoded)
+  let assert Ok(encoded) = yabase.encode(<<>>, using: yabase.Base58Check(0))
+  let assert Ok(decoded) = yabase.decode_base58check(encoded)
   assert decoded.version == 0
   assert decoded.payload == <<>>
 }
@@ -31,39 +28,41 @@ pub fn roundtrip_empty_payload_test() -> Nil {
 // --- Determinism ---
 
 pub fn deterministic_encode_test() -> Nil {
-  let assert Ok(a) = base58check.encode(0, <<0xab, 0xcd>>)
-  let assert Ok(b) = base58check.encode(0, <<0xab, 0xcd>>)
+  let assert Ok(a) = yabase.encode(<<0xab, 0xcd>>, using: yabase.Base58Check(0))
+  let assert Ok(b) = yabase.encode(<<0xab, 0xcd>>, using: yabase.Base58Check(0))
   assert a == b
 }
 
 // --- Version boundary ---
 
 pub fn encode_version_0_ok_test() -> Nil {
-  assert case base58check.encode(0, <<>>) {
+  assert case yabase.encode(<<>>, using: yabase.Base58Check(0)) {
     Ok(_) -> True
     _ -> False
   }
 }
 
 pub fn encode_version_255_ok_test() -> Nil {
-  assert case base58check.encode(255, <<>>) {
+  assert case yabase.encode(<<>>, using: yabase.Base58Check(255)) {
     Ok(_) -> True
     _ -> False
   }
 }
 
 pub fn encode_version_256_error_test() -> Nil {
-  assert base58check.encode(256, <<>>) == Error(Overflow)
+  assert yabase.encode(<<>>, using: yabase.Base58Check(256))
+    == Error(yabase.InvalidVersion(256))
 }
 
 pub fn encode_version_negative_error_test() -> Nil {
-  assert base58check.encode(-1, <<>>) == Error(Overflow)
+  assert yabase.encode(<<>>, using: yabase.Base58Check(-1))
+    == Error(yabase.InvalidVersion(-1))
 }
 
 pub fn encode_version_256_same_as_0_prevented_test() -> Nil {
   // This was the original bug: encode(256, <<>>) silently truncated to version 0
-  let assert Ok(v0) = base58check.encode(0, <<>>)
-  assert base58check.encode(256, <<>>) != Ok(v0)
+  let assert Ok(v0) = yabase.encode(<<>>, using: yabase.Base58Check(0))
+  assert yabase.encode(<<>>, using: yabase.Base58Check(256)) != Ok(v0)
 }
 
 // --- Published Bitcoin vector ---
@@ -74,7 +73,7 @@ pub fn encode_version_256_same_as_0_prevented_test() -> Nil {
 
 pub fn bitcoin_wiki_vector_decode_test() -> Nil {
   let assert Ok(decoded) =
-    base58check.decode("16UwLL9Risc3QfPqBUvKofHmBQ7wMtjvM")
+    yabase.decode_base58check("16UwLL9Risc3QfPqBUvKofHmBQ7wMtjvM")
   assert decoded.version == 0
   assert decoded.payload
     == <<
@@ -87,8 +86,8 @@ pub fn bitcoin_wiki_vector_decode_test() -> Nil {
 
 pub fn known_vector_all_zeros_20byte_test() -> Nil {
   let payload = <<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>>
-  let assert Ok(encoded) = base58check.encode(0, payload)
-  let assert Ok(decoded) = base58check.decode(encoded)
+  let assert Ok(encoded) = yabase.encode(payload, using: yabase.Base58Check(0))
+  let assert Ok(decoded) = yabase.decode_base58check(encoded)
   assert decoded.version == 0
   assert decoded.payload == payload
 }
@@ -96,16 +95,17 @@ pub fn known_vector_all_zeros_20byte_test() -> Nil {
 // --- Error cases ---
 
 pub fn decode_too_short_test() -> Nil {
-  assert case base58check.decode("1") {
+  assert case yabase.decode_base58check("1") {
     Error(InvalidLength(_)) -> True
     _ -> False
   }
 }
 
 pub fn decode_invalid_checksum_test() -> Nil {
-  let assert Ok(encoded) = base58check.encode(0, <<1, 2, 3>>)
+  let assert Ok(encoded) =
+    yabase.encode(<<1, 2, 3>>, using: yabase.Base58Check(0))
   let corrupted = encoded <> "1"
-  assert case base58check.decode(corrupted) {
+  assert case yabase.decode_base58check(corrupted) {
     Error(InvalidChecksum) -> True
     _ -> False
   }
@@ -113,23 +113,25 @@ pub fn decode_invalid_checksum_test() -> Nil {
 
 // Invalid Base58 characters must propagate through base58check.decode
 pub fn decode_invalid_char_zero_test() -> Nil {
-  assert base58check.decode("0invalid") == Error(InvalidCharacter("0", 0))
+  assert yabase.decode_base58check("0invalid")
+    == Error(InvalidCharacter("0", 0))
 }
 
 pub fn decode_invalid_char_uppercase_o_test() -> Nil {
-  assert base58check.decode("O") == Error(InvalidCharacter("O", 0))
+  assert yabase.decode_base58check("O") == Error(InvalidCharacter("O", 0))
 }
 
 pub fn decode_invalid_char_uppercase_i_test() -> Nil {
-  assert base58check.decode("I") == Error(InvalidCharacter("I", 0))
+  assert yabase.decode_base58check("I") == Error(InvalidCharacter("I", 0))
 }
 
 pub fn decode_invalid_char_lowercase_l_test() -> Nil {
-  assert base58check.decode("l") == Error(InvalidCharacter("l", 0))
+  assert yabase.decode_base58check("l") == Error(InvalidCharacter("l", 0))
 }
 
 pub fn decode_invalid_char_middle_test() -> Nil {
-  assert base58check.decode("111O1111") == Error(InvalidCharacter("O", 3))
+  assert yabase.decode_base58check("111O1111")
+    == Error(InvalidCharacter("O", 3))
 }
 
 // === Cross-reference: bitcoinjs/bs58check fixtures ===
@@ -137,7 +139,7 @@ pub fn decode_invalid_char_middle_test() -> Nil {
 
 pub fn bs58check_vector_1agn_test() -> Nil {
   let assert Ok(decoded) =
-    base58check.decode("1AGNa15ZQXAZUgFiqJ2i7Z2DPU2J6hW62i")
+    yabase.decode_base58check("1AGNa15ZQXAZUgFiqJ2i7Z2DPU2J6hW62i")
   assert decoded.version == 0x00
   assert decoded.payload
     == <<
@@ -166,7 +168,7 @@ pub fn bs58check_vector_1agn_test() -> Nil {
 
 pub fn bs58check_vector_3cmn_test() -> Nil {
   let assert Ok(decoded) =
-    base58check.decode("3CMNFxN1oHBc4R1EpboAL5yzHGgE611Xou")
+    yabase.decode_base58check("3CMNFxN1oHBc4R1EpboAL5yzHGgE611Xou")
   assert decoded.version == 0x05
   assert decoded.payload
     == <<
@@ -195,13 +197,13 @@ pub fn bs58check_vector_3cmn_test() -> Nil {
 
 pub fn bs58check_vector_mo9n_test() -> Nil {
   let assert Ok(decoded) =
-    base58check.decode("mo9ncXisMeAoXwqcV5EWuyncbmCcQN4rVs")
+    yabase.decode_base58check("mo9ncXisMeAoXwqcV5EWuyncbmCcQN4rVs")
   assert decoded.version == 0x6f
 }
 
 pub fn bs58check_vector_1ax4_test() -> Nil {
   let assert Ok(decoded) =
-    base58check.decode("1Ax4gZtb7gAit2TivwejZHYtNNLT18PUXJ")
+    yabase.decode_base58check("1Ax4gZtb7gAit2TivwejZHYtNNLT18PUXJ")
   assert decoded.version == 0x00
   assert decoded.payload
     == <<

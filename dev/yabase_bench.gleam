@@ -3,7 +3,7 @@ import gleam/int
 import gleam/io
 import gleam/list
 import gleam/string
-import yabase/core/encoding
+import yabase
 
 @external(erlang, "yabase_bench_ffi", "now_ms")
 @external(javascript, "./yabase_bench_ffi.mjs", "now_ms")
@@ -28,30 +28,30 @@ fn pattern_loop(index: Int, count: Int, chunks: List(BitArray)) -> BitArray {
   }
 }
 
-fn codec(name: String) -> encoding.Encoding {
+fn codec(name: String) -> yabase.Encoding {
   case name {
-    "base2" -> encoding.base2()
-    "base8" -> encoding.base8()
-    "base10" -> encoding.base10()
-    "base16" -> encoding.base16()
-    "base32" -> encoding.base32_rfc4648()
-    "base32hex" -> encoding.base32_hex()
-    "zbase32" -> encoding.base32_z_base32()
-    "clockwork" -> encoding.base32_clockwork()
-    "crockford" -> encoding.base32_crockford()
-    "base36" -> encoding.base36()
-    "base45" -> encoding.base45()
-    "base58" -> encoding.base58_bitcoin()
-    "base62" -> encoding.base62()
-    "base64" -> encoding.base64_standard()
-    "base64url" -> encoding.base64_url_safe()
-    "base64nopad" -> encoding.base64_no_padding()
-    "dq" -> encoding.base64_dq()
-    "ascii85" -> encoding.base85_btoa()
-    "adobe" -> encoding.base85_adobe()
-    "rfc1924" -> encoding.base85_rfc1924()
-    "z85" -> encoding.base85_z85()
-    _ -> encoding.base91()
+    "base2" -> yabase.Base2
+    "base8" -> yabase.Base8
+    "base10" -> yabase.Base10
+    "base16" -> yabase.Base16
+    "base32" -> yabase.Base32Rfc4648
+    "base32hex" -> yabase.Base32Hex
+    "zbase32" -> yabase.Zbase32
+    "clockwork" -> yabase.Base32Clockwork
+    "crockford" -> yabase.Base32Crockford
+    "base36" -> yabase.Base36
+    "base45" -> yabase.Base45
+    "base58" -> yabase.Base58Bitcoin
+    "base62" -> yabase.Base62
+    "base64" -> yabase.Base64
+    "base64url" -> yabase.Base64UrlSafe
+    "base64nopad" -> yabase.Base64NoPadding
+    "dq" -> yabase.Base64Dq
+    "ascii85" -> yabase.Ascii85
+    "adobe" -> yabase.AdobeAscii85
+    "rfc1924" -> yabase.Rfc1924Base85
+    "z85" -> yabase.Z85
+    _ -> yabase.Base91
   }
 }
 
@@ -63,15 +63,15 @@ pub fn main() -> Nil {
   case operation {
     "encoding" -> {
       let started = now_ms()
-      let assert Ok(_) = encoding.encode(encoding, data)
+      let assert Ok(_) = yabase.encode(data, using: encoding)
       io.println(
         case_name() <> " " <> int.to_string(now_ms() - started) <> " ms",
       )
     }
     _ -> {
-      let assert Ok(text) = encoding.encode(encoding, data)
+      let assert Ok(text) = yabase.encode(data, using: encoding)
       let started = now_ms()
-      let assert Ok(decoded) = encoding.decode_as(encoding, text)
+      let assert Ok(decoded) = yabase.decode(text, using: encoding)
       let elapsed = now_ms() - started
       let status = case decoded == data {
         True -> "ok"

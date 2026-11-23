@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- Breaking: consolidate the public API in `yabase`. `encode(data, using:)`, `decode(value, using:)`, `encode_multibase(data, using:)` and `decode_multibase(value)` replace the old root argument order, `core/encoding.encode` / `decode_as`, `core/multibase.encode_with_prefix` / `decode` / `decode_bytes`, codec-level `encode` / `decode`, and all `facade.encode_*` / `decode_*` shortcuts. Every encoder returns `Result(String, CodecError)` and rejects partial bytes with `UnalignedInput(bit_size)`.
+- Replace the selection helpers in `core/encoding` with public `Encoding` constructors. Remove `Base32Variant`, `Base58Variant`, `Base64Variant` and `Base85Variant`; their choices are direct encoding variants. `Base16Lowercase` retains `base16.encode_lowercase` and `facade.encode_base16_lowercase`. `Base32CrockfordCheck` retains `encode_check` / `decode_check`, and `Bech32Encoding(hrp, Bech32m)` retains `bech32.encode_default`.
+- Move `CodecError`, `Encoding`, `Decoded`, `Base58CheckDecoded`, `Bech32Decoded`, `Bech32Variant`, `int53_max` and `int64_max` to the root. Remove the `CodecError` aliases, `decoded_data` / `decoded_encoding` getters, and opacity from the decoded records. Their fields are public. `decode_base58check` and `decode_bech32` preserve automatic metadata decoding; `decode_base16_strict`, `decode_base32_strict` and `decode_base64_strict` preserve the three strict decoders.
+- Replace `intid.encode_int_*`, `decode_int_*`, `decode_int_*_bounded` and `decode_int_bounded` with `encode_int(value, using:)` and `decode_int(value, using:, up_to:)`. Keep `encode_int_base16_compact` for its distinct spelling and `decode_int_base58check(value, up_to:)` for version-independent decoding. All ten integer formats remain supported, with inclusive optional bounds, canonical representations and existing target limits.
+- Rename `multibase_name` to `encoding_to_string` and `from_multibase_prefix` to `encoding_from_multibase_prefix`; keep `multibase_prefix` at the root. Preserve all 23 accepted prefixes. Remove `Target`, `target_erlang`, `target_javascript`, `supports_target` and `is_javascript_safe`; every byte codec supports both targets. `IntCodec`, `int_codec`, `normalise_for_multibase_prefix` and `core/guard.assert_byte_aligned` are no longer public. Multibase normalization and byte alignment are handled by the consuming operations.
+- Distinguish invalid Base58Check versions and metadata mismatches with `InvalidVersion`, `UnexpectedVersion`, `UnexpectedHrp` and `UnexpectedBech32Variant`. Bech32 reports `MixedCase` and `NonZeroPadding`; Adobe reports `MissingDelimiter` with an original-input insertion boundary. Actual checksum failures remain `InvalidChecksum`.
+- Delegate hexadecimal and the four ASCII Base64 encoders to `gleam_stdlib` after byte-alignment validation. Keep format-specific decoders for their diagnostics and accepted wire forms.
+
+For example, the former Base64 facade call returned a string:
+
+```gleam
+// Before
+import yabase/facade
+let encoded = facade.encode_base64(<<"Hello":utf8>>)
+
+// After
+import yabase
+let assert Ok(encoded) = yabase.encode(<<"Hello":utf8>>, using: yabase.Base64)
+```
+
+### Fixed
+
+- Report the original invalid grapheme and its zero-based position through compact hexadecimal padding, Bech32 separators, Adobe outer whitespace, multibase prefixes and Crockford ignored hyphens. ASCII case folding no longer changes the character reported to callers.
+- Reject a combining mark immediately after Adobe's opening delimiter instead of dropping it and sometimes accepting malformed input as empty bytes. Delimiters are sliced by their ASCII byte width. Preserve the existing empty `<~>` spelling and the canonical `<~~>` output, and use the same outer whitespace set on both targets and supported standard-library versions.
+- Keep Base58Check wire/checksum validation before expected-version validation, and distinguish a valid payload with mismatched metadata from a bad checksum. Preserve error precedence before optional integer bounds.
+
+### Documentation
+
+- Rewrite public API docs and executable examples around the root API. Shorten README and update contribution and testing instructions. Strengthen README verification so zero discovered examples or an incomplete code fence fails, and preserve the complete generated multibase registry table.
+
 ## [0.25.0] - 2026-11-22
 
 ### Fixed

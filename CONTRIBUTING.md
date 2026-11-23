@@ -1,171 +1,70 @@
-# Contributing Guide
+# Contributing
 
-## Introduction
+Report bugs with a small input, the expected result, the actual error or output,
+and your yabase, Gleam and runtime versions. Check existing issues before
+proposing a new encoding or changing an accepted wire format.
 
-Thank you for considering contributing to the yabase project! This document explains how to contribute. We welcome all forms of contributions, including code contributions, documentation improvements, bug reports, and feature suggestions.
+## Development
 
-## Setting Up Development Environment
+Use Gleam 1.15 or later, Erlang/OTP 26 or later, Node.js 18 or later, and
+[just](https://just.systems/). [mise](https://mise.jdx.dev/) can install the
+versions in `.mise.toml`.
 
-### Prerequisites
-
-- [Gleam](https://gleam.run/) 1.15 or later (`.mise.toml` pins the version CI uses for formatting)
-- [Erlang/OTP](https://www.erlang.org/) 26 or later
-- [just](https://just.systems/) (task runner)
-- [mise](https://mise.jdx.dev/) (recommended for managing Gleam and Erlang versions)
-
-### Cloning the Project
-
-```bash
+```sh
 git clone https://github.com/nao1215/yabase.git
 cd yabase
-```
-
-### Installing Tools
-
-```bash
-mise install       # install Gleam and Erlang
-gleam deps download
-```
-
-### Verification
-
-```bash
+mise install
 just ci
+gleam build --target javascript --warnings-as-errors
+gleam test --target javascript
 ```
 
-## Development Workflow
+`just ci` downloads dependencies and checks formatting, lint, the Erlang build,
+tests, examples and README code blocks. Run the JavaScript commands too when
+changing codec behavior. The GitHub workflows test the supported compiler and
+runtime versions. `just gen-readme` prints the multibase table; paste it between
+the existing markers in README when registry entries change.
 
-### Branch Strategy
+## API and implementation
 
-- `main` branch is the latest stable version
-- Create new branches from `main` for new features or bug fixes
-- Branch naming examples:
-  - `feature/add-base85-variant` -- New feature
-  - `fix/issue-123` -- Bug fix
-  - `docs/update-readme` -- Documentation update
+The public API lives in `src/yabase.gleam`. Select codecs through `Encoding` and
+use the subject-first encoding and decoding functions. Encoders return
+`Result(String, CodecError)`; byte decoders return bytes or a metadata record.
+Public records expose decoded metadata directly. Add a public type or function
+only when it expresses behavior that the existing operations cannot express.
 
-### Coding Standards
+Implementation helpers remain private. The SHA-256 implementation is an
+internal module. Prefer Gleam and standard-library operations over new runtime
+dependencies or FFI. Keep byte operations independent of the host integer
+range, preserve leading zeros, and keep intermediate arithmetic exact on both
+targets.
 
-This project follows these standards:
+When adding an encoding, document its alphabet, padding, metadata and accepted
+noncanonical forms. Add its `Encoding` variant and dispatch, then a multibase
+entry if the registry assigns one. Include independent wire vectors, malformed
+input, partial-byte input and leading-zero tests. A matching encoder/decoder
+round trip alone cannot establish conformance.
 
-1. **Follow the [Gleam language guide](https://gleam.run/)**
-2. **Keep the public API surface small** -- use `pub opaque type` where appropriate
-3. **Pure functions only** -- no actors or OTP in this library
-4. **Consistent module interfaces** -- encode functions return `String` for total encodings, `Result(String, CodecError)` for constrained ones (Base85 Z85/Rfc1924, Bech32, Base58Check). Decode functions return `Result(BitArray, CodecError)` for low-level modules, `Result(Decoded, CodecError)` for `yabase.decode_multibase`, `Result(Bech32Decoded, CodecError)` for `bech32.decode`, and `Result(Base58CheckDecoded, CodecError)` for `base58check.decode`
-5. **Add doc comments to all public functions and types**
-6. **No `@external` unless absolutely necessary** -- prefer pure Gleam implementations
+## Tests and documentation
 
-### Writing Tests
+Write a reproducing test before fixing a bug. Preserve the original character
+and grapheme position in decoding errors, including ignored separators and
+multibase prefixes. Combined invalid inputs should verify which validation
+stage wins. Integer decoding must check syntax, metadata, target range and
+canonical representation before an explicit upper bound.
 
-Tests are organized by encoding module, mirroring the source structure.
+Document public functions, types, variants and constants. Give executable
+examples with literal expected output. Update README examples and the generated
+prefix table when their public calls change; keep detailed contracts in the
+API reference. [Testing](doc/testing.md) describes the suite and its oracles.
 
-1. **Test fixed vectors** from RFCs or reference implementations
-2. **Test roundtrip** -- `decode(encode(data)) == Ok(data)` for a standard corpus
-3. **Test error cases** -- invalid characters, invalid lengths, invalid padding positions
-4. **Test edge cases** -- empty input, single byte, leading zeros, all-zeros, high-bit bytes
+## Pull requests
 
-```bash
-just test     # run all tests
-just lint     # run glinter
-just check    # format check, lint, typecheck, build, test
-```
-
-### Adding a New Encoding
-
-When adding a new encoding:
-
-1. Create the encoding module in `src/yabase/` (or a subdirectory for variants)
-2. Implement `encode` and `decode` functions with the standard signatures
-3. Add the variant to `Encoding` type in `src/yabase/core/encoding.gleam`
-4. Add dispatch entries in `src/yabase/core/dispatcher.gleam` (internal module)
-5. Add facade shortcut functions in `src/yabase/facade.gleam`
-6. Add a multibase prefix mapping in `src/yabase/core/multibase.gleam` (if applicable)
-7. Add comprehensive tests in `test/`
-8. Update the module table in `README.md`
-
-## Using AI Assistants (LLMs)
-
-We actively encourage the use of AI coding assistants to improve productivity and code quality. Tools like Claude Code, GitHub Copilot, and Cursor are welcome for:
-
-- Writing boilerplate code
-- Generating comprehensive test cases
-- Improving documentation
-- Refactoring existing code
-
-### Guidelines for AI-Assisted Development
-
-1. **Review all generated code**: Always review and understand AI-generated code before committing
-2. **Maintain consistency**: Ensure AI-generated code follows the coding standards described in this document and the project's conventions
-3. **Test thoroughly**: AI-generated code must pass `just ci`
-
-## Creating Pull Requests
-
-### Preparation
-
-1. **Check or Create Issues**
-   - Check if there are existing issues
-   - For major changes, discuss the approach in an issue first
-
-2. **Write Tests**
-   - Always add tests for new features
-   - For bug fixes, create tests that reproduce the bug
-
-3. **Quality Check**
-   ```bash
-   just ci
-   ```
-
-### Submitting Pull Request
-
-1. Create a Pull Request from your forked repository to the main repository
-2. PR title should briefly describe the changes
-3. Include the following in PR description:
-   - Purpose and content of changes
-   - Related issue number (if any)
-   - Test method
-
-### About CI/CD
-
-GitHub Actions automatically checks the following items:
-
-- **Format check**: `gleam format --check`
-- **Lint**: `gleam run -m glinter`
-- **Build**: `gleam build`
-- **Test**: `gleam test`
-
-Merging is not possible unless all checks pass.
-
-## Bug Reports
-
-When you find a bug, please create an issue with the following information:
-
-1. **Environment Information**
-   - OS and version
-   - Gleam version
-   - Erlang/OTP version
-   - yabase version
-
-2. **Reproduction Steps**
-   - Minimal code example to reproduce the bug
-
-3. **Expected and Actual Behavior**
-
-4. **Error Messages or Stack Traces** (if any)
-
-## Contributing Outside of Coding
-
-The following activities are also greatly welcomed:
-
-- **Give a GitHub Star**: Show your interest in the project
-- **Promote the Project**: Introduce it in blogs, social media, study groups, etc.
-- **Become a GitHub Sponsor**: Support available at [https://github.com/sponsors/nao1215](https://github.com/sponsors/nao1215)
-- **Documentation Improvements**: Fix typos, improve clarity of explanations
-- **Feature Suggestions**: Share new encoding ideas in issues
+Describe the behavior change, its reason, and the checks you ran. Include
+reproductions for defects and name any public contract that changes. All CI
+checks must pass before merge. Review generated code and documentation as you
+would any other contribution.
 
 ## License
 
-Contributions to this project are considered to be released under the project's license (MIT License).
-
----
-
-Thank you again for considering contributing! We sincerely look forward to your participation.
+Contributions are released under the [MIT license](LICENSE).

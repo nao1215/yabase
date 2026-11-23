@@ -6,61 +6,69 @@
 //// at least one full group, so a position computed from the wrong
 //// group start, or that forgets skipped whitespace, is caught.
 
+import yabase.{InvalidCharacter}
+
 import gleam/list
 import gleam/string
-import yabase/adobe_ascii85
-import yabase/ascii85
-import yabase/base32/clockwork
-import yabase/base32/hex
-import yabase/base32/rfc4648
-import yabase/base32/zbase32
-import yabase/base45
-import yabase/base64/dq
-import yabase/base64/standard
-import yabase/base64/urlsafe
-import yabase/base91
-import yabase/core/error.{InvalidCharacter}
-import yabase/rfc1924_base85
-import yabase/z85
 
 pub fn base64_reports_a_misplaced_pad_at_its_index_test() -> Nil {
-  assert standard.decode("QUJD=BCD") == Error(InvalidCharacter("=", 4))
-  assert standard.decode("QUJDQ=CD") == Error(InvalidCharacter("=", 5))
-  assert standard.decode("QUJDQU=D") == Error(InvalidCharacter("=", 6))
-  assert standard.decode("QUJD=A==") == Error(InvalidCharacter("=", 4))
-  assert standard.decode("QUJDQ=A=") == Error(InvalidCharacter("=", 5))
-  assert urlsafe.decode("QUJD=BCD") == Error(InvalidCharacter("=", 4))
-  assert urlsafe.decode("QUJDQ=CD") == Error(InvalidCharacter("=", 5))
-  assert urlsafe.decode("QUJDQU=D") == Error(InvalidCharacter("=", 6))
+  assert yabase.decode("QUJD=BCD", using: yabase.Base64)
+    == Error(InvalidCharacter("=", 4))
+  assert yabase.decode("QUJDQ=CD", using: yabase.Base64)
+    == Error(InvalidCharacter("=", 5))
+  assert yabase.decode("QUJDQU=D", using: yabase.Base64)
+    == Error(InvalidCharacter("=", 6))
+  assert yabase.decode("QUJD=A==", using: yabase.Base64)
+    == Error(InvalidCharacter("=", 4))
+  assert yabase.decode("QUJDQ=A=", using: yabase.Base64)
+    == Error(InvalidCharacter("=", 5))
+  assert yabase.decode("QUJD=BCD", using: yabase.Base64UrlSafe)
+    == Error(InvalidCharacter("=", 4))
+  assert yabase.decode("QUJDQ=CD", using: yabase.Base64UrlSafe)
+    == Error(InvalidCharacter("=", 5))
+  assert yabase.decode("QUJDQU=D", using: yabase.Base64UrlSafe)
+    == Error(InvalidCharacter("=", 6))
 }
 
 pub fn base64_dq_reports_the_grapheme_index_test() -> Nil {
-  assert dq.decode("あいう!") == Error(InvalidCharacter("!", 3))
-  assert dq.decode("あい!う") == Error(InvalidCharacter("!", 2))
+  assert yabase.decode("あいう!", using: yabase.Base64Dq)
+    == Error(InvalidCharacter("!", 3))
+  assert yabase.decode("あい!う", using: yabase.Base64Dq)
+    == Error(InvalidCharacter("!", 2))
 }
 
 pub fn base32_reports_a_misplaced_pad_at_its_index_test() -> Nil {
-  assert rfc4648.decode("MFRGG=A=") == Error(InvalidCharacter("=", 5))
-  assert rfc4648.decode("MF=GGZDF") == Error(InvalidCharacter("=", 2))
-  assert hex.decode("C5H66=A=") == Error(InvalidCharacter("=", 5))
-  assert hex.decode("C5=66P35") == Error(InvalidCharacter("=", 2))
+  assert yabase.decode("MFRGG=A=", using: yabase.Base32Rfc4648)
+    == Error(InvalidCharacter("=", 5))
+  assert yabase.decode("MF=GGZDF", using: yabase.Base32Rfc4648)
+    == Error(InvalidCharacter("=", 2))
+  assert yabase.decode("C5H66=A=", using: yabase.Base32Hex)
+    == Error(InvalidCharacter("=", 5))
+  assert yabase.decode("C5=66P35", using: yabase.Base32Hex)
+    == Error(InvalidCharacter("=", 2))
 }
 
 pub fn base32_variants_report_an_invalid_character_at_its_index_test() -> Nil {
-  assert clockwork.decode("CSQPYRK1!") == Error(InvalidCharacter("!", 8))
-  assert zbase32.decode("cfmzhxbx!") == Error(InvalidCharacter("!", 8))
+  assert yabase.decode("CSQPYRK1!", using: yabase.Base32Clockwork)
+    == Error(InvalidCharacter("!", 8))
+  assert yabase.decode("cfmzhxbx!", using: yabase.Zbase32)
+    == Error(InvalidCharacter("!", 8))
 }
 
 pub fn ascii85_family_reports_an_invalid_character_at_its_index_test() -> Nil {
-  assert ascii85.decode("87cURD]i,\"Ebo80~") == Error(InvalidCharacter("~", 15))
-  assert ascii85.decode("87cU RD]v,\"Ebo80") == Error(InvalidCharacter("v", 8))
-  assert adobe_ascii85.decode("<~87cU RD]v,\"Ebo80~>")
+  assert yabase.decode("87cURD]i,\"Ebo80~", using: yabase.Ascii85)
+    == Error(InvalidCharacter("~", 15))
+  assert yabase.decode("87cU RD]v,\"Ebo80", using: yabase.Ascii85)
+    == Error(InvalidCharacter("v", 8))
+  assert yabase.decode("<~87cU RD]v,\"Ebo80~>", using: yabase.AdobeAscii85)
     == Error(InvalidCharacter("v", 10))
-  assert z85.decode("HelloWorl~") == Error(InvalidCharacter("~", 9))
-  assert z85.decode("Hello~orld") == Error(InvalidCharacter("~", 5))
-  assert rfc1924_base85.decode("HelloWorl\"")
+  assert yabase.decode("HelloWorl~", using: yabase.Z85)
+    == Error(InvalidCharacter("~", 9))
+  assert yabase.decode("Hello~orld", using: yabase.Z85)
+    == Error(InvalidCharacter("~", 5))
+  assert yabase.decode("HelloWorl\"", using: yabase.Rfc1924Base85)
     == Error(InvalidCharacter("\"", 9))
-  assert rfc1924_base85.decode("Hello\"orld")
+  assert yabase.decode("Hello\"orld", using: yabase.Rfc1924Base85)
     == Error(InvalidCharacter("\"", 5))
 }
 
@@ -72,13 +80,15 @@ pub fn ascii85_counts_every_skipped_grapheme_test() -> Nil {
   list.each(whitespace, fn(ws) {
     let inside = "87cU" <> ws <> "RD]"
     let between = "87cUR" <> ws <> "D]"
-    assert ascii85.decode(inside <> "v")
+    assert yabase.decode(inside <> "v", using: yabase.Ascii85)
       == Error(InvalidCharacter("v", string.length(inside)))
-    assert ascii85.decode(between <> "v")
+    assert yabase.decode(between <> "v", using: yabase.Ascii85)
       == Error(InvalidCharacter("v", string.length(between)))
   })
-  assert ascii85.decode("zD]v") == Error(InvalidCharacter("v", 3))
-  assert ascii85.decode("yD]v") == Error(InvalidCharacter("v", 3))
+  assert yabase.decode("zD]v", using: yabase.Ascii85)
+    == Error(InvalidCharacter("v", 3))
+  assert yabase.decode("yD]v", using: yabase.Ascii85)
+    == Error(InvalidCharacter("v", 3))
 }
 
 pub fn adobe_ascii85_counts_every_skipped_grapheme_test() -> Nil {
@@ -86,15 +96,18 @@ pub fn adobe_ascii85_counts_every_skipped_grapheme_test() -> Nil {
   list.each(whitespace, fn(ws) {
     let inside = "<~87cU" <> ws <> "RD]"
     let between = "<~87cUR" <> ws <> "D]"
-    assert adobe_ascii85.decode(inside <> "v~>")
+    assert yabase.decode(inside <> "v~>", using: yabase.AdobeAscii85)
       == Error(InvalidCharacter("v", string.length(inside)))
-    assert adobe_ascii85.decode(between <> "v~>")
+    assert yabase.decode(between <> "v~>", using: yabase.AdobeAscii85)
       == Error(InvalidCharacter("v", string.length(between)))
   })
-  assert adobe_ascii85.decode("<~zD]v~>") == Error(InvalidCharacter("v", 5))
+  assert yabase.decode("<~zD]v~>", using: yabase.AdobeAscii85)
+    == Error(InvalidCharacter("v", 5))
 }
 
 pub fn base45_and_base91_report_an_invalid_character_at_its_index_test() -> Nil {
-  assert base45.decode("BB8~A") == Error(InvalidCharacter("~", 3))
-  assert base91.decode("fPNKd'") == Error(InvalidCharacter("'", 5))
+  assert yabase.decode("BB8~A", using: yabase.Base45)
+    == Error(InvalidCharacter("~", 3))
+  assert yabase.decode("fPNKd'", using: yabase.Base91)
+    == Error(InvalidCharacter("'", 5))
 }

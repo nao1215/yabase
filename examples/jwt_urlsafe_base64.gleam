@@ -4,16 +4,18 @@
 /// This example shows how to encode and decode JWT-like segments.
 import gleam/bit_array
 import gleam/io
-import yabase/base64/urlsafe_nopadding
+import yabase
 
 pub fn main() -> Nil {
   // A typical JWT header: {"alg":"HS256","typ":"JWT"}
   let header = <<"{\"alg\":\"HS256\",\"typ\":\"JWT\"}":utf8>>
-  let encoded = urlsafe_nopadding.encode(header)
+  let assert Ok(encoded) =
+    yabase.encode(header, using: yabase.Base64UrlSafeNoPadding)
   io.println("Encoded: " <> encoded)
   // => eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
 
-  let assert Ok(decoded) = urlsafe_nopadding.decode(encoded)
+  let assert Ok(decoded) =
+    yabase.decode(encoded, using: yabase.Base64UrlSafeNoPadding)
   let assert Ok(text) = bit_array.to_string(decoded)
   io.println("Decoded: " <> text)
 }

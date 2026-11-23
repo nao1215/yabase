@@ -9,16 +9,14 @@
 //// sides must agree byte for byte, and yabase must decode what the
 //// other implementation encoded.
 
+import codec_test_support
+import yabase
+
 import gleam/bit_array
 import gleam/string
 import metamon
 import metamon/generator.{type Generator}
 import metamon/generator/range
-import yabase/base16
-import yabase/base64/nopadding
-import yabase/base64/standard
-import yabase/base64/urlsafe
-import yabase/base64/urlsafe_nopadding
 
 @target(erlang)
 import yabase/internal/sha256
@@ -33,40 +31,46 @@ fn bytes_generator() -> Generator(BitArray) {
 pub fn base64_standard_matches_gleam_stdlib_test() -> Nil {
   metamon.forall(bytes_generator(), fn(data) {
     let reference = bit_array.base64_encode(data, True)
-    standard.encode(data) == reference && standard.decode(reference) == Ok(data)
+    codec_test_support.encode(data, using: yabase.Base64) == reference
+    && yabase.decode(reference, using: yabase.Base64) == Ok(data)
   })
 }
 
 pub fn base64_nopadding_matches_gleam_stdlib_test() -> Nil {
   metamon.forall(bytes_generator(), fn(data) {
     let reference = bit_array.base64_encode(data, False)
-    nopadding.encode(data) == reference
-    && nopadding.decode(reference) == Ok(data)
+    codec_test_support.encode(data, using: yabase.Base64NoPadding) == reference
+    && yabase.decode(reference, using: yabase.Base64NoPadding) == Ok(data)
   })
 }
 
 pub fn base64_urlsafe_matches_gleam_stdlib_test() -> Nil {
   metamon.forall(bytes_generator(), fn(data) {
     let reference = bit_array.base64_url_encode(data, True)
-    urlsafe.encode(data) == reference && urlsafe.decode(reference) == Ok(data)
+    codec_test_support.encode(data, using: yabase.Base64UrlSafe) == reference
+    && yabase.decode(reference, using: yabase.Base64UrlSafe) == Ok(data)
   })
 }
 
 pub fn base64_urlsafe_nopadding_matches_gleam_stdlib_test() -> Nil {
   metamon.forall(bytes_generator(), fn(data) {
     let reference = bit_array.base64_url_encode(data, False)
-    urlsafe_nopadding.encode(data) == reference
-    && urlsafe_nopadding.decode(reference) == Ok(data)
+    codec_test_support.encode(data, using: yabase.Base64UrlSafeNoPadding)
+    == reference
+    && yabase.decode(reference, using: yabase.Base64UrlSafeNoPadding)
+    == Ok(data)
   })
 }
 
 pub fn base16_matches_gleam_stdlib_test() -> Nil {
   metamon.forall(bytes_generator(), fn(data) {
     let reference = bit_array.base16_encode(data)
-    base16.encode(data) == reference
-    && base16.encode_lowercase(data) == string.lowercase(reference)
-    && base16.decode(reference) == Ok(data)
-    && base16.decode(string.lowercase(reference)) == Ok(data)
+    codec_test_support.encode(data, using: yabase.Base16) == reference
+    && codec_test_support.encode(data, using: yabase.Base16Lowercase)
+    == string.lowercase(reference)
+    && yabase.decode(reference, using: yabase.Base16) == Ok(data)
+    && yabase.decode(string.lowercase(reference), using: yabase.Base16)
+    == Ok(data)
   })
 }
 

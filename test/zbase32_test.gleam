@@ -1,23 +1,24 @@
-import yabase/base32/zbase32
-import yabase/core/error.{InvalidCharacter}
+import codec_test_support
+import yabase.{InvalidCharacter}
 
 pub fn encode_empty_test() -> Nil {
-  assert zbase32.encode(<<>>) == ""
+  assert codec_test_support.encode(<<>>, using: yabase.Zbase32) == ""
 }
 
 pub fn encode_hello_test() -> Nil {
   // "Hello" in z-base-32
-  let encoded = zbase32.encode(<<"Hello":utf8>>)
+  let encoded =
+    codec_test_support.encode(<<"Hello":utf8>>, using: yabase.Zbase32)
   // Roundtrip verification
-  assert zbase32.decode(encoded) == Ok(<<"Hello":utf8>>)
+  assert yabase.decode(encoded, using: yabase.Zbase32) == Ok(<<"Hello":utf8>>)
 }
 
 pub fn decode_empty_test() -> Nil {
-  assert zbase32.decode("") == Ok(<<>>)
+  assert yabase.decode("", using: yabase.Zbase32) == Ok(<<>>)
 }
 
 pub fn decode_invalid_char_test() -> Nil {
-  assert case zbase32.decode("!!!!") {
+  assert case yabase.decode("!!!!", using: yabase.Zbase32) {
     Error(InvalidCharacter(_, _)) -> True
     _ -> False
   }
@@ -25,23 +26,43 @@ pub fn decode_invalid_char_test() -> Nil {
 
 pub fn roundtrip_test() -> Nil {
   let data = <<"Hello, World!":utf8>>
-  assert zbase32.decode(zbase32.encode(data)) == Ok(data)
+  assert yabase.decode(
+      codec_test_support.encode(data, using: yabase.Zbase32),
+      using: yabase.Zbase32,
+    )
+    == Ok(data)
 }
 
 pub fn roundtrip_empty_test() -> Nil {
-  assert zbase32.decode(zbase32.encode(<<>>)) == Ok(<<>>)
+  assert yabase.decode(
+      codec_test_support.encode(<<>>, using: yabase.Zbase32),
+      using: yabase.Zbase32,
+    )
+    == Ok(<<>>)
 }
 
 pub fn roundtrip_single_zero_test() -> Nil {
-  assert zbase32.decode(zbase32.encode(<<0>>)) == Ok(<<0>>)
+  assert yabase.decode(
+      codec_test_support.encode(<<0>>, using: yabase.Zbase32),
+      using: yabase.Zbase32,
+    )
+    == Ok(<<0>>)
 }
 
 pub fn roundtrip_high_bits_test() -> Nil {
   let data = <<0xff, 0xfe, 0xfd>>
-  assert zbase32.decode(zbase32.encode(data)) == Ok(data)
+  assert yabase.decode(
+      codec_test_support.encode(data, using: yabase.Zbase32),
+      using: yabase.Zbase32,
+    )
+    == Ok(data)
 }
 
 pub fn roundtrip_leading_zeros_test() -> Nil {
   let data = <<0, 0, 42>>
-  assert zbase32.decode(zbase32.encode(data)) == Ok(data)
+  assert yabase.decode(
+      codec_test_support.encode(data, using: yabase.Zbase32),
+      using: yabase.Zbase32,
+    )
+    == Ok(data)
 }
