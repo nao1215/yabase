@@ -35,23 +35,11 @@ check:
   gleam check
   gleam build --warnings-as-errors
   gleam test
-  trap 'rm -f src/yabase/example_*.gleam' EXIT
-  for f in examples/*.gleam; do
-    mod=$(basename "$f" .gleam)
-    cp "$f" "src/yabase/example_${mod}.gleam"
-  done
-  gleam build
+  python3 scripts/verify-gleam-docs.py --examples
   bash scripts/verify-readme.sh
 
 verify-examples:
-  #!/usr/bin/env bash
-  set -euo pipefail
-  trap 'rm -f src/yabase/example_*.gleam' EXIT
-  for f in examples/*.gleam; do
-    mod=$(basename "$f" .gleam)
-    cp "$f" "src/yabase/example_${mod}.gleam"
-  done
-  gleam build
+  python3 scripts/verify-gleam-docs.py --examples
 
 verify-readme:
   bash scripts/verify-readme.sh
