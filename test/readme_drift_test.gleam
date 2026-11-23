@@ -7,7 +7,7 @@ import simplifile
 /// The README declares a fenced section for the multibase prefix
 /// table. The bytes between BEGIN/END must equal what
 /// `readme_table.multibase_prefix_table/0` returns. If a contributor
-/// adds or changes a multibase mapping in `yabase/core/encoding`,
+/// adds or changes a multibase mapping in `yabase`,
 /// this test will fail until the README is regenerated (via
 /// `just gen-readme`).
 ///

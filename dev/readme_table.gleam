@@ -30,12 +30,6 @@ pub const multibase_prefix_table_begin: String =
 pub const multibase_prefix_table_end: String =
   "<!-- END: multibase-prefix-table -->"
 
-// All multibase prefix characters this package recognises, in the
-// order they appear in `encoding.from_multibase_prefix/1`.
-//
-// Adding a new prefix to `from_multibase_prefix` requires adding it
-// here too — the drift test will catch the mismatch in CI, since a
-// new prefix would also need a row in the README table.
 // Enumerate the live registry so a new accepted prefix cannot disappear from
 // generated documentation merely because this historical order was not updated.
 fn known_prefixes() -> List(#(String, Encoding)) {
