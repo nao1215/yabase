@@ -3,9 +3,10 @@
 //// overflowed the JavaScript stack at 10 KB before the shared bit-group
 //// engine.
 
+import yabase.{type Encoding}
+
 import gleam/bit_array
 import gleam/list
-import yabase/core/encoding.{type Encoding}
 
 fn pattern_bytes(count: Int) -> BitArray {
   pattern_loop(count, [])
@@ -21,26 +22,26 @@ fn pattern_loop(count: Int, acc: List(BitArray)) -> BitArray {
 fn round_trips(codecs: List(Encoding), size: Int) -> Nil {
   let data = pattern_bytes(size)
   list.each(codecs, fn(codec) {
-    let assert Ok(text) = encoding.encode(codec, data)
-    assert encoding.decode_as(codec, text) == Ok(data)
+    let assert Ok(text) = yabase.encode(data, using: codec)
+    assert yabase.decode(text, using: codec) == Ok(data)
   })
 }
 
 pub fn base2_round_trips_100_kb_test() -> Nil {
-  round_trips([encoding.base2()], 100_000)
+  round_trips([yabase.Base2], 100_000)
 }
 
 pub fn base16_round_trips_100_kb_test() -> Nil {
-  round_trips([encoding.base16()], 100_000)
+  round_trips([yabase.Base16], 100_000)
 }
 
 pub fn base32_family_round_trips_100_kb_test() -> Nil {
   round_trips(
     [
-      encoding.base32_rfc4648(),
-      encoding.base32_hex(),
-      encoding.base32_clockwork(),
-      encoding.base32_z_base32(),
+      yabase.Base32Rfc4648,
+      yabase.Base32Hex,
+      yabase.Base32Clockwork,
+      yabase.Zbase32,
     ],
     100_000,
   )
@@ -49,10 +50,10 @@ pub fn base32_family_round_trips_100_kb_test() -> Nil {
 pub fn base64_family_round_trips_100_kb_test() -> Nil {
   round_trips(
     [
-      encoding.base64_standard(),
-      encoding.base64_url_safe(),
-      encoding.base64_no_padding(),
-      encoding.base64_url_safe_no_padding(),
+      yabase.Base64,
+      yabase.Base64UrlSafe,
+      yabase.Base64NoPadding,
+      yabase.Base64UrlSafeNoPadding,
     ],
     100_000,
   )
@@ -61,18 +62,15 @@ pub fn base64_family_round_trips_100_kb_test() -> Nil {
 pub fn base85_family_round_trips_100_kb_test() -> Nil {
   round_trips(
     [
-      encoding.base85_btoa(),
-      encoding.base85_adobe(),
-      encoding.base85_z85(),
-      encoding.base85_rfc1924(),
+      yabase.Ascii85,
+      yabase.AdobeAscii85,
+      yabase.Z85,
+      yabase.Rfc1924Base85,
     ],
     100_000,
   )
 }
 
 pub fn other_codecs_round_trip_100_kb_test() -> Nil {
-  round_trips(
-    [encoding.base45(), encoding.base91(), encoding.base64_dq()],
-    100_000,
-  )
+  round_trips([yabase.Base45, yabase.Base91, yabase.Base64Dq], 100_000)
 }

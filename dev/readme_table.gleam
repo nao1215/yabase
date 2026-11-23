@@ -1,3 +1,9 @@
+import gleam/bit_array
+import gleam/int
+import gleam/list
+import gleam/result
+import yabase.{type Encoding}
+
 /// Single source of truth for the README's auto-generated tables.
 ///
 /// The README contains capability tables that derive from data already
@@ -15,8 +21,6 @@
 /// asserts the bytes between markers equal the function output here.
 /// Contributors regenerate the README via `just gen-readme`, which
 /// prints the canonical content so it can be pasted in.
-import yabase/core/encoding.{type Encoding}
-
 /// Markers used in `README.md` to fence the generated multibase
 /// prefix table. Both this module and the README must agree on these
 /// strings.
@@ -26,38 +30,55 @@ pub const multibase_prefix_table_begin: String =
 pub const multibase_prefix_table_end: String =
   "<!-- END: multibase-prefix-table -->"
 
-/// All multibase prefix characters this package recognises, in the
-/// order they appear in `encoding.from_multibase_prefix/1`.
-///
-/// Adding a new prefix to `from_multibase_prefix` requires adding it
-/// here too — the drift test will catch the mismatch in CI, since a
-/// new prefix would also need a row in the README table.
+// All multibase prefix characters this package recognises, in the
+// order they appear in `encoding.from_multibase_prefix/1`.
+//
+// Adding a new prefix to `from_multibase_prefix` requires adding it
+// here too — the drift test will catch the mismatch in CI, since a
+// new prefix would also need a row in the README table.
+// Enumerate the live registry so a new accepted prefix cannot disappear from
+// generated documentation merely because this historical order was not updated.
 fn known_prefixes() -> List(#(String, Encoding)) {
-  [
-    #("0", encoding.base2()),
-    #("7", encoding.base8()),
-    #("9", encoding.base10()),
-    #("f", encoding.base16()),
-    #("F", encoding.base16()),
-    #("c", encoding.base32_rfc4648()),
-    #("C", encoding.base32_rfc4648()),
-    #("b", encoding.base32_rfc4648()),
-    #("B", encoding.base32_rfc4648()),
-    #("t", encoding.base32_hex()),
-    #("T", encoding.base32_hex()),
-    #("v", encoding.base32_hex()),
-    #("V", encoding.base32_hex()),
-    #("k", encoding.base36()),
-    #("K", encoding.base36()),
-    #("R", encoding.base45()),
-    #("z", encoding.base58_bitcoin()),
-    #("Z", encoding.base58_flickr()),
-    #("h", encoding.base32_z_base32()),
-    #("M", encoding.base64_standard()),
-    #("m", encoding.base64_no_padding()),
-    #("U", encoding.base64_url_safe()),
-    #("u", encoding.base64_url_safe_no_padding()),
+  registry_entries(0, [])
+  |> list.sort(fn(left, right) {
+    int.compare(prefix_rank(left.0), prefix_rank(right.0))
+  })
+}
+
+fn registry_entries(
+  code: Int,
+  entries: List(#(String, Encoding)),
+) -> List(#(String, Encoding)) {
+  case code > 127 {
+    True -> list.reverse(entries)
+    False -> {
+      let entry = {
+        use prefix <- result.try(bit_array.to_string(<<code>>))
+        use encoding <- result.map(yabase.encoding_from_multibase_prefix(prefix))
+        #(prefix, encoding)
+      }
+      case entry {
+        Ok(entry) -> registry_entries(code + 1, [entry, ..entries])
+        Error(Nil) -> registry_entries(code + 1, entries)
+      }
+    }
+  }
+}
+
+fn prefix_rank(prefix: String) -> Int {
+  let order = [
+    "0", "7", "9", "f", "F", "c", "C", "b", "B", "t", "T", "v", "V", "k", "K",
+    "R", "z", "Z", "h", "M", "m", "U", "u",
   ]
+  find_rank(order, prefix, 0)
+}
+
+fn find_rank(order: List(String), prefix: String, rank: Int) -> Int {
+  case order {
+    [] -> rank
+    [candidate, ..] if candidate == prefix -> rank
+    [_, ..rest] -> find_rank(rest, prefix, rank + 1)
+  }
 }
 
 /// Render the multibase prefix table as the markdown body that goes
@@ -84,8 +105,8 @@ fn rows(prefixes: List(#(String, Encoding)), acc: String) -> String {
 }
 
 fn render_row(prefix: String, encoding: Encoding) -> String {
-  let name = encoding.multibase_name(encoding)
-  let support = case encoding.multibase_prefix(encoding) {
+  let name = yabase.encoding_to_string(encoding)
+  let support = case yabase.multibase_prefix(encoding) {
     Ok(canonical) ->
       case canonical == prefix {
         True -> "encode + decode"

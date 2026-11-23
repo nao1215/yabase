@@ -6,15 +6,15 @@
 import gleam/bit_array
 import gleam/io
 import yabase
-import yabase/core/encoding
 
 pub fn main() -> Nil {
   let data = <<"Hello, multibase!":utf8>>
 
   // Encode the same data with different encodings
-  let assert Ok(hex) = yabase.encode_multibase(encoding.base16(), data)
-  let assert Ok(b58) = yabase.encode_multibase(encoding.base58_bitcoin(), data)
-  let assert Ok(b64) = yabase.encode_multibase(encoding.base64_standard(), data)
+  let assert Ok(hex) = yabase.encode_multibase(data, using: yabase.Base16)
+  let assert Ok(b58) =
+    yabase.encode_multibase(data, using: yabase.Base58Bitcoin)
+  let assert Ok(b64) = yabase.encode_multibase(data, using: yabase.Base64)
 
   io.println("Base16:  " <> hex)
   io.println("Base58:  " <> b58)
@@ -27,10 +27,10 @@ pub fn main() -> Nil {
   [hex, b58, b64]
   |> list_each(fn(encoded) {
     let assert Ok(d) = yabase.decode_multibase(encoded)
-    let enc = encoding.decoded_encoding(d)
-    let decoded = encoding.decoded_data(d)
+    let enc = { d }.encoding
+    let decoded = { d }.data
     let assert Ok(text) = bit_array.to_string(decoded)
-    io.println("Detected " <> encoding.multibase_name(enc) <> " -> " <> text)
+    io.println("Detected " <> yabase.encoding_to_string(enc) <> " -> " <> text)
   })
 }
 

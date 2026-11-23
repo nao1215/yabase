@@ -1,4 +1,5 @@
 import gleam/bool
+import gleam/list
 import gleam/string
 import readme_table
 import simplifile
@@ -14,6 +15,19 @@ import simplifile
 pub fn multibase_prefix_table_matches_readme_test() -> Nil {
   let assert Ok(readme) = simplifile.read("README.md")
 
+  assert list.length(string.split(
+      readme,
+      readme_table.multibase_prefix_table_begin,
+    ))
+    == 2
+  assert list.length(string.split(
+      readme,
+      readme_table.multibase_prefix_table_end,
+    ))
+    == 2
+  let generated = readme_table.multibase_prefix_table()
+  // Two header lines and exactly 23 registry rows; no empty output can pass.
+  assert list.length(string.split(trim_newlines(generated), "\n")) == 25
   let assert Ok(after_begin) =
     split_after(readme, readme_table.multibase_prefix_table_begin)
   let assert Ok(section) =

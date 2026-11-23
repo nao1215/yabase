@@ -8,13 +8,12 @@
 /// these variants without forking by codec module.
 import gleeunit/should
 import yabase
-import yabase/core/encoding
 
 pub fn base58_check_round_trip_test() {
-  let encoding = encoding.base58_check(0)
+  let encoding = yabase.Base58Check(0)
   let payload = <<"hello":utf8>>
-  let assert Ok(encoded) = yabase.encode(encoding, payload)
-  let assert Ok(decoded) = yabase.decode(encoding, encoded)
+  let assert Ok(encoded) = yabase.encode(payload, using: encoding)
+  let assert Ok(decoded) = yabase.decode(encoded, using: encoding)
   decoded |> should.equal(payload)
 }
 
@@ -22,25 +21,25 @@ pub fn base58_check_rejects_mismatched_version_test() {
   // Encode with version 0, attempt to decode with version 5 — the
   // version byte is part of the checksummed payload, so a mismatch
   // surfaces as a checksum-class failure.
-  let encode_enc = encoding.base58_check(0)
-  let decode_enc = encoding.base58_check(5)
-  let assert Ok(encoded) = yabase.encode(encode_enc, <<"hello":utf8>>)
-  let assert Error(_) = yabase.decode(decode_enc, encoded)
+  let encode_enc = yabase.Base58Check(0)
+  let decode_enc = yabase.Base58Check(5)
+  let assert Ok(encoded) = yabase.encode(<<"hello":utf8>>, using: encode_enc)
+  let assert Error(_) = yabase.decode(encoded, using: decode_enc)
 }
 
 pub fn bech32_round_trip_test() {
-  let encoding = encoding.bech32("bc")
+  let encoding = yabase.Bech32Encoding("bc", yabase.Bech32)
   let payload = <<0xDE, 0xAD, 0xBE, 0xEF>>
-  let assert Ok(encoded) = yabase.encode(encoding, payload)
-  let assert Ok(decoded) = yabase.decode(encoding, encoded)
+  let assert Ok(encoded) = yabase.encode(payload, using: encoding)
+  let assert Ok(decoded) = yabase.decode(encoded, using: encoding)
   decoded |> should.equal(payload)
 }
 
 pub fn bech32m_round_trip_test() {
-  let encoding = encoding.bech32m("npub")
+  let encoding = yabase.Bech32Encoding("npub", yabase.Bech32m)
   let payload = <<0xCA, 0xFE, 0xBA, 0xBE>>
-  let assert Ok(encoded) = yabase.encode(encoding, payload)
-  let assert Ok(decoded) = yabase.decode(encoding, encoded)
+  let assert Ok(encoded) = yabase.encode(payload, using: encoding)
+  let assert Ok(decoded) = yabase.decode(encoded, using: encoding)
   decoded |> should.equal(payload)
 }
 
@@ -48,18 +47,20 @@ pub fn bech32_rejects_mismatched_hrp_test() {
   // Encode with HRP "bc"; attempt to decode while declaring HRP
   // "tb" — the embedded HRP doesn't match the caller's expectation,
   // so the decode rejects the wire.
-  let encode_enc = encoding.bech32("bc")
-  let decode_enc = encoding.bech32("tb")
-  let assert Ok(encoded) = yabase.encode(encode_enc, <<0xDE, 0xAD, 0xBE, 0xEF>>)
-  let assert Error(_) = yabase.decode(decode_enc, encoded)
+  let encode_enc = yabase.Bech32Encoding("bc", yabase.Bech32)
+  let decode_enc = yabase.Bech32Encoding("tb", yabase.Bech32)
+  let assert Ok(encoded) =
+    yabase.encode(<<0xDE, 0xAD, 0xBE, 0xEF>>, using: encode_enc)
+  let assert Error(_) = yabase.decode(encoded, using: decode_enc)
 }
 
 pub fn bech32_rejects_mismatched_variant_test() {
   // Encode with Bech32 (BIP 173); attempt to decode with Bech32m
   // (BIP 350). The variants have different checksum constants, so
   // the wire signature does not match the caller's declared variant.
-  let encode_enc = encoding.bech32("bc")
-  let decode_enc = encoding.bech32m("bc")
-  let assert Ok(encoded) = yabase.encode(encode_enc, <<0xDE, 0xAD, 0xBE, 0xEF>>)
-  let assert Error(_) = yabase.decode(decode_enc, encoded)
+  let encode_enc = yabase.Bech32Encoding("bc", yabase.Bech32)
+  let decode_enc = yabase.Bech32Encoding("bc", yabase.Bech32m)
+  let assert Ok(encoded) =
+    yabase.encode(<<0xDE, 0xAD, 0xBE, 0xEF>>, using: encode_enc)
+  let assert Error(_) = yabase.decode(encoded, using: decode_enc)
 }

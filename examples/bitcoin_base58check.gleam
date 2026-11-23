@@ -7,16 +7,16 @@
 import gleam/bit_array
 import gleam/int
 import gleam/io
-import yabase/base58check
+import yabase
 
 pub fn main() -> Nil {
   // Encode a short payload with version byte 0
   let payload = <<0xab, 0xcd, 0xef, 0x01, 0x23>>
-  let assert Ok(encoded) = base58check.encode(0, payload)
+  let assert Ok(encoded) = yabase.encode(payload, using: yabase.Base58Check(0))
   io.println("Base58Check: " <> encoded)
 
   // Decode and verify checksum
-  let assert Ok(decoded) = base58check.decode(encoded)
+  let assert Ok(decoded) = yabase.decode_base58check(encoded)
   io.println("Version: " <> int.to_string(decoded.version))
   io.println(
     "Payload size: " <> int.to_string(bit_array.byte_size(decoded.payload)),

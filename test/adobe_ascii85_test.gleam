@@ -1,62 +1,69 @@
-import yabase/adobe_ascii85
-import yabase/core/error.{InvalidCharacter, InvalidLength, Overflow}
+import codec_test_support
+import yabase.{InvalidCharacter, InvalidLength, Overflow}
 
 pub fn encode_empty_test() -> Nil {
-  assert adobe_ascii85.encode(<<>>) == "<~~>"
+  assert codec_test_support.encode(<<>>, using: yabase.AdobeAscii85) == "<~~>"
 }
 
 pub fn encode_man_test() -> Nil {
-  assert adobe_ascii85.encode(<<"Man ":utf8>>) == "<~9jqo^~>"
+  assert codec_test_support.encode(<<"Man ":utf8>>, using: yabase.AdobeAscii85)
+    == "<~9jqo^~>"
 }
 
 pub fn encode_zeros_test() -> Nil {
-  assert adobe_ascii85.encode(<<0, 0, 0, 0>>) == "<~z~>"
+  assert codec_test_support.encode(<<0, 0, 0, 0>>, using: yabase.AdobeAscii85)
+    == "<~z~>"
 }
 
 pub fn decode_empty_test() -> Nil {
-  assert adobe_ascii85.decode("<~~>") == Ok(<<>>)
+  assert yabase.decode("<~~>", using: yabase.AdobeAscii85) == Ok(<<>>)
 }
 
 pub fn decode_man_test() -> Nil {
-  assert adobe_ascii85.decode("<~9jqo^~>") == Ok(<<"Man ":utf8>>)
+  assert yabase.decode("<~9jqo^~>", using: yabase.AdobeAscii85)
+    == Ok(<<"Man ":utf8>>)
 }
 
 pub fn decode_zeros_test() -> Nil {
-  assert adobe_ascii85.decode("<~z~>") == Ok(<<0, 0, 0, 0>>)
+  assert yabase.decode("<~z~>", using: yabase.AdobeAscii85)
+    == Ok(<<0, 0, 0, 0>>)
 }
 
 // --- Whitespace handling (Adobe spec: whitespace ignored inside) ---
 
 pub fn decode_with_internal_whitespace_test() -> Nil {
   // "9jqo^" with spaces and newlines inserted
-  assert adobe_ascii85.decode("<~9j qo\n^~>") == Ok(<<"Man ":utf8>>)
+  assert yabase.decode("<~9j qo\n^~>", using: yabase.AdobeAscii85)
+    == Ok(<<"Man ":utf8>>)
 }
 
 pub fn decode_with_tabs_test() -> Nil {
-  assert adobe_ascii85.decode("<~9j\tqo^~>") == Ok(<<"Man ":utf8>>)
+  assert yabase.decode("<~9j\tqo^~>", using: yabase.AdobeAscii85)
+    == Ok(<<"Man ":utf8>>)
 }
 
 pub fn decode_with_form_feed_test() -> Nil {
-  assert adobe_ascii85.decode("<~9j\u{000C}qo^~>") == Ok(<<"Man ":utf8>>)
+  assert yabase.decode("<~9j\u{000C}qo^~>", using: yabase.AdobeAscii85)
+    == Ok(<<"Man ":utf8>>)
 }
 
 pub fn decode_with_form_feed_between_groups_test() -> Nil {
-  assert adobe_ascii85.decode("<~z\u{000C}z~>")
+  assert yabase.decode("<~z\u{000C}z~>", using: yabase.AdobeAscii85)
     == Ok(<<0, 0, 0, 0, 0, 0, 0, 0>>)
 }
 
 // --- Missing delimiters ---
 
 pub fn decode_missing_prefix_test() -> Nil {
-  assert case adobe_ascii85.decode("9jqo^~>") {
-    Error(InvalidCharacter(_, _)) -> True
+  assert case yabase.decode("9jqo^~>", using: yabase.AdobeAscii85) {
+    Error(yabase.MissingDelimiter(_, _)) -> True
     _ -> False
   }
 }
 
 pub fn decode_missing_suffix_test() -> Nil {
-  assert case adobe_ascii85.decode("<~9jqo^") {
-    Error(InvalidCharacter(_, _)) -> True
+  assert case yabase.decode("<~9jqo^", using: yabase.AdobeAscii85) {
+    Error(yabase.MissingDelimiter(_, _)) -> True
     _ -> False
   }
 }
@@ -65,7 +72,7 @@ pub fn decode_missing_suffix_test() -> Nil {
 
 pub fn decode_1char_final_group_test() -> Nil {
   // "!" is a single char after "z" -> incomplete final group
-  assert case adobe_ascii85.decode("<~z!~>") {
+  assert case yabase.decode("<~z!~>", using: yabase.AdobeAscii85) {
     Error(InvalidLength(_)) -> True
     _ -> False
   }
@@ -75,7 +82,7 @@ pub fn decode_1char_final_group_test() -> Nil {
 
 pub fn decode_overflow_full_group_test() -> Nil {
   // "uuuuu" = all index 84 -> 84*85^4+... > 2^32
-  assert case adobe_ascii85.decode("<~uuuuu~>") {
+  assert case yabase.decode("<~uuuuu~>", using: yabase.AdobeAscii85) {
     Error(Overflow) -> True
     _ -> False
   }
@@ -83,7 +90,7 @@ pub fn decode_overflow_full_group_test() -> Nil {
 
 pub fn decode_overflow_partial_group_test() -> Nil {
   // "uuuu" = 4 chars, padded to [84,84,84,84,84] -> same overflow
-  assert case adobe_ascii85.decode("<~uuuu~>") {
+  assert case yabase.decode("<~uuuu~>", using: yabase.AdobeAscii85) {
     Error(Overflow) -> True
     _ -> False
   }
@@ -91,7 +98,7 @@ pub fn decode_overflow_partial_group_test() -> Nil {
 
 pub fn decode_overflow_partial_3char_test() -> Nil {
   // "uuu" = 3 chars, padded to [84,84,84,84,84] -> overflow
-  assert case adobe_ascii85.decode("<~uuu~>") {
+  assert case yabase.decode("<~uuu~>", using: yabase.AdobeAscii85) {
     Error(Overflow) -> True
     _ -> False
   }
@@ -101,29 +108,45 @@ pub fn decode_overflow_partial_3char_test() -> Nil {
 
 pub fn roundtrip_test() -> Nil {
   let data = <<"Hello, World!":utf8>>
-  assert adobe_ascii85.decode(adobe_ascii85.encode(data)) == Ok(data)
+  assert yabase.decode(
+      codec_test_support.encode(data, using: yabase.AdobeAscii85),
+      using: yabase.AdobeAscii85,
+    )
+    == Ok(data)
 }
 
 pub fn roundtrip_short_test() -> Nil {
   let data = <<"Hi":utf8>>
-  assert adobe_ascii85.decode(adobe_ascii85.encode(data)) == Ok(data)
+  assert yabase.decode(
+      codec_test_support.encode(data, using: yabase.AdobeAscii85),
+      using: yabase.AdobeAscii85,
+    )
+    == Ok(data)
 }
 
 pub fn roundtrip_aligned_test() -> Nil {
   let data = <<"test1234":utf8>>
-  assert adobe_ascii85.decode(adobe_ascii85.encode(data)) == Ok(data)
+  assert yabase.decode(
+      codec_test_support.encode(data, using: yabase.AdobeAscii85),
+      using: yabase.AdobeAscii85,
+    )
+    == Ok(data)
 }
 
 pub fn decode_reports_the_position_after_whitespace_inside_a_group_test() -> Nil {
   // Positions count the "<~" prefix: the invalid "v" is index 10.
-  assert adobe_ascii85.decode("<~87cU RD]v,\"Ebo80~>")
+  assert yabase.decode("<~87cU RD]v,\"Ebo80~>", using: yabase.AdobeAscii85)
     == Error(InvalidCharacter("v", 10))
-  assert adobe_ascii85.decode("<~87cURD ]i,\"Eb\u{7F}o80~>")
+  assert yabase.decode(
+      "<~87cURD ]i,\"Eb\u{7F}o80~>",
+      using: yabase.AdobeAscii85,
+    )
     == Error(InvalidCharacter("\u{7F}", 15))
 }
 
 pub fn decode_skips_crlf_like_btoa_test() -> Nil {
   // CR LF used to arrive as one "\r\n" grapheme that the Adobe decoder did
   // not list as whitespace, so wrapped PDF streams were rejected.
-  assert adobe_ascii85.decode("<~9jqo^\r\nBl~>") == Ok(<<"Man i":utf8>>)
+  assert yabase.decode("<~9jqo^\r\nBl~>", using: yabase.AdobeAscii85)
+    == Ok(<<"Man i":utf8>>)
 }
