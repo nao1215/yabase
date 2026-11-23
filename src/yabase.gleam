@@ -240,58 +240,8 @@ pub fn decode(
   value: String,
   using encoding: Encoding,
 ) -> Result(BitArray, CodecError) {
+  use Nil <- result.try(check_utf8(value))
   encoding_decode_as(encoding, value)
-}
-
-/// Decode canonical uppercase hexadecimal text.
-///
-/// Returns normal decoding errors first, then `NonCanonical` if re-encoding
-/// the bytes would change the input. Requires two characters per byte.
-///
-/// ## Examples
-///
-/// ```gleam
-/// decode_base16_strict("0F")
-/// // Ok(<<15>>)
-/// decode_base16_strict("0f")
-/// // Error(NonCanonical)
-/// ```
-pub fn decode_base16_strict(value: String) -> Result(BitArray, CodecError) {
-  base16_decode_strict(value)
-}
-
-/// Decode canonical padded RFC4648 Base32 text.
-///
-/// Returns normal decoding errors first, then `NonCanonical` for lowercase,
-/// missing padding, or nonzero unused pad bits.
-///
-/// ## Examples
-///
-/// ```gleam
-/// decode_base32_strict("MY======")
-/// // Ok(<<102>>)
-/// decode_base32_strict("my======")
-/// // Error(NonCanonical)
-/// ```
-pub fn decode_base32_strict(value: String) -> Result(BitArray, CodecError) {
-  base32_rfc4648_decode_strict(value)
-}
-
-/// Decode canonical padded standard Base64 text.
-///
-/// Returns normal decoding errors first, then `NonCanonical` if the input
-/// differs from the encoder's output, including nonzero unused pad bits.
-///
-/// ## Examples
-///
-/// ```gleam
-/// decode_base64_strict("TQ==")
-/// // Ok(<<77>>)
-/// decode_base64_strict("TR==")
-/// // Error(NonCanonical)
-/// ```
-pub fn decode_base64_strict(value: String) -> Result(BitArray, CodecError) {
-  base64_standard_decode_strict(value)
 }
 
 /// Verify a Base58Check checksum and return the version and payload.
@@ -311,6 +261,7 @@ pub fn decode_base64_strict(value: String) -> Result(BitArray, CodecError) {
 pub fn decode_base58check(
   value: String,
 ) -> Result(Base58CheckDecoded, CodecError) {
+  use Nil <- result.try(check_utf8(value))
   base58check_decode(value)
 }
 
@@ -331,6 +282,7 @@ pub fn decode_base58check(
 /// // Error(MixedCase)
 /// ```
 pub fn decode_bech32(value: String) -> Result(Bech32Decoded, CodecError) {
+  use Nil <- result.try(check_utf8(value))
   bech32_decode(value)
 }
 
@@ -354,25 +306,15 @@ pub fn encode_multibase(
   data: BitArray,
   using encoding: Encoding,
 ) -> Result(String, CodecError) {
-  multibase_encode_with_prefix(encoding, data)
-}
-
-/// Detect the first grapheme as a multibase prefix and decode its payload.
-///
-/// Returns the canonical encoding selection and decoded bytes. Accepted
-/// alias prefixes do not survive in the result. Invalid-character positions
-/// include the prefix and refer to the original input.
-///
-/// ## Examples
-///
-/// ```gleam
-/// decode_multibase("F00")
-/// // Ok(Decoded(Base16, <<0>>))
-/// decode_multibase("f0!")
-/// // Error(InvalidCharacter("!", 2))
-/// ```
-pub fn decode_multibase(value: String) -> Result(Decoded, CodecError) {
-  multibase_decode(value)
+  case encoding_multibase_prefix(encoding) {
+    Error(Nil) ->
+      Error(UnsupportedMultibaseEncoding(encoding_multibase_name(encoding)))
+    Ok(prefix) ->
+      multibase_encode_payload(encoding, data)
+      |> result.map(fn(encoded) {
+        prefix <> encoding_normalise_for_multibase_prefix(encoding, encoded)
+      })
+  }
 }
 
 /// Encode a nonnegative integer in its canonical text form.
@@ -399,7 +341,13 @@ pub fn encode_int(
   value: Int,
   using encoding: Encoding,
 ) -> Result(String, CodecError) {
-  intid_encode_int(encoding: encoding, value: value)
+  case encoding_int_codec(encoding) {
+    IntCodecUnsupported(name) -> Error(UnsupportedForInt(name))
+    codec -> {
+      use bytes <- result.try(intid_int_to_bytes_be(value))
+      intid_encode_bytes(codec, bytes)
+    }
+  }
 }
 
 /// Encode a nonnegative integer as compact uppercase hexadecimal text.
@@ -447,6 +395,7 @@ pub fn decode_int(
   using encoding: Encoding,
   up_to maximum: Option(Int),
 ) -> Result(Int, CodecError) {
+  use Nil <- result.try(check_utf8(value))
   use decoded <- result.try(intid_decode_int(encoding: encoding, value: value))
   optional_bound(decoded, maximum)
 }
@@ -473,6 +422,7 @@ pub fn decode_int_base58check(
   value: String,
   up_to maximum: Option(Int),
 ) -> Result(Int, CodecError) {
+  use Nil <- result.try(check_utf8(value))
   use decoded <- result.try(intid_decode_int_base58check(value))
   optional_bound(decoded, maximum)
 }
@@ -528,6 +478,47 @@ pub fn multibase_prefix(encoding: Encoding) -> Result(String, Nil) {
 /// ```
 pub fn encoding_from_multibase_prefix(prefix: String) -> Result(Encoding, Nil) {
   encoding_from_multibase_prefix_impl(prefix)
+}
+
+// Erlang strings are binaries, so FFI code can pass bytes that are not
+// UTF-8. Report the first invalid byte instead of crashing or reading only
+// the valid prefix. JavaScript strings always encode as UTF-8.
+@target(javascript)
+fn check_utf8(_value: String) -> Result(Nil, CodecError) {
+  Ok(Nil)
+}
+
+@target(erlang)
+fn check_utf8(value: String) -> Result(Nil, CodecError) {
+  let bytes = bit_array.from_string(value)
+  case bit_array.is_utf8(bytes) {
+    True -> Ok(Nil)
+    False -> Error(InvalidCharacter("", utf8_valid_prefix_length(bytes)))
+  }
+}
+
+// Graphemes in the longest valid UTF-8 prefix.
+@target(erlang)
+fn utf8_valid_prefix_length(bytes: BitArray) -> Int {
+  let valid =
+    bit_array.slice(bytes, 0, utf8_valid_prefix(bytes, 0))
+    |> result.try(bit_array.to_string)
+  case valid {
+    Ok(text) -> string.length(text)
+    Error(Nil) -> 0
+  }
+}
+
+@target(erlang)
+fn utf8_valid_prefix(bytes: BitArray, size: Int) -> Int {
+  case bytes {
+    <<_:utf8_codepoint, rest:bytes>> ->
+      utf8_valid_prefix(
+        rest,
+        size + bit_array.byte_size(bytes) - bit_array.byte_size(rest),
+      )
+    _ -> size
+  }
 }
 
 fn optional_bound(value: Int, maximum: Option(Int)) -> Result(Int, CodecError) {
@@ -603,21 +594,11 @@ fn base10_decode(input: String) -> Result(BitArray, CodecError) {
 
 const base16_upper_symbols = "0123456789ABCDEF"
 
-// Encode a BitArray to an uppercase hexadecimal string per
-// RFC 4648 §8 (the canonical Base 16 encoding).
-//
-// Use `encode_lowercase/1` when interoperating with tools that
-// emit lowercase hex (e.g. `sha256sum`, IPFS multibase prefix `f`,
-// many JSON Web Token implementations); the decoder accepts either
-// case, so round-trips work in both directions.
+// RFC 4648 §8 Base16 is uppercase; the decoder accepts either case.
 fn base16_encode(data: BitArray) -> String {
   bit_array.base16_encode(data)
 }
 
-// Encode a BitArray to a lowercase hexadecimal string. Use this
-// when interoperating with tools that expect the lowercase variant
-// (`sha256sum` shell output, IPFS multibase prefix `f`, etc.). The
-// canonical RFC 4648 §8 form is uppercase — see `encode/1`.
 fn base16_encode_lowercase(data: BitArray) -> String {
   bit_array.base16_encode(data) |> string.lowercase
 }
@@ -631,20 +612,21 @@ fn base16_decode(input: String) -> Result(BitArray, CodecError) {
   )
 }
 
-// Decode `input` and additionally reject non-canonical encodings
-// per RFC 4648 §8: the canonical Base 16 form is uppercase
-// (`0-9 A-F`). Useful for HMAC / TOTP / WebAuthn / content-
-// addressable storage and any signature-verification context where
-// the encoded string itself is part of the contract — strict mode
-// rejects the lowercase form (`encode_lowercase/1`'s output) as
-// non-canonical even though it decodes to the same bytes through
-// the lenient `decode/1`.
-//
-// Returns `Error(NonCanonical)` when the input is not byte-equal
-// to `encode(decode(input))`. Other failure modes
-// (`InvalidCharacter`, `InvalidLength`) are surfaced unchanged from
-// `decode/1`.
-fn base16_decode_strict(input: String) -> Result(BitArray, CodecError) {
+/// Decode canonical uppercase hexadecimal text.
+///
+/// Returns normal decoding errors first, then `NonCanonical` if re-encoding
+/// the bytes would change the input. Requires two characters per byte.
+///
+/// ## Examples
+///
+/// ```gleam
+/// decode_base16_strict("0F")
+/// // Ok(<<15>>)
+/// decode_base16_strict("0f")
+/// // Error(NonCanonical)
+/// ```
+pub fn decode_base16_strict(input: String) -> Result(BitArray, CodecError) {
+  use Nil <- result.try(check_utf8(input))
   case base16_decode(input) {
     Error(e) -> Error(e)
     Ok(bytes) ->
@@ -714,11 +696,8 @@ fn base32_crockford_crockford_alphabet() -> Alphabet {
   )
 }
 
-// Encode a BitArray to a Crockford Base32 string (bignum shape).
-//
-// Preserves leading zero bytes as '0' characters; the remaining length
-// depends on the numeric magnitude. For fixed-width groups, use
-// [`yabase/base32/rfc4648.encode`](./rfc4648.html#encode).
+// Crockford Base32 writes the bytes as one number. Each leading zero
+// byte becomes one '0' character.
 fn base32_crockford_encode(data: BitArray) -> String {
   bignum_encode(data, base32_crockford_crockford_alphabet())
 }
@@ -829,20 +808,21 @@ fn base32_rfc4648_decode(input: String) -> Result(BitArray, CodecError) {
   )
 }
 
-// Decode `input` and additionally reject non-canonical encodings
-// per RFC 4648 §3.5 / §6: the canonical form is the uppercase,
-// padded shape produced by `encode/1`, and any deviation
-// (lowercase, mixed case, missing padding, non-zero pad bits in a
-// final partial block) is rejected with `Error(NonCanonical)`.
-// Useful for signature verification, content-addressable storage,
-// and replay-attack-resistant token handling, where the wire
-// encoding's uniqueness is part of the contract.
-//
-// Returns `Error(NonCanonical)` when the input is not byte-equal
-// to `encode(decode(input))`. Other failure modes
-// (`InvalidCharacter`, `InvalidLength`) are surfaced unchanged from
-// `decode/1`.
-fn base32_rfc4648_decode_strict(input: String) -> Result(BitArray, CodecError) {
+/// Decode canonical padded RFC4648 Base32 text.
+///
+/// Returns normal decoding errors first, then `NonCanonical` for lowercase,
+/// missing padding, or nonzero unused pad bits.
+///
+/// ## Examples
+///
+/// ```gleam
+/// decode_base32_strict("MY======")
+/// // Ok(<<102>>)
+/// decode_base32_strict("my======")
+/// // Error(NonCanonical)
+/// ```
+pub fn decode_base32_strict(input: String) -> Result(BitArray, CodecError) {
+  use Nil <- result.try(check_utf8(input))
   case base32_rfc4648_decode(input) {
     Error(e) -> Error(e)
     Ok(bytes) ->
@@ -1233,19 +1213,21 @@ fn base64_standard_decode(input: String) -> Result(BitArray, CodecError) {
   )
 }
 
-// Decode `input` and additionally reject non-canonical encodings
-// per RFC 4648 §3.5: the trailing pad bits in a 1- or 2-byte final
-// block must be zero. Useful for signature verification and
-// content-addressable storage, where the wire encoding's uniqueness
-// is part of the contract.
-//
-// Returns `Error(NonCanonical)` when the input decodes to bytes
-// whose canonical re-encoding differs from the original input.
-// Other failure modes (`InvalidCharacter`, `InvalidLength`) are
-// surfaced unchanged from `decode/1`.
-fn base64_standard_decode_strict(
-  input: String,
-) -> Result(BitArray, CodecError) {
+/// Decode canonical padded standard Base64 text.
+///
+/// Returns normal decoding errors first, then `NonCanonical` if the input
+/// differs from the encoder's output, including nonzero unused pad bits.
+///
+/// ## Examples
+///
+/// ```gleam
+/// decode_base64_strict("TQ==")
+/// // Ok(<<77>>)
+/// decode_base64_strict("TR==")
+/// // Error(NonCanonical)
+/// ```
+pub fn decode_base64_strict(input: String) -> Result(BitArray, CodecError) {
+  use Nil <- result.try(check_utf8(input))
   case base64_standard_decode(input) {
     Error(e) -> Error(e)
     Ok(bytes) ->
@@ -1501,24 +1483,6 @@ const bech32_bech32_const = 1
 
 const bech32_bech32m_const = 0x2bc830a3
 
-// Encode byte data with Bech32 or Bech32m.
-// variant: Bech32 (BIP 173) or Bech32m (BIP 350).
-// hrp: human-readable part (e.g. `"bc"` for Bitcoin mainnet). Must be
-//   all lowercase per BIP 173 — uppercase characters are rejected with
-//   `Error(InvalidHrp("HRP must be lowercase"))` rather than silently
-//   normalized, so the input is never quietly mutated. Lowercase the
-//   value at the call site if you started from a mixed-case identifier.
-// data: raw bytes (8-to-5 bit conversion is done internally). Input that
-//   is not a whole number of bytes is rejected with
-//   `Error(UnalignedInput(bit_size))`.
-fn bech32_encode(
-  variant: Bech32Variant,
-  hrp: String,
-  data: BitArray,
-) -> Result(String, CodecError) {
-  bech32_encode_variant(variant, hrp, data)
-}
-
 // Decode a Bech32 or Bech32m string, auto-detecting the variant.
 // Per BIP 173: total length <= 90, HRP length 1..83.
 fn bech32_decode(input: String) -> Result(Bech32Decoded, CodecError) {
@@ -1725,38 +1689,8 @@ fn bech32_create_checksum(
   })
 }
 
-// Build a `Decoded` value. Package-internal; multibase decoders use
-// this to tag their result. External callers receive a `Decoded`
-// from `multibase.decode/1` and inspect it with `decoded_encoding`
-// / `decoded_data`.
-fn encoding_make_decoded(encoding: Encoding, data: BitArray) -> Decoded {
-  Decoded(encoding: encoding, data: data)
-}
-
-fn encoding_base8() -> Encoding {
-  Base8
-}
-
-// ---------------------------------------------------------------------------
-// Integer codec dispatch tags.
-//
-// `Encoding` is opaque so callers cannot pattern-match its variants
-// from outside this module. The `intid` facade needs to branch on
-// the variant to dispatch `encode_int` / `decode_int` to the right
-// per-base helper without re-implementing the integer ↔ bytes shim
-// in this module (which would introduce an import cycle with the
-// per-base modules). `IntCodec` is the non-opaque tag the facade
-// reads via `int_codec/1`. The variants enumerate exactly the
-// encodings that `yabase/intid` currently supports; everything else
-// surfaces as `IntCodecUnsupported(name)` so the facade can return
-// `UnsupportedForInt(name)` without losing the encoding identity.
-// ---------------------------------------------------------------------------
-
-// A tag describing which integer codec, if any, `yabase/intid`
-// should dispatch to for a given `Encoding`. Used by the
-// `intid.encode_int` / `intid.decode_int` facade; not interesting
-// for callers that pick the codec at compile time and reach for
-// the per-base `encode_int_*` / `decode_int_*` helpers directly.
+// The integer format, if any, behind an encoding selection. Unsupported
+// selections keep their display name for `UnsupportedForInt`.
 type IntCodec {
   IntBase10
   IntBase16
@@ -1768,18 +1702,12 @@ type IntCodec {
   IntBase58Flickr
   IntBase58Check(version: Int)
   IntBase62
-  /// The `Encoding` has no integer codec wired up; the carried
-  /// name is the encoding's display identity for use in
-  /// `UnsupportedForInt(name)`.
   IntCodecUnsupported(name: String)
 }
 
-// Map an `Encoding` to the tag describing how `yabase/intid` should
-// handle it. Internal to the package — exposed because `intid` lives
-// in a separate module but needs to branch on the opaque variant.
 fn encoding_int_codec(encoding: Encoding) -> IntCodec {
   case encoding {
-    Base16Lowercase -> IntCodecUnsupported("Base16Lowercase")
+    Base16Lowercase -> IntCodecUnsupported(encoding_multibase_name(encoding))
     Base10 -> IntBase10
     Base16 -> IntBase16
     Base32Rfc4648 -> IntBase32Rfc4648
@@ -1790,23 +1718,25 @@ fn encoding_int_codec(encoding: Encoding) -> IntCodec {
     Base58Flickr -> IntBase58Flickr
     Base58Check(version) -> IntBase58Check(version)
     Base62 -> IntBase62
-    Base2 -> IntCodecUnsupported("Base2")
-    Base8 -> IntCodecUnsupported("Base8")
-    Base32Hex -> IntCodecUnsupported("Base32(Hex)")
-    Base32Clockwork -> IntCodecUnsupported("Base32(Clockwork)")
-    Zbase32 -> IntCodecUnsupported("Base32(ZBase32)")
-    Base45 -> IntCodecUnsupported("Base45")
-    Base64 -> IntCodecUnsupported("Base64(Standard)")
-    Base64UrlSafe -> IntCodecUnsupported("Base64(UrlSafe)")
-    Base64NoPadding -> IntCodecUnsupported("Base64(NoPadding)")
-    Base64UrlSafeNoPadding -> IntCodecUnsupported("Base64(UrlSafeNoPadding)")
-    Base64Dq -> IntCodecUnsupported("Base64(DQ)")
-    Ascii85 -> IntCodecUnsupported("Base85(Btoa)")
-    AdobeAscii85 -> IntCodecUnsupported("Base85(Adobe)")
-    Rfc1924Base85 -> IntCodecUnsupported("Base85(Rfc1924)")
-    Z85 -> IntCodecUnsupported("Base85(Z85)")
-    Base91 -> IntCodecUnsupported("Base91")
-    Bech32Encoding(_, _) -> IntCodecUnsupported("Bech32")
+    Base2 -> IntCodecUnsupported(encoding_multibase_name(encoding))
+    Base8 -> IntCodecUnsupported(encoding_multibase_name(encoding))
+    Base32Hex -> IntCodecUnsupported(encoding_multibase_name(encoding))
+    Base32Clockwork -> IntCodecUnsupported(encoding_multibase_name(encoding))
+    Zbase32 -> IntCodecUnsupported(encoding_multibase_name(encoding))
+    Base45 -> IntCodecUnsupported(encoding_multibase_name(encoding))
+    Base64 -> IntCodecUnsupported(encoding_multibase_name(encoding))
+    Base64UrlSafe -> IntCodecUnsupported(encoding_multibase_name(encoding))
+    Base64NoPadding -> IntCodecUnsupported(encoding_multibase_name(encoding))
+    Base64UrlSafeNoPadding ->
+      IntCodecUnsupported(encoding_multibase_name(encoding))
+    Base64Dq -> IntCodecUnsupported(encoding_multibase_name(encoding))
+    Ascii85 -> IntCodecUnsupported(encoding_multibase_name(encoding))
+    AdobeAscii85 -> IntCodecUnsupported(encoding_multibase_name(encoding))
+    Rfc1924Base85 -> IntCodecUnsupported(encoding_multibase_name(encoding))
+    Z85 -> IntCodecUnsupported(encoding_multibase_name(encoding))
+    Base91 -> IntCodecUnsupported(encoding_multibase_name(encoding))
+    Bech32Encoding(_, _) ->
+      IntCodecUnsupported(encoding_multibase_name(encoding))
   }
 }
 
@@ -1847,7 +1777,7 @@ fn encoding_encode(
     Rfc1924Base85 -> rfc1924_base85_encode(data)
     Z85 -> z85_encode(data)
     Base91 -> Ok(base91_encode(data))
-    Bech32Encoding(hrp, variant) -> bech32_encode(variant, hrp, data)
+    Bech32Encoding(hrp, variant) -> bech32_encode_variant(variant, hrp, data)
   }
 }
 
@@ -1913,6 +1843,10 @@ fn encoding_decode_bech32_with_metadata(
   expected_variant: Bech32Variant,
 ) -> Result(BitArray, CodecError) {
   use decoded <- result.try(bech32_decode(value))
+  use <- bool.guard(
+    when: expected_hrp != string.lowercase(expected_hrp),
+    return: Error(InvalidHrp("HRP must be lowercase")),
+  )
   use _ <- result.try(bech32_check_hrp(expected_hrp))
   use <- bool.guard(
     when: decoded.hrp != expected_hrp,
@@ -2064,23 +1998,8 @@ fn encoding_normalise_for_multibase_prefix(
   }
 }
 
-// Reject a `BitArray` whose total bit length is not a multiple of 8.
-//
-// yabase encoders walk their input one byte at a time. A sub-byte
-// trailing segment (`<<1:size(1)>>`, `<<0xFF, 0x80, 1:size(3)>>`,
-// …) would otherwise be silently dropped by the byte-walker
-// pattern, producing a string that decodes to a strictly shorter
-// `BitArray` than the caller supplied — silent data loss. Every
-// `encode` function calls this at the boundary so the truncation
-// becomes a loud crash instead.
-//
-// Crashing rather than returning a `Result` keeps the public
-// `encode` shape per-codec compatible with v0.14.x callers
-// (`fn(BitArray) -> String`); a sub-byte input has always been
-// outside the contract, so there is no caller that previously
-// "worked" with one. RFC 4648-conformant encoders never receive
-// sub-byte input in practice, so the guard is a safety net for
-// programmer-error inputs only.
+// Encoders walk whole bytes, so a trailing partial byte would be dropped
+// silently. Reject it with `UnalignedInput` instead.
 fn check_byte_alignment(input: BitArray) -> Result(Nil, CodecError) {
   // The stdlib 0.44 JavaScript bit_size getter throws for unaligned input.
   // A whole-byte pattern checks alignment without calling that getter.
@@ -2091,30 +2010,16 @@ fn check_byte_alignment(input: BitArray) -> Result(Nil, CodecError) {
 }
 
 // Encode data with a multibase prefix.
-fn multibase_encode_with_prefix(
-  encoding: Encoding,
-  data: BitArray,
-) -> Result(String, CodecError) {
-  case encoding_multibase_prefix(encoding) {
-    Error(Nil) ->
-      Error(UnsupportedMultibaseEncoding(encoding_multibase_name(encoding)))
-    Ok(prefix) ->
-      multibase_encode_payload(encoding, data)
-      |> result.map(fn(encoded) {
-        prefix <> encoding_normalise_for_multibase_prefix(encoding, encoded)
-      })
-  }
-}
 
 // Multibase base8 (prefix "7") writes 3-bit groups like RFC 4648 does for
-// base32, while `yabase/base8` treats its input as one number. Only the
-// multibase path uses the bit-group form.
+// base32, while the `Base8` encoding treats its input as one number. Only
+// the multibase path uses the bit-group form.
 fn multibase_encode_payload(
   encoding: Encoding,
   data: BitArray,
 ) -> Result(String, CodecError) {
   use _ <- result.try(check_byte_alignment(data))
-  case encoding == encoding_base8() {
+  case encoding == Base8 {
     True -> {
       Ok(bitgroup_encode(data, 3, multibase_octal(), Unpadded))
     }
@@ -2126,7 +2031,7 @@ fn multibase_decode_payload(
   encoding: Encoding,
   payload: String,
 ) -> Result(BitArray, CodecError) {
-  case encoding == encoding_base8() {
+  case encoding == Base8 {
     True -> bitgroup_decode_unpadded(payload, 3, multibase_octal())
     False -> encoding_decode_as(encoding, payload)
   }
@@ -2136,8 +2041,22 @@ fn multibase_octal() -> Alphabet {
   alphabet_new("01234567", CaseSensitive)
 }
 
-// Decode a multibase-prefixed string, auto-detecting the encoding.
-fn multibase_decode(value: String) -> Result(Decoded, CodecError) {
+/// Detect the first grapheme as a multibase prefix and decode its payload.
+///
+/// Returns the canonical encoding selection and decoded bytes. Accepted
+/// alias prefixes do not survive in the result. Invalid-character positions
+/// include the prefix and refer to the original input.
+///
+/// ## Examples
+///
+/// ```gleam
+/// decode_multibase("F00")
+/// // Ok(Decoded(Base16, <<0>>))
+/// decode_multibase("f0!")
+/// // Error(InvalidCharacter("!", 2))
+/// ```
+pub fn decode_multibase(value: String) -> Result(Decoded, CodecError) {
+  use Nil <- result.try(check_utf8(value))
   case string.pop_grapheme(value) {
     Error(Nil) -> Error(UnsupportedPrefix(""))
     Ok(#(prefix, rest)) ->
@@ -2153,7 +2072,7 @@ fn multibase_decode(value: String) -> Result(Decoded, CodecError) {
               other -> other
             }
           })
-          |> result.map(fn(data) { encoding_make_decoded(encoding, data) })
+          |> result.map(fn(data) { Decoded(encoding: encoding, data: data) })
       }
   }
 }
@@ -2287,9 +2206,11 @@ fn alphabet_invalid_character(
   offset: Int,
   _position: Int,
 ) -> CodecError {
-  // Codec input is UTF-8 even when a byte scanner rejects part of a grapheme.
-  let original = source_text(input)
-  source_invalid_character(DecodeSource(original, 0), offset)
+  case bit_array.to_string(input) {
+    Ok(original) -> source_invalid_character(DecodeSource(original, 0), offset)
+    // Every byte before `offset` is ASCII, so it is also the position.
+    Error(Nil) -> InvalidCharacter("", offset)
+  }
 }
 
 // Join symbol bytes, given most significant first, into a string.
@@ -3123,150 +3044,59 @@ fn bitgroup_unpack_loop(
   }
 }
 
-// Encode a non-negative `Int` as a Base32 (RFC 4648) string.
-// Returns `Error(NegativeValue(value))` for negative inputs; see
-// the module note on "Negative inputs are rejected" for the
-// rationale and the recommended boundary-check pattern.
-fn intid_encode_int_base32_rfc4648(value: Int) -> Result(String, CodecError) {
-  use bytes <- result.map(intid_int_to_bytes_be(value))
-  base32_rfc4648_encode(bytes)
+fn intid_encode_bytes(
+  codec: IntCodec,
+  bytes: BitArray,
+) -> Result(String, CodecError) {
+  case codec {
+    IntBase10 -> Ok(base10_encode(bytes))
+    IntBase16 -> Ok(base16_encode(bytes))
+    IntBase32Rfc4648 -> Ok(base32_rfc4648_encode(bytes))
+    IntBase32Crockford -> Ok(base32_crockford_encode(bytes))
+    IntBase32CrockfordCheck -> Ok(base32_crockford_encode_check(bytes))
+    IntBase36 -> Ok(base36_encode(bytes))
+    IntBase58Bitcoin -> Ok(base58_bitcoin_encode(bytes))
+    IntBase58Flickr -> Ok(base58_flickr_encode(bytes))
+    IntBase58Check(version) -> base58check_encode(version, bytes)
+    IntBase62 -> Ok(base62_encode(bytes))
+    IntCodecUnsupported(name) -> Error(UnsupportedForInt(name))
+  }
 }
 
-// Decode a Base32 (RFC 4648) string back to an `Int`.
-fn intid_decode_int_base32_rfc4648(input: String) -> Result(Int, CodecError) {
-  intid_decode_canonical(
-    input,
-    base32_rfc4648_decode,
-    intid_encode_int_base32_rfc4648,
-  )
+// Empty input returns `InvalidLength(0)`, so a missing ID is distinct
+// from zero.
+fn intid_decode_int(
+  encoding encoding: Encoding,
+  value value: String,
+) -> Result(Int, CodecError) {
+  let codec = encoding_int_codec(encoding)
+  let canonical = fn(decode) {
+    intid_decode_canonical(value, decode, intid_encode_bytes(codec, _))
+  }
+  case codec {
+    IntBase10 -> canonical(base10_decode)
+    IntBase16 -> intid_decode_int_base16(value)
+    IntBase32Rfc4648 -> canonical(base32_rfc4648_decode)
+    IntBase32Crockford -> canonical(base32_crockford_decode)
+    IntBase32CrockfordCheck -> canonical(base32_crockford_decode_check)
+    IntBase36 -> canonical(base36_decode)
+    IntBase58Bitcoin -> canonical(base58_bitcoin_decode)
+    IntBase58Flickr -> canonical(base58_flickr_decode)
+    IntBase58Check(version) ->
+      intid_decode_int_base58check_with_version(value, version)
+    IntBase62 -> canonical(base62_decode)
+    IntCodecUnsupported(name) -> Error(UnsupportedForInt(name))
+  }
 }
 
-// Encode a non-negative `Int` as a Crockford Base32 string.
-// Returns `Error(NegativeValue(value))` for negative inputs; see
-// the module note on "Negative inputs are rejected".
-fn intid_encode_int_base32_crockford(value: Int) -> Result(String, CodecError) {
-  use bytes <- result.map(intid_int_to_bytes_be(value))
-  base32_crockford_encode(bytes)
-}
-
-// Decode a Crockford Base32 string back to an `Int`.
-fn intid_decode_int_base32_crockford(input: String) -> Result(Int, CodecError) {
-  intid_decode_canonical(
-    input,
-    base32_crockford_decode,
-    intid_encode_int_base32_crockford,
-  )
-}
-
-// Encode a non-negative `Int` as a Base10 (decimal) string.
-// Returns `Error(NegativeValue(value))` for negative inputs; see
-// the module note on "Negative inputs are rejected".
-//
-// Behaviour matches `int.to_string` for the typical case
-// (positive integers) and the rest of the `intid` family for the
-// switch-case bench harnesses described in #78. Routing through
-// `base10.encode` keeps the contract uniform with the other
-// `encode_int_*` functions: a non-negative `Int` in, a string
-// in the alphabet out, no padding.
-fn intid_encode_int_base10(value: Int) -> Result(String, CodecError) {
-  use bytes <- result.map(intid_int_to_bytes_be(value))
-  base10_encode(bytes)
-}
-
-// Decode a Base10 (decimal) string back to an `Int`.
-fn intid_decode_int_base10(input: String) -> Result(Int, CodecError) {
-  intid_decode_canonical(input, base10_decode, intid_encode_int_base10)
-}
-
-// Encode a non-negative `Int` as a Base16 (uppercase hexadecimal)
-// string. Returns `Error(NegativeValue(value))` for negative
-// inputs; see the module note on "Negative inputs are rejected".
-//
-// Routing through `base16.encode` keeps the contract uniform with
-// the rest of the `encode_int_*` family. The output uses the
-// canonical RFC 4648 §8 uppercase alphabet (`0-9 A-F`) — callers
-// who need lowercase for interop with `sha256sum`-style tools can
-// post-process with `string.lowercase`.
-//
-// ## Byte-aligned vs compact
-//
-// This function is **byte-aligned**: the output length is always an
-// even number of hex characters because the encoding pads the
-// integer's big-endian representation to a whole byte boundary
-// (`encode_int_base16(1) == Ok("01")`,
-// `encode_int_base16(2025) == Ok("07E9")`). This is the right
-// shape for ID interop with byte-oriented systems (databases, HTTP
-// headers, content-addressable storage). The other
-// `encode_int_*` functions in this module are *compact* — they
-// drop leading zero characters
-// (`encode_int_base58(1) == Ok("2")`,
-// `encode_int_base36(1) == Ok("1")`,
-// `encode_int_base10(1) == Ok("1")`). Issue #99 surfaced the
-// asymmetry; if you want the compact form for `base16`, use
-// `encode_int_base16_compact/1` instead. `decode_int_base16/1`
-// accepts either form (it does not require an even-length input).
-fn intid_encode_int_base16(value: Int) -> Result(String, CodecError) {
-  use bytes <- result.map(intid_int_to_bytes_be(value))
-  base16_encode(bytes)
-}
-
-// Encode a non-negative `Int` as a Base16 (uppercase hexadecimal)
-// string with leading zero characters stripped — the compact
-// counterpart to `encode_int_base16/1`.
-//
-// ## Byte-aligned vs compact
-//
-// `encode_int_base16/1` is **byte-aligned** (always emits an even
-// number of hex characters: `encode_int_base16(1) == Ok("01")`,
-// `encode_int_base16(2025) == Ok("07E9")`). This function is
-// **compact** — leading `"0"` characters are dropped so the
-// output matches the shape of the rest of the `encode_int_*`
-// family (`encode_int_base58(1) == Ok("2")`,
-// `encode_int_base36(1) == Ok("1")`,
-// `encode_int_base10(1) == Ok("1")`). Examples:
-//
-// ```gleam
-// encode_int_base16_compact(0)      // Ok("0")
-// encode_int_base16_compact(1)      // Ok("1")
-// encode_int_base16_compact(255)    // Ok("FF")
-// encode_int_base16_compact(2025)   // Ok("7E9")
-// encode_int_base16_compact(0xdeadbeef) // Ok("DEADBEEF")
-// ```
-//
-// Use this when you want column-aligned mixed-base output or
-// round-trip-by-text comparisons across the `encode_int_*` family.
-// Keep `encode_int_base16/1` for byte-oriented sinks where the
-// even-length contract matters.
-//
-// `decode_int_base16/1` accepts the compact form unchanged
-// (`decode_int_base16(encode_int_base16_compact(n) |> result.unwrap_or(""))`
-// round-trips for every non-negative `Int`), because the
-// integer decoder pads odd-length input to a byte boundary before
-// calling `base16.decode`, whose input must have even length.
-//
-// Returns `Error(NegativeValue(value))` for negative inputs; see
-// the module note on "Negative inputs are rejected".
-//
-// Added in #99.
+// Compact Base16 omits a leading zero nibble and writes zero as "0".
 fn intid_encode_int_base16_compact(value: Int) -> Result(String, CodecError) {
   use bytes <- result.map(intid_int_to_bytes_be(value))
   intid_drop_leading_zero_chars(base16_encode(bytes))
 }
 
-// Decode a canonical uppercase Base16 string back to an `Int`.
-// Accepts the byte-aligned and compact encoder outputs; extra leading
-// zeros and alternate letter case return `Error(NonCanonical)`.
-//
-// Odd-length inputs are accepted and internally zero-padded on the
-// left to the next byte boundary before being passed to
-// `base16.decode` (`"1"` is treated as `"01"`, `"7E9"` as
-// `"07E9"`). This makes the function tolerant of either output
-// shape from the `encode_int_base16*` family —
-// `decode_int_base16(encode_int_base16(n)) == Ok(n)` *and*
-// `decode_int_base16(encode_int_base16_compact(n)) == Ok(n)` both
-// hold for every non-negative `Int`. The byte-oriented
-// `base16.decode/1` keeps its strict even-length contract for
-// callers reaching for the low-level codec directly. (#99)
+// Accept the byte-aligned and compact uppercase forms. Odd-length input
+// is padded with one leading zero before byte decoding.
 fn intid_decode_int_base16(input: String) -> Result(Int, CodecError) {
   use input <- result.try(intid_reject_empty(input))
   let bytes = bit_array.from_string(input)
@@ -3283,7 +3113,8 @@ fn intid_decode_int_base16(input: String) -> Result(Int, CodecError) {
   }
   use bytes <- result.try(base16_decode(padded))
   use value <- result.try(intid_bytes_to_int(bytes))
-  use aligned <- result.try(intid_encode_int_base16(value))
+  use minimal <- result.try(intid_int_to_bytes_be(value))
+  let aligned = base16_encode(minimal)
   use compact <- result.try(intid_encode_int_base16_compact(value))
   case input == aligned || input == compact {
     True -> Ok(value)
@@ -3291,198 +3122,11 @@ fn intid_decode_int_base16(input: String) -> Result(Int, CodecError) {
   }
 }
 
-// Encode a non-negative `Int` as a Base36 string. Returns
-// `Error(NegativeValue(value))` for negative inputs; see the
-// module note on "Negative inputs are rejected".
-fn intid_encode_int_base36(value: Int) -> Result(String, CodecError) {
-  use bytes <- result.map(intid_int_to_bytes_be(value))
-  base36_encode(bytes)
-}
-
-// Decode a Base36 string back to an `Int`.
-fn intid_decode_int_base36(input: String) -> Result(Int, CodecError) {
-  intid_decode_canonical(input, base36_decode, intid_encode_int_base36)
-}
-
-// Encode a non-negative `Int` as a Base58 (Bitcoin alphabet)
-// string. Returns `Error(NegativeValue(value))` for negative
-// inputs; see the module note on "Negative inputs are rejected".
-fn intid_encode_int_base58(value: Int) -> Result(String, CodecError) {
-  use bytes <- result.map(intid_int_to_bytes_be(value))
-  base58_bitcoin_encode(bytes)
-}
-
-// Decode a Base58 (Bitcoin alphabet) string back to an `Int`,
-// rejecting non-canonical wire forms with `Error(NonCanonical)`.
-//
-// The Bitcoin Base58 alphabet uses `"1"` as the zero character, so
-// the byte-oriented `base58_bitcoin.decode` prepends one `0x00` byte
-// for every leading `"1"` in the input. When that byte string is
-// read back as a big-endian integer the leading zero bytes
-// disappear, which means `"5Q"`, `"15Q"`, `"115Q"`, … all decode to
-// the same `Int`. That collapses the bijection that ID callers
-// (URL shorteners, idempotency keys, database lookups) rely on:
-// two different wire strings can name the same row, breaking
-// deduplication and cache invariants.
-//
-// The fix is to require the input to be byte-equal to the
-// canonical encoding (`encode_int_base58(decoded) == input`). The
-// only legal leading `"1"` is the single-character input `"1"`,
-// which is the canonical encoding of `0`. Any other input that
-// starts with `"1"` is `Error(NonCanonical)`. Closes #101.
-fn intid_decode_int_base58(input: String) -> Result(Int, CodecError) {
-  intid_decode_canonical(input, base58_bitcoin_decode, intid_encode_int_base58)
-}
-
-// Encode a non-negative `Int` as a Base58 (Flickr alphabet)
-// string. Returns `Error(NegativeValue(value))` for negative
-// inputs; see the module note on "Negative inputs are rejected".
-fn intid_encode_int_base58_flickr(value: Int) -> Result(String, CodecError) {
-  use bytes <- result.map(intid_int_to_bytes_be(value))
-  base58_flickr_encode(bytes)
-}
-
-// Decode a Base58 (Flickr alphabet) string back to an `Int`.
-fn intid_decode_int_base58_flickr(input: String) -> Result(Int, CodecError) {
-  intid_decode_canonical(
-    input,
-    base58_flickr_decode,
-    intid_encode_int_base58_flickr,
-  )
-}
-
-// Encode a non-negative `Int` as a Crockford Base32 string with a
-// trailing checksum symbol (Douglas Crockford's optional check
-// character).
-//
-// Issue #73: same shape as `encode_int_base32_crockford` but with
-// the typo-resistance guard the underlying codec already supports.
-// Use the matching `decode_int_base32_crockford_check` to recover
-// the integer; the decoder verifies the symbol and returns
-// `Error(InvalidChecksum)` if the input was mistyped.
-//
-// Returns `Error(NegativeValue(value))` for negative inputs; see
-// the module note on "Negative inputs are rejected".
-fn intid_encode_int_base32_crockford_check(
-  value: Int,
-) -> Result(String, CodecError) {
-  use bytes <- result.map(intid_int_to_bytes_be(value))
-  base32_crockford_encode_check(bytes)
-}
-
-// Decode a checksummed Crockford Base32 string back to an `Int`,
-// verifying the trailing check symbol.
-fn intid_decode_int_base32_crockford_check(
-  input: String,
-) -> Result(Int, CodecError) {
-  intid_decode_canonical(
-    input,
-    base32_crockford_decode_check,
-    intid_encode_int_base32_crockford_check,
-  )
-}
-
-// Decode a Base58Check string back to an `Int`, verifying the
-// 4-byte SHA-256 checksum.
-//
-// Issue #73: returns the *payload* as an `Int`, ignoring the version
-// byte (which `encode_int_base58check` always sets to `0`).
-// Callers that need to inspect the version byte should reach for
-// `yabase/base58check.decode/1` directly.
+// Decode a Base58Check integer with any version byte.
 fn intid_decode_int_base58check(input: String) -> Result(Int, CodecError) {
   use input <- result.try(intid_reject_empty(input))
   use decoded <- result.try(base58check_decode(input))
   intid_canonical_payload(decoded.payload)
-}
-
-// Encode a non-negative `Int` as a Base62 string. Returns
-// `Error(NegativeValue(value))` for negative inputs; see the
-// module note on "Negative inputs are rejected".
-fn intid_encode_int_base62(value: Int) -> Result(String, CodecError) {
-  use bytes <- result.map(intid_int_to_bytes_be(value))
-  base62_encode(bytes)
-}
-
-// Decode a Base62 string back to an `Int`.
-fn intid_decode_int_base62(input: String) -> Result(Int, CodecError) {
-  intid_decode_canonical(input, base62_decode, intid_encode_int_base62)
-}
-
-// ---------------------------------------------------------------------------
-// Generic Encoding -> Int facade (#93)
-//
-// The per-base helpers above are the right tool when the codec is
-// known at compile time. The facade is the right tool when the
-// codec is picked at runtime (multibase auto-detection, user
-// preference, config). The shape mirrors `yabase.encode` /
-// `yabase.decode` so a call site that already uses the byte facade
-// reads the integer-side call the same way.
-// ---------------------------------------------------------------------------
-
-// Encode an `Int` to a string using the supplied `Encoding`,
-// dispatching to the matching `encode_int_*` helper. Negative
-// inputs surface as `Error(NegativeValue(value))` exactly as the
-// per-base helpers do; see the module note on "Negative inputs
-// are rejected" for the rationale and the boundary-handling
-// pattern.
-//
-// Returns `Error(UnsupportedForInt(name))` for encodings that have
-// no integer codec wired up (every byte-only codec: `Base2`,
-// `Base8`, `Base32(Hex|Clockwork|ZBase32)`, `Base45`, every
-// `Base64` / `Base85` variant, `Base91`, `Bech32`). For
-// `Base58Check`, the existing `encode_int_base58check/1` helper
-// uses the fixed version byte `0x00`; reach for the generic
-// facade with `encoding.base58_check(version)` to pin a different
-// version.
-fn intid_encode_int(
-  encoding encoding: Encoding,
-  value value: Int,
-) -> Result(String, CodecError) {
-  case encoding_int_codec(encoding) {
-    IntBase10 -> intid_encode_int_base10(value)
-    IntBase16 -> intid_encode_int_base16(value)
-    IntBase32Rfc4648 -> intid_encode_int_base32_rfc4648(value)
-    IntBase32Crockford -> intid_encode_int_base32_crockford(value)
-    IntBase32CrockfordCheck -> intid_encode_int_base32_crockford_check(value)
-    IntBase36 -> intid_encode_int_base36(value)
-    IntBase58Bitcoin -> intid_encode_int_base58(value)
-    IntBase58Flickr -> intid_encode_int_base58_flickr(value)
-    IntBase58Check(version) -> {
-      use bytes <- result.try(intid_int_to_bytes_be(value))
-      base58check_encode(version, bytes)
-    }
-    IntBase62 -> intid_encode_int_base62(value)
-    IntCodecUnsupported(name) -> Error(UnsupportedForInt(name))
-  }
-}
-
-// Decode a string back to an `Int` using the supplied `Encoding`,
-// dispatching to the matching `decode_int_*` helper.
-//
-// Empty input returns `Error(InvalidLength(0))` so callers can
-// distinguish "no ID was supplied" from "the ID is zero" — the
-// same contract as the per-base helpers.
-//
-// Returns `Error(UnsupportedForInt(name))` for encodings that have
-// no integer codec wired up.
-fn intid_decode_int(
-  encoding encoding: Encoding,
-  value value: String,
-) -> Result(Int, CodecError) {
-  case encoding_int_codec(encoding) {
-    IntBase10 -> intid_decode_int_base10(value)
-    IntBase16 -> intid_decode_int_base16(value)
-    IntBase32Rfc4648 -> intid_decode_int_base32_rfc4648(value)
-    IntBase32Crockford -> intid_decode_int_base32_crockford(value)
-    IntBase32CrockfordCheck -> intid_decode_int_base32_crockford_check(value)
-    IntBase36 -> intid_decode_int_base36(value)
-    IntBase58Bitcoin -> intid_decode_int_base58(value)
-    IntBase58Flickr -> intid_decode_int_base58_flickr(value)
-    IntBase58Check(version) ->
-      intid_decode_int_base58check_with_version(value, version)
-    IntBase62 -> intid_decode_int_base62(value)
-    IntCodecUnsupported(name) -> Error(UnsupportedForInt(name))
-  }
 }
 
 fn intid_decode_int_base58check_with_version(
@@ -3515,15 +3159,9 @@ fn intid_bound_check(value: Int, max: Int) -> Result(Int, CodecError) {
   Ok(value)
 }
 
-// Convert a non-negative `Int` into a canonical big-endian
-// `BitArray` for the per-base encoders. Negative inputs are
-// rejected with `Error(NegativeValue(_))` rather than silently
-// absolutized — the historical `int.absolute_value` shortcut
-// destroyed the sign and broke `decode(encode(n)) == n` for
-// every `n < 0` (closed #84, regressed in #100). Zero is the
-// only value that maps to a single zero byte; every other
-// non-negative value is encoded with the minimum number of
-// bytes required to represent its magnitude.
+// The minimal big-endian bytes of a nonnegative value. Zero is one zero
+// byte. Negative values are rejected rather than made absolute, which
+// would break decode(encode(n)) == n.
 fn intid_int_to_bytes_be(value: Int) -> Result(BitArray, CodecError) {
   use <- bool.guard(when: value < 0, return: Error(NegativeValue(value)))
   use Nil <- result.try(intid_check_target_range(value))
@@ -3560,14 +3198,7 @@ fn intid_bytes_to_int_loop(
   }
 }
 
-// Drop every leading `"0"` character from `s`. If the entire string
-// is composed of `"0"` characters (the magnitude-zero case), preserve
-// a single `"0"` so the compact form still has at least one digit —
-// matching `encode_int_base10(0) == "0"`,
-// `encode_int_base36(0) == "0"` etc. Used by
-// `encode_int_base16_compact/1` to turn the byte-aligned output of
-// `base16.encode` into the compact form expected by the rest of the
-// `encode_int_*` family. (#99)
+// Drop leading "0" characters but keep one digit for zero.
 fn intid_drop_leading_zero_chars(s: String) -> String {
   use <- bool.guard(when: !string.starts_with(s, "0"), return: s)
   let rest = string.drop_start(s, 1)
@@ -3589,12 +3220,13 @@ fn intid_check_target_range(value: Int) -> Result(Nil, CodecError) {
 fn intid_decode_canonical(
   input: String,
   decode: fn(String) -> Result(BitArray, CodecError),
-  encode: fn(Int) -> Result(String, CodecError),
+  encode: fn(BitArray) -> Result(String, CodecError),
 ) -> Result(Int, CodecError) {
   use input <- result.try(intid_reject_empty(input))
   use bytes <- result.try(decode(input))
   use value <- result.try(intid_bytes_to_int(bytes))
-  use canonical <- result.try(encode(value))
+  use minimal <- result.try(intid_int_to_bytes_be(value))
+  use canonical <- result.try(encode(minimal))
   case input == canonical {
     True -> Ok(value)
     False -> Error(NonCanonical)

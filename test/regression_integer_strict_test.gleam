@@ -97,11 +97,11 @@ pub fn version_agnostic_integer_keeps_all_versions_test() {
 
 pub fn lowerhex_is_not_a_new_integer_format_test() {
   assert y.encode_int(1, using: y.Base16Lowercase)
-    == Error(y.UnsupportedForInt("Base16Lowercase"))
+    == Error(y.UnsupportedForInt("base16lower"))
   assert y.encode_int(-1, using: y.Base16Lowercase)
-    == Error(y.UnsupportedForInt("Base16Lowercase"))
+    == Error(y.UnsupportedForInt("base16lower"))
   assert y.decode_int("", using: y.Base16Lowercase, up_to: Some(-1))
-    == Error(y.UnsupportedForInt("Base16Lowercase"))
+    == Error(y.UnsupportedForInt("base16lower"))
 }
 
 pub fn unsupported_integer_names_and_admission_are_preserved_test() {
@@ -127,9 +127,10 @@ pub fn unsupported_integer_names_and_admission_are_preserved_test() {
     #(y.Bech32Encoding("", y.Bech32m), "Bech32"),
   ]
   list.each(rows, fn(row) {
-    assert y.encode_int(-1, using: row.0) == Error(y.UnsupportedForInt(row.1))
+    assert y.encode_int(-1, using: row.0)
+      == Error(y.UnsupportedForInt(y.encoding_to_string(row.0)))
     assert y.decode_int("", using: row.0, up_to: Some(-1))
-      == Error(y.UnsupportedForInt(row.1))
+      == Error(y.UnsupportedForInt(y.encoding_to_string(row.0)))
   })
 }
 

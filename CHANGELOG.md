@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- `UnsupportedForInt` carries the same name as `encoding_to_string`, for example `"base64dq"` and `"base64pad"`, instead of the removed constructor spellings `"Base64(DQ)"` and `"Base64(Standard)"`.
+- Decoding with an uppercase expected Bech32 HRP returns `InvalidHrp("HRP must be lowercase")`, as encoding with the same `Encoding` does, instead of an `UnexpectedHrp` that can never match.
+
+### Fixed
+
+- On Erlang, a decoder given a String that is not UTF-8 (possible through FFI) returns `InvalidCharacter("", position)` for the first invalid byte. Alphabet-table decoders such as Base64 and Base58 crashed on such input, and Adobe Ascii85 silently dropped everything after the invalid byte and could return `Ok`.
+
 ## [0.26.0] - 2026-11-23
 
 ### Changed

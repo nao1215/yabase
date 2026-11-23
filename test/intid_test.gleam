@@ -903,13 +903,13 @@ pub fn encode_int_facade_unsupported_base64_test() -> Nil {
   // Base64 has no integer codec. The facade must surface
   // UnsupportedForInt rather than fall back to byte encoding.
   let result = yabase.encode_int(42, using: yabase.Base64)
-  assert result == Error(UnsupportedForInt("Base64(Standard)"))
+  assert result == Error(UnsupportedForInt("base64pad"))
 }
 
 pub fn encode_int_facade_unsupported_bech32_test() -> Nil {
   let result =
     yabase.encode_int(42, using: yabase.Bech32Encoding("bc", yabase.Bech32))
-  assert result == Error(UnsupportedForInt("Bech32"))
+  assert result == Error(UnsupportedForInt("bech32"))
 }
 
 pub fn decode_int_facade_matches_per_base_base58_test() -> Nil {
@@ -931,7 +931,7 @@ pub fn decode_int_facade_rejects_empty_input_test() -> Nil {
 
 pub fn decode_int_facade_unsupported_test() -> Nil {
   assert yabase.decode_int("abc", using: yabase.Z85, up_to: option.None)
-    == Error(UnsupportedForInt("Base85(Z85)"))
+    == Error(UnsupportedForInt("z85"))
 }
 
 pub fn encode_int_then_decode_int_round_trip_test() -> Nil {

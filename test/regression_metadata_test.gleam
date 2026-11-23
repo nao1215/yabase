@@ -60,7 +60,7 @@ pub fn bech32_metadata_mismatch_priority_test() {
   assert y.decode("bc1qy2tv693", using: y.Bech32Encoding("bc", y.Bech32))
     == Error(y.UnexpectedBech32Variant(y.Bech32, y.Bech32m))
   assert y.decode("BC1QYLHUKQN", using: y.Bech32Encoding("BC", y.Bech32))
-    == Error(y.UnexpectedHrp("BC", "bc"))
+    == Error(y.InvalidHrp("HRP must be lowercase"))
 }
 
 pub fn bech32_wire_then_setting_then_mismatch_test() {
@@ -95,9 +95,9 @@ pub fn bech32_length_ascii_case_and_data_priority_test() {
 
 pub fn integer_unsupported_and_negative_precede_version_test() {
   assert y.encode_int(-1, using: y.Base64)
-    == Error(y.UnsupportedForInt("Base64(Standard)"))
+    == Error(y.UnsupportedForInt("base64pad"))
   assert y.decode_int("", using: y.Base64, up_to: None)
-    == Error(y.UnsupportedForInt("Base64(Standard)"))
+    == Error(y.UnsupportedForInt("base64pad"))
   assert y.encode_int(-1, using: y.Base58Check(-1))
     == Error(y.NegativeValue(-1))
   assert y.encode_int(1, using: y.Base58Check(-1))
