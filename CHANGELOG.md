@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.27.0] - 2026-11-23
+
 ### Changed
 
 - `UnsupportedForInt` carries the same name as `encoding_to_string`, for example `"base64dq"` and `"base64pad"`, instead of the removed constructor spellings `"Base64(DQ)"` and `"Base64(Standard)"`.
