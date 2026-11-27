@@ -52,6 +52,8 @@ pub fn encode_version_255_ok_test() -> Nil {
 pub fn encode_version_256_error_test() -> Nil {
   assert yabase.encode(<<>>, using: yabase.Base58Check(256))
     == Error(yabase.InvalidVersion(256))
+  assert yabase.decode("AfV34tDpMb", using: yabase.Base58Check(version: 255))
+    == Ok(<<1, 2>>)
 }
 
 pub fn encode_version_negative_error_test() -> Nil {
@@ -228,4 +230,13 @@ pub fn bs58check_vector_1ax4_test() -> Nil {
       0x6b,
       0xf4,
     >>
+}
+
+pub fn encode_accepts_the_largest_version_test() -> Nil {
+  assert yabase.encode(<<1, 2>>, using: yabase.Base58Check(version: 255))
+    == Ok("AfV34tDpMb")
+  assert yabase.encode(<<1, 2>>, using: yabase.Base58Check(version: 256))
+    == Error(yabase.InvalidVersion(256))
+  assert yabase.decode("AfV34tDpMb", using: yabase.Base58Check(version: 255))
+    == Ok(<<1, 2>>)
 }

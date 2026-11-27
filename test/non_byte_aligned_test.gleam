@@ -171,3 +171,12 @@ pub fn bech32_rejects_sub_byte_data_test() -> Nil {
     )
     == Error(yabase.UnalignedInput(3))
 }
+
+// Inputs longer than 4096 bytes are counted in large steps; the reported
+// size is still exact.
+pub fn large_unaligned_input_reports_its_exact_bit_size_test() -> Nil {
+  assert yabase.encode(<<0:size(32_769)>>, using: yabase.Base16)
+    == Error(yabase.UnalignedInput(32_769))
+  assert yabase.encode(<<0:size(65_545)>>, using: yabase.Base16)
+    == Error(yabase.UnalignedInput(65_545))
+}

@@ -218,3 +218,12 @@ pub fn decode_reports_the_position_of_a_lone_final_char_after_whitespace_test() 
   assert yabase.decode("87cU RD", using: yabase.Ascii85)
     == Error(InvalidLength(7))
 }
+
+// The length reported for a lone final character counts a CR LF, a "z"
+// and a "y" as one character each.
+pub fn decode_counts_shortcuts_and_crlf_before_a_lone_final_char_test() -> Nil {
+  assert yabase.decode("\r\n!", using: yabase.Ascii85)
+    == Error(InvalidLength(2))
+  assert yabase.decode("z!", using: yabase.Ascii85) == Error(InvalidLength(2))
+  assert yabase.decode("y!", using: yabase.Ascii85) == Error(InvalidLength(2))
+}

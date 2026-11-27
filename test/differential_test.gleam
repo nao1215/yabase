@@ -16,7 +16,6 @@ import gleam/bit_array
 import gleam/string
 import metamon
 import metamon/generator.{type Generator}
-import metamon/generator/range
 
 @target(erlang)
 import yabase/internal/sha256
@@ -25,52 +24,54 @@ import yabase/internal/sha256
 /// 55/56/64-byte message lengths where the padding spills into a
 /// second block.
 fn bytes_generator() -> Generator(BitArray) {
-  generator.bit_array(range.constant(0, 70))
+  generator.bit_array(bytes: generator.range(from: 0, to: 70))
 }
 
 pub fn base64_standard_matches_gleam_stdlib_test() -> Nil {
   metamon.forall(bytes_generator(), fn(data) {
     let reference = bit_array.base64_encode(data, True)
-    codec_test_support.encode(data, using: yabase.Base64) == reference
-    && yabase.decode(reference, using: yabase.Base64) == Ok(data)
+    assert codec_test_support.encode(data, using: yabase.Base64) == reference
+    assert yabase.decode(reference, using: yabase.Base64) == Ok(data)
   })
 }
 
 pub fn base64_nopadding_matches_gleam_stdlib_test() -> Nil {
   metamon.forall(bytes_generator(), fn(data) {
     let reference = bit_array.base64_encode(data, False)
-    codec_test_support.encode(data, using: yabase.Base64NoPadding) == reference
-    && yabase.decode(reference, using: yabase.Base64NoPadding) == Ok(data)
+    assert codec_test_support.encode(data, using: yabase.Base64NoPadding)
+      == reference
+    assert yabase.decode(reference, using: yabase.Base64NoPadding) == Ok(data)
   })
 }
 
 pub fn base64_urlsafe_matches_gleam_stdlib_test() -> Nil {
   metamon.forall(bytes_generator(), fn(data) {
     let reference = bit_array.base64_url_encode(data, True)
-    codec_test_support.encode(data, using: yabase.Base64UrlSafe) == reference
-    && yabase.decode(reference, using: yabase.Base64UrlSafe) == Ok(data)
+    assert codec_test_support.encode(data, using: yabase.Base64UrlSafe)
+      == reference
+    assert yabase.decode(reference, using: yabase.Base64UrlSafe) == Ok(data)
   })
 }
 
 pub fn base64_urlsafe_nopadding_matches_gleam_stdlib_test() -> Nil {
   metamon.forall(bytes_generator(), fn(data) {
     let reference = bit_array.base64_url_encode(data, False)
-    codec_test_support.encode(data, using: yabase.Base64UrlSafeNoPadding)
-    == reference
-    && yabase.decode(reference, using: yabase.Base64UrlSafeNoPadding)
-    == Ok(data)
+    assert codec_test_support.encode(data, using: yabase.Base64UrlSafeNoPadding)
+      == reference
+    assert yabase.decode(reference, using: yabase.Base64UrlSafeNoPadding)
+      == Ok(data)
   })
 }
 
 pub fn base16_matches_gleam_stdlib_test() -> Nil {
   metamon.forall(bytes_generator(), fn(data) {
     let reference = bit_array.base16_encode(data)
-    codec_test_support.encode(data, using: yabase.Base16) == reference
-    && codec_test_support.encode(data, using: yabase.Base16Lowercase)
-    == string.lowercase(reference)
-    && yabase.decode(reference, using: yabase.Base16) == Ok(data)
-    && yabase.decode(string.lowercase(reference), using: yabase.Base16)
-    == Ok(data)
+    assert codec_test_support.encode(data, using: yabase.Base16) == reference
+    assert codec_test_support.encode(data, using: yabase.Base16Lowercase)
+      == string.lowercase(reference)
+    assert yabase.decode(reference, using: yabase.Base16) == Ok(data)
+    assert yabase.decode(string.lowercase(reference), using: yabase.Base16)
+      == Ok(data)
   })
 }
 
@@ -85,7 +86,10 @@ type HashAlgorithm {
 
 @target(erlang)
 pub fn sha256_matches_erlang_crypto_test() -> Nil {
-  metamon.forall(generator.bit_array(range.constant(0, 200)), fn(data) {
-    sha256.hash(data) == erlang_crypto_hash(Sha256, data)
-  })
+  metamon.forall(
+    generator.bit_array(bytes: generator.range(from: 0, to: 200)),
+    fn(data) {
+      assert sha256.hash(data) == erlang_crypto_hash(Sha256, data)
+    },
+  )
 }

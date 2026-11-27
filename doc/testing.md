@@ -52,6 +52,26 @@ multibase prefixes. `just gen-readme` prints the table from the public registry.
 and rejects empty discovery and incomplete fences. Example programs remain
 under `examples/`; `just verify-examples` compiles them and runs each `main` on both targets.
 
+## Mutation testing
+
+`gleam run -m metamon/mutation` changes one operator, `!` or boolean literal in a module under `src/` at a time and runs `gleam test --target erlang` on each change. `.github/workflows/mutation.yml` mutates the modules a pull request or push changes and fails on a survivor that `doc/mutation/baseline.json` does not list; the weekly run mutates every module. `just mutation` runs it locally and `just mutation-record` records the baseline. The score is (killed + timed out) / (killed + timed out + lived). Some mutants loop forever and allocate until the machine runs out of memory; a test run stopped by an out-of-memory killer exits like a passing one, so run locally with `ERL_FLAGS="+hmax 268435456 +hmaxk true"`, which stops a process above 2 GiB of heap and counts the mutant as killed.
+
+The first run (2026-11-27) scored 88.2% with 42 survivors, three of them looping mutants stopped by the out-of-memory killer. Tests were then added for error positions after whitespace, CR LF and padding in Base45, Base91 and Base64Dq, the length reported for a lone final Ascii85 character after `z`, `y` or CR LF, the largest two- and three-symbol Base45 groups, Base91 vectors at the queue boundaries computed with the reference algorithm, a lone Base32 data character before padding, Base58Check version 255, the first and last HRP characters of Bech32 and the index of an invalid one, and the bit size of large unaligned input, and the score rose to 94.7%. The 19 survivors left change nothing on Erlang:
+
+- Positions passed to the invalid-character error (5): the Base91 decoder and the big-number digit reader pass a character position that the error ignores; it is computed again from the byte offset.
+- Checks that only run on JavaScript (6): the integer range check of the integer codecs is a no-op on Erlang (3), a remainder in SHA-256 is never negative on Erlang and its sums never land on an exact multiple of 2^32 in the tests (2), and the high word of the SHA-256 length is 0 for any input below 512 MiB, either way (1).
+- ASCII fast paths (4): a non-ASCII character never starts with byte 128, and the fast path and the general path count the same length.
+- The number of digits per limb in the big-number codecs (3): any limb size gives the same digits on Erlang, whose integers do not overflow.
+- Emitting a bit group as soon as it is full or one byte later (1), which gives the same symbols.
+
+<!-- mutation:start -->
+| Module | Killed | Lived | Timed out | Score |
+|---|---:|---:|---:|---:|
+| `yabase` | 323 | 16 | 1 | 95.3% |
+| `yabase/internal/sha256` | 13 | 3 | 0 | 81.3% |
+| all | 336 | 19 | 1 | 94.7% |
+<!-- mutation:end -->
+
 ## Historical mutation testing
 
 The following results describe the pre-refactor source on 2026-11-19. They are
