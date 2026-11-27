@@ -111,3 +111,33 @@ pub fn base45_and_base91_report_an_invalid_character_at_its_index_test() -> Nil 
   assert yabase.decode("fPNKd'", using: yabase.Base91)
     == Error(InvalidCharacter("'", 5))
 }
+
+// The second and third symbol of a Base45 group, and a symbol after
+// whitespace or CR LF in Base91, are reported at their own index.
+pub fn base45_and_base91_count_the_symbols_before_an_invalid_one_test() -> Nil {
+  assert yabase.decode("A!A", using: yabase.Base45)
+    == Error(InvalidCharacter("!", 1))
+  assert yabase.decode("AA!", using: yabase.Base45)
+    == Error(InvalidCharacter("!", 2))
+  assert yabase.decode("AB -", using: yabase.Base91)
+    == Error(InvalidCharacter("-", 3))
+  assert yabase.decode("AB\r\n-", using: yabase.Base91)
+    == Error(InvalidCharacter("-", 3))
+}
+
+// A misplaced Base64Dq pad, and a character after a pad, are reported at
+// their grapheme index in every group.
+pub fn base64_dq_reports_a_misplaced_pad_at_its_index_test() -> Nil {
+  assert yabase.decode("あ・ちけ", using: yabase.Base64Dq)
+    == Error(InvalidCharacter("・", 1))
+  assert yabase.decode("あち・け", using: yabase.Base64Dq)
+    == Error(InvalidCharacter("・", 2))
+  assert yabase.decode("あちけえ・あちけ", using: yabase.Base64Dq)
+    == Error(InvalidCharacter("・", 4))
+  assert yabase.decode("あちけえあ・ちけ", using: yabase.Base64Dq)
+    == Error(InvalidCharacter("・", 5))
+  assert yabase.decode("あちけえあち・け", using: yabase.Base64Dq)
+    == Error(InvalidCharacter("・", 6))
+  assert yabase.decode("あち・x", using: yabase.Base64Dq)
+    == Error(InvalidCharacter("x", 3))
+}

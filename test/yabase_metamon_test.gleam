@@ -9,10 +9,9 @@ import yabase
 
 import metamon
 import metamon/generator
-import metamon/generator/range
 
 fn small_bit_array_generator() -> generator.Generator(BitArray) {
-  generator.bit_array(range.constant(0, 32))
+  generator.bit_array(bytes: generator.range(from: 0, to: 32))
 }
 
 fn z85_friendly_bit_array_generator() -> generator.Generator(BitArray) {
@@ -50,21 +49,21 @@ fn ascii85_friendly_bit_array_generator() -> generator.Generator(BitArray) {
 
 pub fn base16_round_trip_test() -> Nil {
   metamon.forall(small_bit_array_generator(), fn(data) {
-    yabase.decode(
-      codec_test_support.encode(data, using: yabase.Base16),
-      using: yabase.Base16,
-    )
-    == Ok(data)
+    assert yabase.decode(
+        codec_test_support.encode(data, using: yabase.Base16),
+        using: yabase.Base16,
+      )
+      == Ok(data)
   })
 }
 
 pub fn base16_lowercase_round_trip_test() -> Nil {
   metamon.forall(small_bit_array_generator(), fn(data) {
-    yabase.decode(
-      codec_test_support.encode(data, using: yabase.Base16Lowercase),
-      using: yabase.Base16,
-    )
-    == Ok(data)
+    assert yabase.decode(
+        codec_test_support.encode(data, using: yabase.Base16Lowercase),
+        using: yabase.Base16,
+      )
+      == Ok(data)
   })
 }
 
@@ -72,41 +71,41 @@ pub fn base16_lowercase_round_trip_test() -> Nil {
 
 pub fn base32_rfc4648_round_trip_test() -> Nil {
   metamon.forall(small_bit_array_generator(), fn(data) {
-    yabase.decode(
-      codec_test_support.encode(data, using: yabase.Base32Rfc4648),
-      using: yabase.Base32Rfc4648,
-    )
-    == Ok(data)
+    assert yabase.decode(
+        codec_test_support.encode(data, using: yabase.Base32Rfc4648),
+        using: yabase.Base32Rfc4648,
+      )
+      == Ok(data)
   })
 }
 
 pub fn base32_hex_round_trip_test() -> Nil {
   metamon.forall(small_bit_array_generator(), fn(data) {
-    yabase.decode(
-      codec_test_support.encode(data, using: yabase.Base32Hex),
-      using: yabase.Base32Hex,
-    )
-    == Ok(data)
+    assert yabase.decode(
+        codec_test_support.encode(data, using: yabase.Base32Hex),
+        using: yabase.Base32Hex,
+      )
+      == Ok(data)
   })
 }
 
 pub fn base32_crockford_round_trip_test() -> Nil {
   metamon.forall(small_bit_array_generator(), fn(data) {
-    yabase.decode(
-      codec_test_support.encode(data, using: yabase.Base32Crockford),
-      using: yabase.Base32Crockford,
-    )
-    == Ok(data)
+    assert yabase.decode(
+        codec_test_support.encode(data, using: yabase.Base32Crockford),
+        using: yabase.Base32Crockford,
+      )
+      == Ok(data)
   })
 }
 
 pub fn base32_clockwork_round_trip_test() -> Nil {
   metamon.forall(small_bit_array_generator(), fn(data) {
-    yabase.decode(
-      codec_test_support.encode(data, using: yabase.Base32Clockwork),
-      using: yabase.Base32Clockwork,
-    )
-    == Ok(data)
+    assert yabase.decode(
+        codec_test_support.encode(data, using: yabase.Base32Clockwork),
+        using: yabase.Base32Clockwork,
+      )
+      == Ok(data)
   })
 }
 
@@ -114,31 +113,31 @@ pub fn base32_clockwork_round_trip_test() -> Nil {
 
 pub fn base64_standard_round_trip_test() -> Nil {
   metamon.forall(small_bit_array_generator(), fn(data) {
-    yabase.decode(
-      codec_test_support.encode(data, using: yabase.Base64),
-      using: yabase.Base64,
-    )
-    == Ok(data)
+    assert yabase.decode(
+        codec_test_support.encode(data, using: yabase.Base64),
+        using: yabase.Base64,
+      )
+      == Ok(data)
   })
 }
 
 pub fn base64_urlsafe_round_trip_test() -> Nil {
   metamon.forall(small_bit_array_generator(), fn(data) {
-    yabase.decode(
-      codec_test_support.encode(data, using: yabase.Base64UrlSafe),
-      using: yabase.Base64UrlSafe,
-    )
-    == Ok(data)
+    assert yabase.decode(
+        codec_test_support.encode(data, using: yabase.Base64UrlSafe),
+        using: yabase.Base64UrlSafe,
+      )
+      == Ok(data)
   })
 }
 
 pub fn base64_nopadding_round_trip_test() -> Nil {
   metamon.forall(small_bit_array_generator(), fn(data) {
-    yabase.decode(
-      codec_test_support.encode(data, using: yabase.Base64NoPadding),
-      using: yabase.Base64NoPadding,
-    )
-    == Ok(data)
+    assert yabase.decode(
+        codec_test_support.encode(data, using: yabase.Base64NoPadding),
+        using: yabase.Base64NoPadding,
+      )
+      == Ok(data)
   })
 }
 
@@ -146,78 +145,78 @@ pub fn base64_nopadding_round_trip_test() -> Nil {
 
 pub fn base10_round_trip_test() -> Nil {
   metamon.forall(small_bit_array_generator(), fn(data) {
-    yabase.decode(
-      codec_test_support.encode(data, using: yabase.Base10),
-      using: yabase.Base10,
-    )
-    == Ok(data)
+    assert yabase.decode(
+        codec_test_support.encode(data, using: yabase.Base10),
+        using: yabase.Base10,
+      )
+      == Ok(data)
   })
 }
 
 pub fn base36_round_trip_test() -> Nil {
   metamon.forall(small_bit_array_generator(), fn(data) {
-    yabase.decode(
-      codec_test_support.encode(data, using: yabase.Base36),
-      using: yabase.Base36,
-    )
-    == Ok(data)
+    assert yabase.decode(
+        codec_test_support.encode(data, using: yabase.Base36),
+        using: yabase.Base36,
+      )
+      == Ok(data)
   })
 }
 
 pub fn base45_round_trip_test() -> Nil {
   metamon.forall(small_bit_array_generator(), fn(data) {
-    yabase.decode(
-      codec_test_support.encode(data, using: yabase.Base45),
-      using: yabase.Base45,
-    )
-    == Ok(data)
+    assert yabase.decode(
+        codec_test_support.encode(data, using: yabase.Base45),
+        using: yabase.Base45,
+      )
+      == Ok(data)
   })
 }
 
 pub fn base58_bitcoin_round_trip_test() -> Nil {
   metamon.forall(small_bit_array_generator(), fn(data) {
-    yabase.decode(
-      codec_test_support.encode(data, using: yabase.Base58Bitcoin),
-      using: yabase.Base58Bitcoin,
-    )
-    == Ok(data)
+    assert yabase.decode(
+        codec_test_support.encode(data, using: yabase.Base58Bitcoin),
+        using: yabase.Base58Bitcoin,
+      )
+      == Ok(data)
   })
 }
 
 pub fn base62_round_trip_test() -> Nil {
   metamon.forall(small_bit_array_generator(), fn(data) {
-    yabase.decode(
-      codec_test_support.encode(data, using: yabase.Base62),
-      using: yabase.Base62,
-    )
-    == Ok(data)
+    assert yabase.decode(
+        codec_test_support.encode(data, using: yabase.Base62),
+        using: yabase.Base62,
+      )
+      == Ok(data)
   })
 }
 
 pub fn base91_round_trip_test() -> Nil {
   metamon.forall(small_bit_array_generator(), fn(data) {
-    yabase.decode(
-      codec_test_support.encode(data, using: yabase.Base91),
-      using: yabase.Base91,
-    )
-    == Ok(data)
+    assert yabase.decode(
+        codec_test_support.encode(data, using: yabase.Base91),
+        using: yabase.Base91,
+      )
+      == Ok(data)
   })
 }
 
 pub fn ascii85_round_trip_test() -> Nil {
   metamon.forall(ascii85_friendly_bit_array_generator(), fn(data) {
-    yabase.decode(
-      codec_test_support.encode(data, using: yabase.Ascii85),
-      using: yabase.Ascii85,
-    )
-    == Ok(data)
+    assert yabase.decode(
+        codec_test_support.encode(data, using: yabase.Ascii85),
+        using: yabase.Ascii85,
+      )
+      == Ok(data)
   })
 }
 
 pub fn z85_round_trip_test() -> Nil {
   metamon.forall(z85_friendly_bit_array_generator(), fn(data) {
     let assert Ok(encoded) = yabase.encode(data, using: yabase.Z85)
-    yabase.decode(encoded, using: yabase.Z85) == Ok(data)
+    assert yabase.decode(encoded, using: yabase.Z85) == Ok(data)
   })
 }
 

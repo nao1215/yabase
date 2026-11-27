@@ -214,3 +214,24 @@ pub fn decode_skips_mixed_whitespace_test() -> Nil {
   assert yabase.decode(">OwJh\n>Io0\tTv!lE\r\n", using: yabase.Base91)
     == Ok(<<"Hello World":utf8>>)
 }
+
+// Inputs where 13 bits are queued exactly when a byte arrives, where 7
+// bits are left at the end, and where the last value is exactly 90.
+// Expected values from the basE91 reference algorithm.
+pub fn encode_queue_boundaries_match_the_reference_test() -> Nil {
+  assert codec_test_support.encode(
+      <<82, 224, 170, 102, 0, 243>>,
+      using: yabase.Base91,
+    )
+    == "_\"C;O\"eB"
+  assert codec_test_support.encode(
+      <<58, 96, 6, 128, 215, 31>>,
+      using: yabase.Base91,
+    )
+    == "8\"ZA]]P"
+  assert codec_test_support.encode(
+      <<115, 74, 180, 211, 239, 150, 64, 240, 181>>,
+      using: yabase.Base91,
+    )
+    == "kdh^6>cDX|\""
+}

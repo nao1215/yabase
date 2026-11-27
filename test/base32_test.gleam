@@ -563,3 +563,11 @@ pub fn rfc4648_decode_strict_missing_padding_rejected_test() -> Nil {
   // but is non-canonical for the strict path.
   assert yabase.decode_base32_strict("MY") == Error(NonCanonical)
 }
+
+// One or nine data characters leave five bits, less than a byte.
+pub fn rfc4648_decode_rejects_a_lone_data_character_before_padding_test() -> Nil {
+  assert yabase.decode("A=======", using: yabase.Base32Rfc4648)
+    == Error(InvalidLength(8))
+  assert yabase.decode("AAAAAAAAA=======", using: yabase.Base32Rfc4648)
+    == Error(InvalidLength(16))
+}

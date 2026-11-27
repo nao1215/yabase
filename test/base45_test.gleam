@@ -153,3 +153,10 @@ pub fn roundtrip_high_bits_test() -> Nil {
     )
     == Ok(data)
 }
+
+pub fn decode_largest_groups_test() -> Nil {
+  assert yabase.decode("FGW", using: yabase.Base45) == Ok(<<255, 255>>)
+  assert yabase.decode("GGW", using: yabase.Base45) == Error(Overflow)
+  assert yabase.decode("U5", using: yabase.Base45) == Ok(<<255>>)
+  assert yabase.decode("V5", using: yabase.Base45) == Error(Overflow)
+}

@@ -461,3 +461,18 @@ pub fn sipa_invalid_bech32m_empty_hrp_1p2gdwpf_test() -> Nil {
     _ -> False
   }
 }
+
+// "!" and "~" are the first and last characters an HRP may use, and an
+// out-of-range character is reported at its index.
+pub fn hrp_character_range_test() -> Nil {
+  assert yabase.encode(
+      <<1, 2>>,
+      using: yabase.Bech32Encoding(hrp: "!~", variant: yabase.Bech32),
+    )
+    == Ok("!~1qypqhzhzkh")
+  assert yabase.encode(
+      <<1, 2>>,
+      using: yabase.Bech32Encoding(hrp: "ab cd", variant: yabase.Bech32),
+    )
+    == Error(yabase.InvalidHrp("character out of range at 2"))
+}
