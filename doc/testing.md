@@ -52,6 +52,10 @@ multibase prefixes. `just gen-readme` prints the table from the public registry.
 and rejects empty discovery and incomplete fences. Example programs remain
 under `examples/`; `just verify-examples` compiles them and runs each `main` on both targets.
 
+## Coverage
+
+`gleam run -m metamon/mutation -- coverage` (`just coverage`, after `gleam build --target erlang`) runs the tests on the Erlang target with every module under `src/` measured and writes `build/coverage/lcov.info`; `.github/workflows/coverage.yml` reports it with octocov on pull requests and main. On 2026-11-28 it reached 98.0% of lines (1064 of 1086).
+
 ## Mutation testing
 
 `gleam run -m metamon/mutation` changes one operator, `!` or boolean literal in a module under `src/` at a time and runs `gleam test --target erlang` on each change. `.github/workflows/mutation.yml` mutates the modules a pull request or push changes and fails on a survivor that `doc/mutation/baseline.json` does not list; the weekly run mutates every module. `just mutation` runs it locally and `just mutation-record` records the baseline. The score is (killed + timed out) / (killed + timed out + lived). Some mutants loop forever and allocate without end; since metamon 0.18.0 a test process that grows past 1 GiB is killed and the mutant counts as killed.
